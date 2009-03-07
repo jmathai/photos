@@ -1,0 +1,91 @@
+8
+
+dir
+559
+http://node02.fotoflix.com/svn/repos/photagious/branches/version_3/html/images/_styles/default
+http://node02.fotoflix.com/svn/repos/photagious
+
+
+
+2007-06-06T22:07:16.426620Z
+528
+jmathai
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+8cb4916a-1b16-0410-87a3-95c56da499d5
+
+colors.txt
+file
+
+
+
+
+2007-12-17T16:17:15.000000Z
+308376c7c8f0fdfae78b0ab313d524d5
+2006-06-13T16:02:49.200829Z
+1
+jmathai
+
+default
+dir
+
+bold_gold
+dir
+
+bold_blue
+dir
+
+bold_brown
+dir
+
+light_green
+dir
+
+light_pink
+dir
+
+bold_green_yellow
+dir
+
+light_grey
+dir
+
+light_purple
+dir
+
+light_slate
+dir
+
+bold_green
+dir
+
+bold_violet
+dir
+
+bold_grey
+dir
+
+light_peach
+dir
+
+light_tan
+dir
+
+bold_red
+dir
+
+light_blue
+dir
+

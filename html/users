@@ -1,0 +1,36 @@
+<?php
+  $parts    = explode('/', $_SERVER['REQUEST_URI']);
+  $_GET['action'] = 'my.page';
+  
+  $username     = $parts[2];
+  $subaction    = $parts[3] != '' ? $parts[3] : 'home';
+  $subsubaction = $parts[4];
+  
+  $options  = (array)array_slice($parts, 4);
+  
+  foreach($options as $v)
+  {
+    if(strncmp($v, 'page', 4) == 0)
+    {
+      $page   = intval(substr($v, 4));
+    }
+    else
+    if(strncmp($v, 'tags', 4) == 0)
+    {
+      $tags = substr($v, 5); // 5 instead of 4 because format is tags-jaisen,rachel/
+    }
+    if(strncmp($v, 'search', 6) == 0)
+    {
+      $search = substr($v, 6);
+    }
+    else
+    if(strncmp($v, 'quickset', 8) == 0)
+    {
+      $quickset = explode('-', substr($v, 9));
+      $quicksetId = $quickset[0];
+      $quicksetName = $quickset[1];
+    }
+  }
+  
+  include_once './index.php';
+?>

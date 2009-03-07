@@ -1,0 +1,408 @@
+<?php
+  $_SESSION_HASH = $_FF_SESSION->value('sess_hash');
+  
+  $us =& CUser::getInstance();
+  
+  if($_FF_SESSION->value('temp_user_id') > 0) // trial user who is expired
+  {
+    $userTemp = $us->inactive($_FF_SESSION->value('temp_user_id'));
+  }
+  else // trial user who is not expired yet
+  {
+    $userTemp = $us->find($_USER_ID);
+  }
+  
+  $ec =& new CEcom($_USER_ID, $_SESSION_HASH);
+  $accounts = $ec->getGroup(4);
+  
+  $fv =  new CFormValidator;
+  
+  $required = '<span class="f_dark_accent">&nbsp;<sup>*</sup></span>';
+  
+  $fv -> setForm('_registration');
+  $fv -> addElement('u_nameFirst', 'First Name', '  - Please enter your first name.', 'length');
+  $fv -> addElement('u_nameLast', 'Last Name', '  - Please enter your last name.', 'length');
+  $fv -> addElement('u_address', 'Address', '  - Please enter your address.', 'length');
+  $fv -> addElement('u_city', 'City', '  - Please enter your city.', 'length');
+  $fv -> addElement('u_state', 'State', '  - Please select your state.', 'selectboxnull');
+  $fv -> addElement('u_zip', 'Zip', '  - Please enter your zip code.', 'length');
+  $fv -> addElement('accountType', 'Account Type', '  - Please choose an account type.', 'selectboxnull');
+  $fv -> addElement('ecom_cc_num', 'Credit Card Number', ' - Please make sure your credit card number is correct.', 'mod10');
+  $fv -> addElement('ecom_cc_cvv', 'Credit Card CVV', ' - Please enter your credit card cvv number.', 'length');
+  $fv -> addElement('accept_terms', 'Accept Terms', '  - Please check the "Accept Terms" checkbox.', 'checkboxmin1');
+  $fv -> setMaxElementsToDisplay(5);
+  $fv -> setDebugOutput(false);
+  $fv -> setFunctionName('_val_registration');
+  $fv -> validate();
+  // validate method called at bottom
+  
+  echo samplesNavigation(array('samples','demo','tour','features','aboutus'));
+?>
+
+<script type="text/javascript">
+  requireSSL(); // force ssl
+  
+  var accountTypes = [];
+  <?php
+    foreach($accounts as $v)
+    {
+      echo 'accountTypes.push({id:"' . intval($v['C_ID']) . '",price:"' . $v['C_PRICE'] . '"});';
+    }
+  ?>
+  
+  function adjustPrice(id)
+  {
+    for(i in accountTypes)
+    {
+      if(accountTypes[i].id == id)
+      {
+        document.forms['_registration'].elements['ecom_amount'].value = accountTypes[i].price;
+        break;
+      }
+    }
+  }
+</script>
+
+<br/>
+
+<div class="dataSingleContent">
+  <form name="_registration" id="_registration" method="post" action="/?action=home.registration_form_b2.act&redirect=<?php echo urlencode($redirect); ?>" onsubmit="return _val_registration();">
+    <div style="margin-bottom:15px;">
+      <div style="float:left;">
+        <?php
+          switch($_GET['promotion'])
+          {
+            default:
+              echo '<img src="images/homepage/free_trial_graphic_2.jpg" width="150" height="100" hspace="10" class="border_dark" />';
+              break;
+          }
+        ?>
+      </div>
+      <div style="float:left; width:525px;">
+        <div class="f_11 bold">Purchase your Photagious account now!</div>
+        <div class="f_10">
+          Purchase a Photagious account and get continued access to all of our unique features. 
+          <br/><br/>
+          <div class="bold">Sign up for as low as $3.95 a month or get 2 months free when signing up for a year!</div>
+        </div>
+      </div>
+      <br clear="all" />
+    </div>
+    
+    <?php
+      switch($_GET['message'])
+      {
+        case 'credit_card_error':
+          echo '<div class="bold f_red" style="margin-top:10px; margin-bottom:10px; text-align:center;">There was an error processing your credit card.  Please try again or <a href="/contactus/">contact us</a>.</div>';
+          break;
+      }
+    ?>
+
+    <a name="formTop"></a>
+    <div>
+      <div class="bold"><img src="images/icons/user_16x16.png" class="png" width="16" height="16" border="0" align="absmiddle" hspace="5" />Account Information</div>
+    </div>
+    <div class="formBlock">
+      <div class="formRow">
+        <div class="formLabel">Username</div>
+        <div class="formText"><?php echo $userTemp['U_USERNAME']; ?>&nbsp;</div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Password</div>
+        <div class="formText italic">Not shown&nbsp;</div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Email</div>
+        <div class="formText"><?php echo $userTemp['U_EMAIL']; ?>&nbsp;</div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Birth Date</div>
+        <div class="formText"><?php echo $userTemp['U_BIRTHMONTH'] . '/' . $userTemp['U_BIRTHDAY'] . '/' . $userTemp['U_BIRTHYEAR']; ?>&nbsp;</div>
+      </div>
+  
+      <div class="formRow">
+        <div class="formLabel">Mother's Maiden Name</div>
+        <div class="formText"><?php echo $userTemp['U_SECRET']; ?>&nbsp;</div>
+      </div>
+    </div>
+    
+    <div>
+      <div class="bold"><img src="images/icons/globe_alt_2_16x16.png" class="png" width="16" height="16" border="0" align="absmiddle" hspace="5" />Address</div>
+    </div>  
+    <!-- begin form -->
+    <div class="formBlock">
+      <div class="formRow">
+        <div class="formLabel">First Name</div>
+        <div class="formField"><input type="text" name="u_nameFirst" id="u_nameFirst" value="<?php if(isset($_get_udf['u_nameFirst'])){ echo $_get_udf['u_nameFirst']; } ?>" class="formfield" style="width:135px" /><?php echo $required; ?></div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Last Name</div>
+        <div class="formField"><input type="text" name="u_nameLast" value="<?php if(isset($_get_udf['u_nameLast'])){ echo $_get_udf['u_nameLast']; } ?>" class="formfield" style="width:135px" /><?php echo $required; ?></div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Address</div>
+        <div class="formField"><input type="text" name="u_address" value="<?php if(isset($_get_udf['u_address'])){ echo $_get_udf['u_address']; } ?>" class="formfield" style="width:135px" /><?php echo $required; ?></div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">City</div>
+        <div class="formField"><input type="text" name="u_city" value="<?php if(isset($_get_udf['u_city'])){ echo $_get_udf['u_city']; } ?>" class="formfield" style="width:135px" /><?php echo $required; ?></div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">State</div>
+        <div class="formField">
+          <select name="u_state" class="formfield" style="width:150px">
+            <option value="null">-- Select State --</option>
+            <?php
+              $sel_state = isset($_get_udf['u_state']) ? $_get_udf['u_state'] : '';
+              echo optionStates($sel_state);
+            ?>
+          </select><?php echo $required; ?>
+        </div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Zip Code</div>
+        <div class="formField"><input type="text" name="u_zip" value="<?php if(isset($_get_udf['u_zip'])){ echo $_get_udf['u_zip']; } ?>" size="10" class="formfield" style="width:75px" /><?php echo $required; ?></div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Country</div>
+        <div class="formField">
+          <select name="u_country" class="formfield" style="width:150px">
+            <?php
+              $sel_country = isset($_get_udf['u_country']) ? $_get_udf['u_country'] : '';
+              echo optionCountries($sel_country);
+            ?>
+          </select><?php echo $required; ?>
+        </div>
+      </div>
+    </div>
+    
+    <div>
+      <div><span class="bold"><img src="images/icons/credit_card_16x16.png" class="png" width="16" height="16" border="0" align="absmiddle" hspace="5" />Billing</span> - Your credit card will not be billed during your trial.</div>
+    </div>
+    
+    <div class="formBlock">
+      <div style="padding-left:35px; padding-bottom:5px;" class="formRow"><a href="javascript:void(0);" onclick="effCC.toggle();">Why do I have to enter my credit card?</a></div>
+      
+      <div id="creditCardWhy">
+        <div style="border:1px solid gray; background-color:#FFFFFF; margin-top:10px; margin-bottom:10px;">
+          <div style="margin-left:10px;">
+            <div style="padding-top:10px;" class="f_12 bold">Why are we asking for your credit card?</div>
+            <div style="padding-top:5px;">
+              Photagious is a privately held company that puts quality first in everything that we do.  We developed our product for people who love sharing their photo experiences with the world as much as we do.  We are serious about exceeding your expectations and we want to focus all of our company’s attention on customers that are serious about our service.
+              In addition, simply requesting credit card information allows us to manage inappropriate photo content on the site.  We want to ensure that whether you are storing, sharing or viewing photos on our site that you always know that the content that you will see is appropriate and open to every visitor, young and old.
+            </div>
+            <div style="padding-top:20px;" class="f_12 bold">Will my card be charged?</div>
+            <div style="padding-top:5px; padding-bottom:10px;">
+              No, your Photagious account is completely free during the 7 day trial and nothing will be charged to your credit card. After the 7 day trial, if you are not completely satisfied with the product, simply send a request to cancel to <script type="text/javascript"> writeEmail('support'); </script>.  Once your cancellation request has been received and processed, we will send you a confirmation email for your records.
+            </div>
+            <div class="center"><a href="javascript:void(0);" onclick="effCC.toggle();" class="f_8 f_red bold">close</a></div>
+            <br/>
+          </div>
+        </div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Select an Account</div>
+        <div class="formField">
+          <select id="accountType" name="accountType" class="formfield" onchange="toggleRadioButtons(this.value); adjustPrice(this.value); this.form.ecom_catalog_id[1].checked = true;">
+            <?php
+              echo '<option value="null">Choose an Account</option>';
+              echo '<option value="' . $accounts[1]['C_ID'] . '" ' . ($userTemp['U_ACCOUNTTYPE'] == PERM_USER_0 ? ' selected="true" ' : '') . ' >' . $accounts[1]['C_NAME'] . '</option>';
+              echo '<option value="' . $accounts[3]['C_ID'] . '" ' . ($userTemp['U_ACCOUNTTYPE'] == PERM_USER_1 ? ' selected="true" ' : '') . '>' . $accounts[3]['C_NAME'] . '</option>';
+            ?>
+          </select>
+          <?php echo $required; ?>
+          <a href="javascript:void(0);" onclick="effDif.toggle();">What's the difference?</a>
+        </div>
+        <?php
+          // display correct prices
+          if($userTemp['U_ACCOUNTTYPE'] == PERM_USER_0)
+          {
+            $_mI = 0;
+            $_yI = 1;
+          }
+          else
+          {
+            $_mI = 2;
+            $_yI = 3;
+          }
+        ?>
+        <div id="accountTypeRow" style="padding-left:158px; padding-top:4px; padding-bottom:5px;">
+          <input type="radio" name="ecom_catalog_id" id="accountType1" value="<?php echo $accounts[$_mI]['C_ID']; ?>" onclick="adjustPrice(this.value);" /><span id="accountType1Text">$<?php echo $accounts[$_mI]['C_PRICE']; ?>/month</span>
+          <input type="radio" name="ecom_catalog_id" id="accountType2" value="<?php echo $accounts[$_yI]['C_ID']; ?>" onclick="adjustPrice(this.value);" checked="true" /><span id="accountType2Text">$<?php echo $accounts[$_yI]['C_PRICE']; ?>/year</span>
+        </div>
+        <div id="difference">
+          <div style="border:1px solid gray; background-color:#FFFFFF; margin-top:10px; width:600px; height:200px; overflow:auto;">
+            <div style="margin-left:10px;">
+              <div style="padding-top:10px;" class="f_12 bold">What's the difference?</div>
+              <div style="padding-top:10px;" class="f_10 bold">Personal Account</div>
+              <div style="padding-top:5px;">Allows you to upload and share as many photos and slideshows as you want.  You'll be able to personalize your slideshows and create your personal home page.  All for just $3.95/month.</div>
+              <div style="padding-top:20px;" class="f_10 bold">Professional Account</div>
+              <div style="padding-top:5px; padding-bottom:10px;">Perfect for those who need more control over their photos, slideshows and <span class="bold">videos</span>.  You'll be able to integrate your photos and slideshows directly into your web site, add your company logo, add widgets, and generate traffic reports.  All for just $9.95/month.</div>
+              <div class="center"><a href="javascript:void(0);" onclick="effDif.toggle();" class="f_8 f_red bold">close</a></div>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" name="ecom_amount" value="<?php echo $accounts[1]['C_PRICE']; ?>" />
+      </div>
+      
+      <div id="_businessName" <?php if($userTemp['U_ACCOUNTTYPE'] == PERM_USER_0){ echo ' style="display:none;" '; } ?> class="formRow">
+        <div class="formLabel">Business Name</div>
+        <div class="formField"><input type="text" id="u_businessName" name="u_businessName" value="" class="formfield" style="width:150px;" /></div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Credit Card Number</div>
+        <div class="formField">
+          <input type="text" id="ecom_cc_num" name="ecom_cc_num" value="" class="formfield" style="width:150px;" /><?php echo $required; ?>
+          <img src="images/creditcards_accepted.gif" width="134" height="19" hspace="10" align="absmiddle"  />
+        </div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">CVV</div>
+        <div class="formField"><input type="text" id="ecom_cc_cvv" name="ecom_cc_cvv" value="" class="formfield" style="width:35px;" /><?php echo $required; ?>&nbsp;&nbsp;<a href="javascript:_open('/popup/cvv/', 220, 225);">What's this?</a></div>
+      </div>
+      
+      <div class="formRow">
+        <div class="formLabel">Expiration</div>
+        <div class="formField">
+          <select name="ecom_cc_month" class="formfield" style="width:40px">
+            <?php
+              for($i=1; $i<=12; $i++)
+              {
+                $selected = '';
+                if(isset($_get_udf['u_birthMonth']))
+                {
+                  $selected = $_get_udf['u_birthMonth'] == $i ? ' SELECTED' : '';
+                }
+                echo '<option value="' . $i . '" ' . $selected . '>' . $i . '</option>';
+              }
+            ?>
+          </select>
+          /
+          <select name="ecom_cc_year" class="formfield" style="width:55px">
+            <?php
+              $end = date('Y', NOW) + 8;
+              for($i=date('Y', NOW); $i<=$end; $i++)
+              {
+                $selected = '';
+                if(isset($_get_udf['u_birthYear']))
+                {
+                  $selected = $_get_udf['u_birthYear'] == $i ? ' SELECTED' : '';
+                }
+                else
+                if($i == ($end + 13))
+                {
+                  $selected = ' SELECTED';
+                }
+                
+                echo '<option value="' . $i . '" ' . $selected . '>' . $i . '</option>';
+              }
+            ?>
+          </select>
+          <?php echo $required; ?>
+        </div>
+      </div>
+      
+    <div class="formRow">
+      <div class="formLabel">Coupon Code</div>
+      <div class="formField"><input type="text" id="couponCode" name="couponCode" value="" class="formfield" style="width:150px;" /></div>
+    </div>
+      
+    <div class="formRow">
+      <div class="formLabel">Agree to Terms</div>
+      <div class="formField"><input type="checkbox" name="accept_terms" value="i_accept" />&nbsp;(<a href="javascript:_open('/popup/terms_sale/', '545', '350', 'TermsofUse', '1');">view our sales terms</a>)</div>
+    </div>
+    </div>
+            
+    <div class="formRow">
+      <div class="formIndent">
+        <div id="registrationMessage"></div>
+        <div id="registrationButton">
+          <input type="image" src="images/buttons/purchase_membership.gif" id="registrationSubmit" width="194" height="27" border="0" vspace="2" border="0" />
+        </div>
+        <div style="padding:10px;">
+          <!-- GeoTrust QuickSSL [tm] Smart Icon tag. Do not edit. -->
+          <script src="//smarticon.geotrust.com/si.js"></script>
+          <!-- end GeoTrust Smart Icon tag -->
+          <!-- authorize.net seal -->
+          <script type="text/javascript" language="javascript">
+            var ANS_customer_id="de6ff85c-1da2-49ff-9d52-d75960456998";
+          </script>
+          &nbsp;&nbsp;
+          <script type="text/javascript" language="javascript" src="//VERIFY.AUTHORIZE.NET/anetseal/seal.js" ></script>
+          <!-- end authorize.net seal -->
+        </div>
+      </div>
+    </div>
+    
+    <?php
+      if(isset($_POST['invite_key']) || isset($_GET['invite_key']))
+      {
+        $invite_key = isset($_POST['invite_key']) ? $_POST['invite_key'] : $_GET['invite_key'];
+        echo '<input type="hidden" name="invite_key" value="' . $invite_key . '" />';
+      }
+      
+      if(isset($earn_space_key))
+      {
+        echo '<input type="hidden" name="earn_space_key" value="' . $earn_space_key . '" />';
+      }
+      
+      if(isset($email_validation_bypass))
+      {
+        echo '<input type="hidden" name="email_validation_bypass" value="1" />';
+      }
+    ?>
+  </form>
+</div>
+
+<script language="javascript">
+  var effCC = new fx.Height('creditCardWhy');
+  effCC.hide();
+  
+  var effDif = new fx.Height('difference');
+  effDif.hide();
+  
+  function toggleRadioButtons(val)
+  {
+    if(val == 2)
+    {
+      $('accountTypeRow').style.display = 'block';
+      $('accountType1').value = '<?php echo $accounts[0]['C_ID']; ?>';
+      $('accountType2').value = '<?php echo $accounts[1]['C_ID']; ?>';
+      $('accountType1Text').innerHTML = '$<?php echo $accounts[0]['C_PRICE']; ?>/month';
+      $('accountType2Text').innerHTML = '$<?php echo $accounts[1]['C_PRICE']; ?>/year';
+      $('_businessName').style.display = 'none';
+    }
+    else if(val == 4)
+    {
+      $('accountTypeRow').style.display = 'block';
+      $('accountType1').value = '<?php echo $accounts[2]['C_ID']; ?>';
+      $('accountType2').value = '<?php echo $accounts[3]['C_ID']; ?>';
+      $('accountType1Text').innerHTML = '$<?php echo $accounts[2]['C_PRICE']; ?>/month';
+      $('accountType2Text').innerHTML = '$<?php echo $accounts[3]['C_PRICE']; ?>/year';
+      $('_businessName').style.display = 'block';
+    }
+    else
+    {
+      $('accountTypeRow').style.display = 'none';
+      $('_businessName').style.display = 'none';
+    }
+  }
+  
+  if(location.href.search('#formTop') == -1)
+  {
+    location.href = location.href + '#formTop';
+  }
+  $('u_nameFirst').focus();
+</script>

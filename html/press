@@ -1,0 +1,25 @@
+<?php
+  $parts = (array)explode('/', $_SERVER['REQUEST_URI']);
+  $_GET['action']= 'home.samples';
+  
+  switch($parts[2])
+  {
+    case 'contacts':
+      $_GET['subaction'] = 'press_contacts';
+      break;
+    case 'materials':
+      $_GET['subaction'] = 'press_materials';
+      break;
+    case 'news':
+      $_GET['subaction'] = 'news';
+      break;
+    case 'release':
+      $_GET['action'] = 'press.' . $parts[3];
+      break;
+    default:
+      $_GET['subaction'] = 'press';
+      break;
+  }
+  
+  include_once './index.php';
+?>

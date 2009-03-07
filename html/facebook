@@ -1,0 +1,4 @@
+<?php
+  $_GET['action'] = 'facebook.home';
+  include_once './index.php';
+?>

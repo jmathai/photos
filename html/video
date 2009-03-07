@@ -1,0 +1,112 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  include_once PATH_HOMEROOT . '/init.php';
+  
+  include_once PATH_CLASS . '/CUser.php';
+  include_once PATH_CLASS . '/CVideo.php';
+  include_once PATH_CLASS . '/CFotobox.php';
+  include_once PATH_CLASS . '/CFlix.php';
+  
+  $key = $_SERVER['QUERY_STRING'];
+  if(strlen($key) != 32)
+  {
+    header('Location: /?action=confirm.main&type=video_dne');
+    die();
+  }
+  
+  $u  =& CUser::getInstance();
+  $v  =& CVideo::getInstance();
+  $fb =& CFotobox::getInstance();
+  $fl =& CFlix::getInstance();
+  
+  $videoData = $v->find($key);
+  $userData  = $u->find($videoData['V_U_ID']);
+  
+  $paramsFb = array('USER_ID' => $videoData['V_U_ID'], 'PERMISSION' => PERM_PHOTO_PUBLIC, 'LIMIT' => 8);
+  $paramsFl = array('USER_ID' => $videoData['V_U_ID'], 'PERMISSION' => PERM_SLIDESHOW_PUBLIC, 'LIMIT' => 4);
+  
+  /*if($videoData['V_TAGS'] != '')
+  {
+    $paramsFb['TAGS'] = (array)explode(',', $videoData['V_TAGS']);
+    $paramsFl['TAGS'] = (array)explode(',', $videoData['V_TAGS']);
+  }*/
+  
+  $photos = $fb->fotosSearch($paramsFb);
+  $slideshows = $fl->search($paramsFl);
+  
+  $photoCnt = count($photos);
+  $slideshowCnt = count($slideshows);
+  
+  $swfSrc = '/swf/slideshow/video_stand_alone_v1.swf?videoKey=' . $key;
+  
+  $bgcolor = '#000000';
+  
+  include_once PATH_DOCROOT . '/header_basic.dsp.php';
+?>
+
+    <div style="background-color:#000000; border-bottom:solid 1px #404040; height:30px; width:100%;">
+      <div style="width:865px; margin:auto;">
+        <div style="float:left; height:30px;">
+          <div style="float:left;"><a href="/"><img src="images/photagious_black_small.gif" width="94" height="21" hspace="25" vspace="5" border="0" /></a></div>
+        </div>
+        <div style="float:right; margin-top:7px; margin-right:5px;" class="f_white">
+          <?php
+            if($logged_in === false)
+            {
+              echo '<div><a href="https://' . FF_SERVER_NAME . '/?action=home.registration_form_b" class="f_white plain">sign up for a free trial</a>&nbsp;|&nbsp;<a href="/?action=home.login_form&redirect=' . urlencode($_SERVER['REQUEST_URI']) . '" class="f_white plain">login</a></div>';
+            }
+            else
+            {
+              echo '<div>logged in as <span class="f_red">' . $_FF_SESSION->value('username') . '</span> | <a href="/?action=member.logout.act&redirect=' . urlencode($_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING']) . '" class="plain f_white">logout</a></div>';
+            }
+          ?>
+        </div>
+        <br clear="all" />
+      </div>
+    </div>
+    
+    <div style="padding-top:50px; width:550px; margin:auto;">
+      <script language="javascript">
+        <?php
+          //echo 'embedSwf({SRC:"' . $swfSrc . '", WIDTH:"440", HEIGHT:"338", BGCOLOR:"#000000"});';
+          echo 'embedSwf({SRC:"' . $swfSrc . '", WIDTH:"550", HEIGHT:"423", BGCOLOR:"#000000"});';
+        ?>
+      </script>
+    </div>
+    
+    <div style="padding:50px 0px 25px 0px; width:<?php echo ($photoCnt * 87); ?>px; margin:auto;">
+      <?php
+        if($photoCnt > 0)
+        {
+          echo '<div class="bold f_10" style="margin-bottom:5px;">' . $userData['U_USERNAME'] . '\'s Photos</div>';
+        }
+        
+        foreach($photos as $v)
+        {
+          echo '<a href="/users/' . $userData['U_USERNAME'] . '/photo/' . $v['P_ID'] . '/"><img src="' . PATH_FOTO . $v['P_THUMB_PATH'] . '" width="75" height="75" border="0" hspace="5" class="border_dark" /></a>';
+        }
+        
+        if($slideshowCnt > 0)
+        {
+          echo '<div class="bold f_10" style="margin-top:25px; margin-bottom:5px;">' . $userData['U_USERNAME'] . '\'s Slideshows</div>';
+        }
+        
+        foreach($slideshows as $v)
+        {
+          echo '<div class="flix_border" style="float:left; margin-right:10px;"><a href="/slideshow?' . $v['US_KEY'] . '"><img src="' . PATH_FOTO . $v['US_PHOTO']['thumbnailPath_str'] . '" width="75" height="75" border="0" /></a></div>';
+        }
+      ?>
+      <br clear="all" />
+    </div>
+
+<?php
+  echo footer();
+
+  include_once PATH_DOCROOT . '/footer_basic.dsp.php';
+  
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

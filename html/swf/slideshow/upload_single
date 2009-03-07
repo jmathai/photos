@@ -1,0 +1,159 @@
+<?php
+  ini_set('max_execution_time', 120);
+  
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CIdat.php';
+  include_once PATH_CLASS . '/CUser.php';
+  include_once PATH_CLASS . '/CTag.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_CLASS . '/CFotobox.php';
+  include_once PATH_CLASS . '/CUserManage.php';
+  include_once PATH_CLASS . '/CFotoboxManage.php';
+  include_once PATH_CLASS . '/CImageMagick.php';
+
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  $id =& CIdat::getInstance();
+  $u  =& CUser::getInstance();
+  $f  =& CFotobox::getInstance();
+  $um =& CUserManage::getInstance();
+  $fb =& CFotoboxManage::getInstance();
+  $im =& CImageMagick::getInstance();
+  $stamp = FF_YM_STAMP;
+  
+  ob_start();
+  print_r($_REQUEST);
+  print_r($_FILES);
+  file_put_contents('./upload_single.txt', ob_get_contents());
+  ob_end_clean();
+  
+  if(isset($_REQUEST['user_enc']))
+  {
+    $enc = $u->userIdDec($_REQUEST['user_enc']);
+    $_USER_ID = $enc['id' ];
+    
+    if($enc['match'] === false)
+    {
+      die();
+    }
+  }
+  
+  $user_data = $u->find($_USER_ID);
+  
+  $image_name   = isset($_REQUEST['fieldName']) ? $_REQUEST['fieldName'] : 'SourceFile_1';
+  $image_size   = intval($_FILES[$image_name]['size'] / KB);
+  $new_filename = time() . '_' . $f->safename($_FILES[$image_name]['name']);
+  
+  $privacy = intval($_REQUEST['privacySettingComputed']);
+
+  $available  = intval($user_data['U_SPACETOTAL'] - $user_data['U_SPACEUSED']);
+  $proceed    = true; //$available > $image_size ? true : false;
+  
+  if(!isset($_REQUEST['java']) && $u->pref($_USER_ID, 'DESKTOP_UPLOAD') === false)
+  {
+    $um->setPrefs($_USER_ID, array('DESKTOP_UPLOAD' => 'true'));
+  }
+  else
+  {
+    $um->setPrefs($_USER_ID, array('FOTO_PRIVACY' => $privacy));
+  }
+  
+  if ($proceed === true)
+  {
+    if($_POST['Angle_1'] > 0)
+    {
+      $im->rotate($_FILES[$image_name]['tmp_name'], $_FILES[$image_name]['tmp_name'], $_POST['Angle_1']);
+    }
+    
+    $original_src = $fb->uploadOriginal($_FILES[$image_name]['tmp_name'], $new_filename);
+    $thumb_src = $fb->uploadThumbnail($_FILES[$image_name]['tmp_name'], $new_filename);
+
+    $exif_data = @exif_read_data(PATH_FOTOROOT . $original_src);
+
+    $image_info = @getimagesize(PATH_FOTOROOT . $original_src);
+    $image_key  = $id->nextID(FF_IMAGE_KEY) . randomString();
+		$name       = $_FILES[$ImageName]['name'];
+		$width      = intval($image_info[0]);
+		$height     = intval($image_info[1]);
+		$description= $_POST['Description_1'];
+
+    if(array_key_exists('DateTime', $exif_data))
+    {
+      $date_time = explode(' ', $exif_data['DateTime']);
+      $date = explode(':', $date_time[0]);
+      $time = explode(':', $date_time[1]);
+      $taken_at = mktime($time[0], $time[1], $time[2], $date[1], $date[2], $date[0]);
+    }
+    else 
+    {
+      $taken_at = explode(' ', $exif_data['FileDateTime']);
+    }
+        
+    $db_data  = array(
+                  'up_u_id'   => $_USER_ID,
+                  'up_key'    => $image_key,
+                  'up_name'   => $description,
+                  'up_size'   => $image_size,
+                  'up_width'  => $width,
+                  'up_height' => $height,
+                  'up_description'  =>  '',
+                  'up_original_path'=>  $original_src,
+                  'up_thumb_path'   =>  $thumb_src,
+                  'up_camera_make'  =>  $exif_data['Make'],
+                  'up_camera_model' =>  $exif_data['Model'],
+                  'up_taken_at'     =>  $taken_at,
+                  'up_privacy'      =>  $privacy
+                );
+    
+    $fotoId = $fb->add($db_data);
+    
+    if($_REQUEST['tagsToAdd'] != '')
+    {
+      $tags = (array)explode(',', $_REQUEST['tagsToAdd']);
+      $fb->addTags(array($fotoId), $tags, $_USER_ID);
+    }
+
+    unlink($_FILES[$image_name]['tmp_name']);
+    
+    // add to subscription data if public
+    if(($privacy & PERM_PHOTO_PUBLIC) == PERM_PHOTO_PUBLIC)
+    {
+      include_once PATH_CLASS . '/CSubscriptionManage.php';
+      $sm = &CSubscriptionManage::getInstance();
+      
+      $fotoData = $f->fotoData($fotoId);
+      
+      $sm->addData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Photo_Public', 'sd_element_id' => $fotoId, 'sd_thumbnail' => $fotoData['P_THUMB_PATH']));
+    }
+  }
+
+  $prefs = array('HAS_UPLOADED' => 1);
+  if($image_name == 'Filedata')
+  {
+    $prefs['FLASH_UPLOADED'] = 1;
+  }
+  if($_REQUEST['totalFiles'] > 10)
+  {
+    $prefs['FLASH_UPLOADED_MULTIPLE'] = 1;
+  }
+  $um->setPrefs($_USER_ID, $prefs);
+    
+  if(isset($_GET['redirect']))
+  {
+    header('location: ' . $_GET['redirect']);
+  }
+  else
+  if($_GET['retrieveId'] == 1)
+  {
+    $count = intval(file_get_contents($cntFile = PATH_HOMEROOT . '/uploader/uploaded.txt'));
+    $count++;
+    $fp = fopen($cntFile, 'w+');
+    fwrite($fp, $count, strlen($count));
+    fclose($fp);
+    echo $fotoId . ',' . intval($user_data['U_SPACEUSED'] + $image_size);
+  }
+
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

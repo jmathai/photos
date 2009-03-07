@@ -1,0 +1,36 @@
+<?php
+  /*
+  * THIS FILE GETS PARSED BY PHP AND OUTPUTS JAVASCRIPT FOR REMOTE FOTOFLIX FUNCTIONS
+  */
+  header('Content-type: text/javascript');
+  include_once '../init_constants.php';
+  include_once PATH_DOCROOT .'/init_database.php';
+  include_once PATH_CLASS . '/CFlix.php';
+  
+  $fl =& CFlix::getInstance();
+  $params = explode('/', $_SERVER['REQUEST_URI']);
+  
+  $key = $params[3];
+  $fl =& CFlix::getInstance();
+    
+  $flixData = $fl->flashOutput($key);
+  
+  $settings = jsonDecode($flixData['US_SETTINGS']);
+  $width    = $settings[0]['width_int'];
+  $height   = $settings[0]['height_int'];
+  $swfSrc = 'http://' . FF_SERVER_NAME . '/swf/container/dynamic/container_' . $width . '_' . $height . '.swf?slideshowKey_str=' . $flixData['US_KEY'] . '&version=' . FF_VERSION_TEMPLATE . '&timestamp=' . NOW;
+?>
+/*
+* Photagious Remote JavaScript
+*   - Included on remote site to embed slideshow in a page
+*/
+swf_url = '<?php echo $swfSrc; ?>';
+document.write( '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=7,0,0,0" width="<?php echo $width; ?>" height="<?php echo $height; ?>">'
+              + '<param name="movie" value="'+swf_url+'" />'
+              + '<param name="menu" value="false" />'
+              + '<param name="quality" value="high" />'
+    	        + '<param name="wmode" value="transparent" />'
+              + '<param name="bgcolor" value="#ffffff" />'
+              + '<param name="allowScriptAccess" value="always">'
+              + '<embed src="'+swf_url+'" menu="false" quality="high" bgcolor="#ffffff" width="<?php echo $width; ?>" height="<?php echo $height; ?>" wmode="transparent" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" allowScriptAccess="always"></embed>'
+              + '</object>');

@@ -1,0 +1,54 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+
+<head>
+  <script type="text/javascript" src="./jscripts/prototype.js"></script>
+  <script type="text/javascript" src="./jscripts/moo.fx.js"></script>
+  <script type="text/javascript" src="./jscripts/pmb.js"></script>
+  
+  <script type="text/javascript">
+    var pmb = new PMB();  
+  
+    function loadSlideshows()
+    {
+      //http://jaisen.photagious.com/api/json?action=slideshow.search
+      pmb.load('http://jaisen.photagious.com/api/json?action=slideshow.search', 'loadSlideshowsRsp');
+    }
+    
+    function loadSlideshowsRsp(data)
+    {
+      var show;
+      var _html = 'Select a slideshow to load...<br/><br/>';
+      
+      for(i=0; i<data.length; i++)
+      {
+        show = data[i];
+        _html += show.A_NAME + '&nbsp;<a href="javascript:edit({WIDTH:740,HEIGHT:635,SRC:\'/swf/ff_editor.swf?server_name=http%3A%2F%2Fjaisen.photagious.com&version=2.0e&timestamp=1150815904&fastflix='+show.A_FASTFLIX+'&uid='+show.A_U_ID+'&ip=127.0.0.1\',BGCOLOR:\'#ffffff\'});">edit</a><br/>';
+      }
+      
+      $('shows').innerHTML = _html;
+    }
+    
+    function edit(data)
+    {
+      $('show').innerHTML = pmb.embedSwf(data);
+    }
+    
+    loadSlideshows();
+  </script>
+</head>
+
+<body>
+
+<div id="shows">
+
+</div>
+
+<div id="show">
+
+</div>
+
+
+</body>
+
+</html>

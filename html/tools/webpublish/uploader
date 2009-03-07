@@ -1,0 +1,215 @@
+<?php
+  include_once '../../init_constants.php';
+  
+  ob_start();
+  
+  include_once PATH_INCLUDE . '/functions.php'; 
+  include_once PATH_DOCROOT . '/init_database.php';
+  
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  if($logged_in === false && $_GET['action'] != 'login_do')
+  {
+    $action = 'login';
+  }
+  else
+  {
+    $action = isset($_GET['action']) ? $_GET['action'] : 'login';
+  }
+  
+  echo '<html>
+          <head>
+          <title>FotoFlix Webpublishing Uploader</title>
+          <style>
+          
+          
+          body
+          {
+          	font: message-box;
+          	margin: 20px;
+          	padding: 0px;
+          	color: buttontext;
+          	background-color: buttonface;
+          }
+          
+          div
+          {
+            font-size:13px;
+          }
+          
+          </style>
+          
+          </head>
+          <body onContextMenu="event.returnValue=false;">';
+  
+  switch($action)
+  {
+    case 'start':
+      
+      break;
+    case 'login':
+      echo '<script language="javascript">
+              function checkCredentials()
+              {
+                fieldsOk = (document.getElementById("u_username").value.length > 0 ? true : false) && (document.getElementById("u_password").value.length > 0 ? true : false);
+                
+                window.external.SetWizardButtons(true, fieldsOk, false);
+              }
+              
+              function OnNext(){
+              	document.getElementById("authenticate").submit();
+              }
+              
+              window.external.SetWizardButtons(true, false, false);
+              window.external.SetHeaderText("Upload your fotos to FotoFlix", "Log in to your FotoFlix account");
+            </script>
+            <form id="authenticate" method="post" action="./uploader?action=login_do">
+              <div style="font-weight:bold; padding-bottom:5px;">Log in to your FotoFlix account</div>
+              <div style="padding-bottom:5px;">
+                <div>Username</div>
+                <div><input type="text" id="u_username" name="u_username" value="" onkeyup="checkCredentials();" /></div>
+              </div>
+              <div style="padding-bottom:5px;">
+                <div>Password</div>
+                <div><input type="password" id="u_password" name="u_password" value="" onkeyup="checkCredentials();" /></div>
+              </div>';
+      break;
+    case 'login_do':
+      include_once PATH_CLASS . '/CUser.php';
+      $u =& CUser::getInstance();
+      $userData     = $u->find($_POST['u_username'], $_POST['u_password']);
+      
+      if(isset($userData['U_ID']))
+      {
+        $user_id      = $userData['U_ID'];
+        $email        = $userData['U_EMAIL'];
+        $username     = $userData['U_USERNAME'];
+        $account_perm = $userData['U_ACCOUNTTYPE'];
+        
+        include_once PATH_DOCROOT . '/login_manual.act.php';
+        
+        echo '<div style="font-weight:bold; padding-bottom:5px;">' . $userData['U_USERNAME'] . ', you are now logged into FotoFlix.</div>
+              <div>Click <a href="./uploader?action=upload_extra">here</a> to select tags and privacy settings for your fotos.</div>
+              <script language="javascript">              
+                function OnNext(){
+                	location.href="./uploader?action=upload_extra";
+                }
+                
+                window.external.SetWizardButtons(true, true, false);
+                window.external.SetHeaderText("Welcome back", "Continue on to select tags and privacy settings");
+              </script>';
+      }
+      else 
+      {
+        echo '<div style="font-weight:bold; padding-bottom:5px;">Sorry, we were unable to log you into FotoFlix.</div>
+              <div>Please click <a href="./uploader?action=login">here</a> to try again.</div>
+              <script language="javascript">
+                window.external.SetWizardButtons(true, false, false);
+                window.external.SetHeaderText("Unable to log you in", "Please try and log in again");
+              </script>';
+      }
+      break;
+    case 'upload_extra':
+      include_once PATH_CLASS . '/CUser.php';
+      $u =& CUser::getInstance();
+      
+      $userData = $u->find($_FF_SESSION->value('user_id'));
+      echo '<div style="padding-bottom:5px; font-weight:bold;">Select settings to be applied to all of these fotos</div>
+            <div style="padding-bottom:10px;">
+              <div>Who can view these fotos?</div>
+              <div>
+                <form name="privacy" style="display:inline;">
+                  <div><input type="radio" name="privacySetting" value="1111" checked="true" />Only I can view these fotos.</div>
+                  <div><input type="radio" name="privacySetting" value="3311" />Anyone can view.  Members can add comments. (Recommended)</div>
+                  <div><input type="radio" name="privacySetting" value="3331" />Anyone can view.  Members can add notes or comments.</div>
+                  <div><input type="radio" name="privacySetting" value="3333" />Anyone can view.  Members can add note, comments or tags.</div>
+                </div>
+              </div>
+            </div>
+            <div style="padding-bottom:10px;">
+              <div>Add these tags to all of these fotos.</div>
+              <input type="text" id="tags" name="tags" value="" />
+            </div>
+            <div>Click "Next" to continue.</div>
+            <script language="javascript">              
+              function OnNext(){
+                var xml = window.external.Property("TransferManifest");
+                var files = xml.selectNodes("transfermanifest/filelist/file");
+                
+                for (var i = 0; i < files.length; i++) {
+                	var postTag = xml.createNode(1, "post", "");
+                	postTag.setAttribute("href", "http://' . FF_SERVER_NAME . '/upload_single");
+                	postTag.setAttribute("name", "SourceFile_1");
+                
+                	var params = new Object();
+                	params["tagsToAdd"]		= document.getElementById("tags").value;
+                	params["privacySetting"]	= radioValue(document.forms["privacy"].elements["privacySetting"]);
+                	params["user_enc"] = "' . ($_USER_ID . '-' . md5($_USER_ID . '_ff')) . '";
+                
+                	for(var k in params){
+                		addXmlParam(xml, postTag, k, params[k]);
+                	}
+                
+                	files.item(i).appendChild(postTag);
+                }
+                
+                var uploadTag = xml.createNode(1, "uploadinfo", "");
+                var htmluiTag = xml.createNode(1, "htmlui", "");
+                htmluiTag.text = radioValue(document.forms["privacy"].elements["privacySetting"]) == "1111" ? "http://' . FF_SERVER_NAME . '/" : "http://' . FF_SERVER_NAME . '/users/' . $userData['U_USERNAME'] . '/fotos/";
+                uploadTag.appendChild(htmluiTag);
+                
+                xml.documentElement.appendChild(uploadTag);
+              	window.external.FinalNext();
+              }
+              
+              function radioValue(element)
+              {
+                value = false;
+                for(i=0; i<element.length; i++)
+                {
+                  if(element[i].checked == true)
+                  {
+                    value = element[i].value;
+                    break;
+                  }
+                }
+                return value;
+              }
+              
+              function addXmlParam(xml, parent, name, value){
+                var dataTag = xml.createNode(1, "formdata", "");
+              	dataTag.setAttribute("name", name);
+              	dataTag.text = value;
+              	parent.appendChild(dataTag);
+              }
+              
+              window.external.SetWizardButtons(true, true, false);
+              window.external.SetHeaderText("Extra foto settings", "Add tags to these fotos and specify who can view them");
+            </script>
+            ';
+      break;
+  }
+  
+  echo '<script type="text/javascript">
+          <!--
+          
+          function OnBack(){
+          	window.external.FinalBack();
+          }
+          
+          function OnCancel(){
+          	alert("OnCancel");
+          }
+          
+          window.external.Caption = "Upload fotos to FotoFlix";
+          
+          //-->
+          </script>
+          
+          
+          </body>
+          </html>';
+  
+  ob_end_flush();
+?>

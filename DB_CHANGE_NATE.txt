@@ -1,0 +1,13 @@
+-- 09/29/2006 - JM --
+  CREATE TABLE `user_citizen_image` (
+    `uci_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `uci_u_ic` INT UNSIGNED NOT NULL ,
+    `uci_up_ic` INT UNSIGNED NOT NULL ,
+    `uci_dateCreated` DATETIME NOT NULL ,
+    `uci_status` ENUM( 'deleted', 'pending', 'processed' ) NOT NULL DEFAULT 'pending'
+  ) TYPE = MYISAM CHARACTER SET utf8 COLLATE utf8_general_ci;
+  ALTER TABLE `user_citizen_image` CHANGE `uci_u_ic` `uci_u_id` INT( 10 ) UNSIGNED NOT NULL, CHANGE `uci_up_ic` `uci_up_id` INT( 10 ) UNSIGNED NOT NULL ;
+  ALTER TABLE `user_citizen_image` ADD UNIQUE (
+    `uci_u_id` ,
+    `uci_up_id`
+  );

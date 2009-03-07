@@ -1,0 +1,266 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_INCLUDE . '/variables.php';
+  include_once PATH_HOMEROOT . '/init.php';
+  
+  include_once PATH_DOCROOT . '/init_database.php';
+  
+  include_once PATH_CLASS . '/CReport.php';
+  
+  $r =& CReport::getInstance();
+  $reportKey = $_SERVER['QUERY_STRING'];
+  
+  if(strlen($reportKey) != 32)
+  {
+    echo 'Invalid report key.';
+    die();
+  }
+  
+  $reportData = $r->getReport($reportKey);
+  $reportDetails = jsonDecode($reportData['RA_DATA']);
+?>  
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <title><?php echo $reportData['RA_TITLE']; ?></title>
+    <link rel="stylesheet" type="text/css" href="/css/basic.css">
+    <style type="text/css">
+      #pageContainer{ width:620px; margin:auto; }
+    </style>
+  </head>
+  
+  <body>
+    <div style="width:620px; margin:auto;">
+    <div class="f_14 bold">Report for <?php echo date('M d, Y', $reportDetails['DATES'][0]); ?> through <?php echo date('M d, Y', $reportDetails['DATES'][1]); ?></div>
+    <br />
+    
+    <?php
+      switch($reportData['T_ID'])
+      {
+        case 1: // Slideshow
+          include_once PATH_CLASS . '/CFlix.php';
+          include_once PATH_CLASS . '/CFotobox.php';
+          
+          $fl =& CFlix::getInstance();
+          $fb =& CFotobox::getInstance();
+           
+          $html .= '<div class="f_8 bold">Top ' . $limit . ' Slideshows:</div><br />';
+          
+          // create the graph at the top
+          $html .= '<div class="f_8"># Views</div><br />';
+          
+          $max = 0;
+          foreach( $reportDetails['TOP'] as $k => $v )
+          {
+            if( $v['RD_COUNT'] > $max )
+            {
+              $max = $v['RD_COUNT'];
+            }
+          }
+            
+          $ratio = 100 / $max;
+          $maxViews = $max;
+          $max *= $ratio;
+            
+          $html .= '<div style="float:left; padding-bottom:30px;">';
+          $html .= '<div style="float:left; height:100px; padding-right:5px; padding-left:25px; border-bottom:1px solid black;" class="f_6">';
+          $interval = $maxViews / 4;
+          for( $j = $maxViews; intVal($j) > 0; $j -= $interval )
+          {
+            $html .= '<div>' . $j . '</div><br />';
+          }
+          $html .= '</div>';
+          
+          $html .= '<div style="float:left; height:100px; width:1px; background-color:black; border-bottom:1px solid black;"></div>';
+          
+          foreach( $reportDetails['TOP'] as $k =>$v )
+          { 
+            if( $v['RD_COUNT'] == $max )
+            {
+              $height = $max;
+              $margin = 100-$height;
+            }
+            else 
+            {
+              $height = $v['RD_COUNT'] * $ratio;
+              $margin = 100-$height;
+            }
+            
+            $html .= '<div style="float:left; height:100px;">';
+            $html .= '<div style="margin-left:10px; margin-top:' . $margin . 'px; height:' . $height . 'px; width:25px; background-color:blue;"></div>';
+            $html .= '<div style="width:35px; border-bottom:1px solid black;"></div>';
+            $html .= '</div>';
+          }
+          
+          $html .= '<br clear="all" />
+                    </div>
+                    <br clear="all" />
+                    <div class="f_8 bold">Top ' . $limit . ' Slideshows:</div>
+                    <br />';
+          
+          // top slideshows
+          foreach( $reportDetails['TOP'] as $k =>$v )
+          {
+            $photo = $fl->firstPhoto($v['RD_ELEMENT']);
+            
+            $filename = substr(basename($fotoData['P_THUMB_PATH']), strpos(basename($fotoData['P_THUMB_PATH']), '_')+1);
+            $name = ($v['US_NAME'] != "") ? $v['US_NAME'] : "Not Set";
+            $tags = ($v['UF_TAGS'] != "") ? $v['UF_TAGS'] : "No tags set";
+            
+            $html .= '<div style="float:left; padding-top:15px; padding-right:45px; padding-bottom:25px;">';
+            $html .= '<div style="padding-bottom:5px; width:110px; height:80px; padding-left:11px; padding-top:1px; text-align:left;"><a href="http://' . FF_SERVER_NAME . '/handler/slideshow/' . $v['RD_ELEMENT'] . '" target="_blank"><img src="http://' . FF_SERVER_NAME . PATH_FOTO . $photo['thumbnailPath_str'] . '" width="75" height="75" border="0" /></a></div>';
+            $html .= '<div class="f_8"><div style="float:left; padding-right:5px;" class="bold">Name:</div> ' . str_mid($name, 15) . '</div>';
+            $html .= '<div class="f_8"><div style="float:left; padding-right:5px;" class="bold">Date Created:</div> ' . date('M d, Y', $v['US_DATECREATED']) . '</div>';
+            $html .= '<div class="f_8"><div style="float:left; padding-right:5px;" class="bold">Views:</div> ' . $v['RD_COUNT'] . '</div>';
+            //$html .= '<div class="f_8"><div style="float:left; padding-right:5px;" class="bold">Completed views:</div> ';
+            
+            //$numberCompletedViews = flixCompletedViews($v['RD_ELEMENT'], $fc);
+            
+            //$html .= $numberCompletedViews . '</div>';
+    
+            $html .= '</div>';
+          }
+          
+          $html .= '<br clear="all" /><br/>
+                    <div style="border-bottom:1px solid black;"></div>
+                    <br clear="all" />';
+          // all slideshows
+          
+          if(count($reportDetails['ALL']) > 0)
+          {
+            $html .= '<div class="bold">All Slideshows</div>';
+          }
+          
+          foreach( $reportDetails['ALL'] as $k =>$v )
+          {
+            $name = ($v['UF_NAME'] != "") ? $v['UF_NAME'] : "Not Set";
+            
+            $html .= '<div style="margin-top:15px;" class="bullet f_8">';
+            $html .= '<div><a href="http://' . FF_SERVER_NAME . '/handler/slideshow/' . $v['RD_ELEMENT'] . '" target="_blank">' . $v['US_NAME'] . '</a> (Views: ' . $v['RD_COUNT'] . ')</div>';
+            $html .= '</div>';
+          }
+          break;
+        case 2: // Photo
+          // create the graph at the top
+          $html .= '<div class="f_8"># Views</div><br />';
+          
+          $max = 0;
+          foreach( $reportDetails['TOP'] as $k => $v )
+          {
+            if( $v['RD_COUNT'] > $max )
+            {
+              $max = $v['RD_COUNT'];
+            }
+          }
+            
+          $ratio = 100 / $max;
+          $maxViews = $max;
+          $max *= $ratio;
+            
+          $html .= '<div style="float:left; padding-bottom:30px;">';
+            $html .= '<div style="float:left; height:100px; padding-right:5px; padding-left:5px;" class="f_6">';
+              $interval = $maxViews / 4;
+              for( $j = $maxViews; $j > 0; $j -= $interval )
+              {
+                $html .= '<div>' . intVal($j) . '</div><br />';
+              }
+            $html .= '</div>';
+            
+            $html .= '<div style="float:left; height:100px; width:1px; background-color:black; border-bottom:1px solid black;"></div>';
+            
+            foreach( $reportDetails['TOP'] as $k => $v )
+            {
+              $filename = substr(basename($v['UP_THUMBPATH']), strpos(basename($v['UP_THUMBPATH']), '_')+1);
+              
+              if( $v['RD_COUNT'] == $max )
+              {
+                $height = $max;
+                $margin = 100-$height;
+              }
+              else 
+              {
+                $height = $v['RD_COUNT'] * $ratio;
+                $margin = 100-$height;
+              }
+              
+              $html .= '<div style="float:left; height:100px;">';
+                $html .= '<div style="margin-left:10px; margin-top:' . $margin . 'px; height:' . $height . 'px; width:25px; background-color:blue;"></div>';
+                $html .= '<div style="border-bottom:1px solid black;"></div>';
+                $html .= '<div><img src="http://' . FF_SERVER_NAME . '/' . PATH_FOTO . $v['UP_THUMBPATH'] . '" width="25" height="25" vspace="3" hspace="10" border="0" /></div>';
+              $html .= '</div>';
+            }
+            
+            $html .= '<br clear="all" />';
+            
+          $html .= '</div>';
+          $html .= '<br clear="all" />
+                    <br/>';
+          
+          
+          // write out the top x fotos
+          $html .= '<div class="f_8 bold">Top ' . count($reportDetails['TOP']) . ' Photos:</div>';
+        
+          foreach( $reportDetails['TOP'] as $k =>$v )
+          {
+            $filename = substr(basename($v['UP_THUMBPATH']), strpos(basename($v['UP_THUMBPATH']), '_')+1);
+            /*if($v['UP_TAGS'] != '')
+            {
+              $tags = str_replace(',', ', ', preg_replace('/^\,|\,$/', '', $v['UP_TAGS']));
+            }
+            else
+            {
+              $tags = 'N/A';
+            }*/
+            
+            $html .= '<div style="float:left; width:110px; padding:15px 20px 25px 20px; padding-bottom:25px;" class="f_8">';
+              $html .= '<div style="padding-bottom:5px;"><a href="http://' . FF_SERVER_NAME . '/handler/photo/' . $v['RD_ELEMENT'] . '" rel="lightbox"><img src="http://' . FF_SERVER_NAME . PATH_FOTO . $v['UP_THUMBPATH'] . '" width="75" height="75" border="0" /></a></div>';
+              $html .= '<div class="bold">Filename:</div> <div>' . str_mid($filename, 20) . '</div>';
+              $html .= '<div class="bold">Date Created:</div> <div>' . date('M d, Y', $v['UP_DATECREATED']) . '</div>';
+              $html .= '<div class="bold">Viewed ' . $v['RD_COUNT'] . ' times</div>';
+            $html .= '</div>';
+          }
+        /*}
+        else 
+        {
+          $html .= '<div class="f_8">No photo information during this time</div>';
+        }*/
+        
+        // write out the rest of the fotos in a text listing at the bottom
+        if( isset($reportDetails['ALL']) )
+        {
+          $html .= '<br clear="all" />';
+          
+          $html .= '<div style="border-bottom:1px solid black;"></div>';
+          $html .= '<div style="padding-top:15px;" class="f_8 bold">All Photos:</div><br />';
+          
+          /*$html .= '<div style="padding-top:15px;">';
+            $html .= '<div style="float:left; width:150px;" class="f_8 bold">Foto</div>';
+            $html .= '<div style="float:left; width:150px;" class="f_8 bold">Name</div>';
+            $html .= '<div style="float:left; width:250px;" class="f_8 bold">Description</div>';
+            $html .= '<div style="float:left; width:250px;" class="f_8 bold">Tags</div>';
+            $html .= '<div style="float:left; width:250px;" class="f_8 bold">Date Created</div>';
+            $html .= '<div style="float:left; width:250px;" class="f_8 bold">Number of Views</div>';
+          $html .= '</div>';
+          $html .= '<br clear="all" />';*/
+          
+          foreach( $reportDetails['ALL'] as $k =>$v )
+          {
+            $filename = substr(basename($v['UP_THUMBPATH']), strpos(basename($v['UP_THUMBPATH']), '_')+1);
+            $tags = ($v['UP_TAGS'] != "") ? $v['UP_TAGS'] : "No tags set";
+            
+            $html .= '<div style="padding-top:15px; float:left; text-align:center;">';
+              $html .= '<div style="float:left; width:50px;" class="f_8"><a href="http://' . FF_SERVER_NAME . PATH_FOTO . $v['UP_THUMBPATH'] . '" target="_blank"><img src="http://' . FF_SERVER_NAME . '/' . PATH_FOTO . $v['UP_THUMBPATH'] . '" width="30" height="30" vspace="5" border="0" /></a><br/>views<br/>' . $v['RD_COUNT'] . '</div>';
+              /*$html .= '<div style="float:left; width:250px;" class="f_8">Number of views: ' . $v['RD_COUNT'] . '</div>';
+              $html .= '<div style="float:left; width:250px;" class="f_8">Date Created: ' . date('M d, Y', $v['UP_DATECREATED']) . '</div>';*/
+            $html .= '</div>';
+            //$html .= '<br clear="all" />';
+          }
+        }
+      }
+      
+      echo $html;
+    ?>
+    </div>
+  </body>
+</html>

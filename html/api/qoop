@@ -1,0 +1,505 @@
+<?php
+  include_once '../init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  $method = $_GET['method'];
+
+  if($method != 'get_photo')
+  {
+    header('Content-type: text/xml');
+    echo '<?xml version="1.0" encoding="UTF-8"?>';
+  }
+  else
+  {
+    header('Content-type: image/jpg');
+  }
+
+  switch($method)
+  {
+    case 'get_password_token':
+      $user_token = $_GET['user_token'];
+      $vendor_secret = $_GET['vendor_secret'];
+      $signature = $_GET['signature'];
+
+      //echo md5($method . $user_token . QOOP_VENDOR_SECRET . QOOP_VENDOR_PASSWORD);
+
+      if($vendor_secret == QOOP_VENDOR_SECRET && $signature == md5($method . $user_token . QOOP_VENDOR_SECRET . QOOP_VENDOR_PASSWORD))
+      {
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $u = &CUser::getInstance();
+        $um= &CUserManage::getInstance();
+
+        $userInfo = $u->find($user_token);
+
+        if($userInfo !== false)
+        {
+          $password_token = $um->generateToken($userInfo['U_KEY'], $user_token, NOW+86400);
+        }
+        else
+        {
+          $password_token = $um->generateToken($user_token, NOW+86400);
+        }
+
+        /*if(strlen($user_token) == 32) // user key passed in
+        {
+          $userInfo = $u->find($user_token);
+          $password_token = $um->generateToken($userInfo['U_KEY'], NOW+86400);
+        }
+        else // user session hash
+        {
+          $password_token = $um->generateToken($user_token, NOW+86400);
+        }*/
+
+        echo '<answer status="ok">';
+        echo '<password_token>' . $password_token . '</password_token>';
+        echo '</answer>';
+      }
+      else
+      {
+        echo '<answer status="fail">';
+        echo '</answer>';
+      }
+      break;
+
+    /*case 'get_photo': // custom method not required in qoop specs
+      include_once PATH_CLASS . '/CUser.php';
+      $u = &CUser::getInstance();
+
+      $password_token = $_GET['password_token'];
+      $user_sig = $_GET['user_sig'];
+      $username = !empty($_GET['username']) ? $_GET['username'] : false;
+      $photo_id  = $_GET['photo_id'];
+
+      $token = $u->getToken($password_token);
+
+      if($token !== false && $user_sig == md5($method . $password_token . $username . QOOP_VENDOR_PASSWORD))
+      {
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fb =& CFotobox::getInstance();
+
+        $photo_data = $fb->fotoData($photo_id);
+
+        if(file_exists($src = PATH_FOTOROOT . $photo_data['P_ORIG_PATH']))
+        {
+          //print_r($photo_data);
+          header('Content-Length: ' . filesize($src));
+          readfile($src);
+          die();
+        }
+        else
+        {
+          echo '<answer status="fail"></answer>';
+        }
+      }
+      else
+      {
+        echo '<answer status="fail"></answer>';
+      }
+
+      break;*/
+
+    case 'get_photos':
+      include_once PATH_CLASS . '/CUser.php';
+      $u = &CUser::getInstance();
+
+      $password_token = $_GET['password_token'];
+      $user_sig = $_GET['user_sig'];
+      $username = !empty($_GET['username']) ? $_GET['username'] : false;
+
+      $token = $u->getToken($password_token);
+
+      if($username !== false) // backdoor
+      {
+        if($token !== false && $user_sig == md5($method . $password_token . $username . QOOP_VENDOR_PASSWORD))
+        {
+          include_once PATH_CLASS . '/CFotobox.php';
+          include_once PATH_CLASS . '/CUser.php';
+          $u = &CUser::getInstance();
+          $f = &CFotobox::getInstance();
+
+          $userInfo = $u->find($username);
+          $photos = $f->fotosSearch(array('USER_ID' => $userInfo['U_ID']));
+
+          echo '<answer status="ok">';
+          echo '<photolist total_photos="' . count($photos) . '" owner_id="' . $token['T_SESS_HASH'] . '">';
+          foreach($photos as $k => $v)
+          {
+            $originalFormat = substr($v['P_ORIG_PATH'], -3, 3);
+            if($originalFormat == 'peg')
+            {
+              $originalFormat = 'jpg';
+            }
+
+						// get the original path
+						// if it has been edited, get the edited version of the photo
+						//  if it has been rotated we need to get an image back in the correct orientation
+						$originalPath = FF_STATIC_URL . PATH_FOTO . $v['P_ORIG_PATH'];
+						if($v['P_HISTORY'] != '' || $v['P_ROTATION'] != 0)
+						{
+							$width = $v['P_WIDTH'];
+							$height = $v['P_HEIGHT'];
+							if($v['P_ROTATION'] == 90 || $v['P_ROTATION'] == 270)
+							{
+								$width = $v['P_HEIGHT'];
+								$height = $v['P_WIDTH'];
+							}
+							$originalPath = dynamicImage($v['P_ORIG_PATH'], $v['P_KEY'], $width, $height);
+						}
+
+            echo '<photo id="' . $v['P_ID'] . '" taken="' . date('Y-m-d', $v['P_TAKEN']) . '" uploaded="' . date('Y-m-d', $v['P_CREATED']) . '" orig_format="' . $originalFormat . '">';
+            echo '<title>' . htmlspecialchars($v['P_DESC']) . '</title>';
+            echo '<description>' . htmlspecialchars($v['P_DESC']) . '</description>';
+            echo '<small x="75" y="75">' . FF_STATIC_URL . PATH_FOTO . $v['P_THUMB_PATH'] . '</small>';
+            echo '<medium x="400" y="300">' . dynamicImage($v['P_THUMB_PATH'], $v['P_KEY'], 400, 300) . '</medium>';
+            echo '<large x="500" y="375">' . dynamicImage($v['P_THUMB_PATH'], $v['P_KEY'], 400, 300) . '</large>';
+            echo '<original x="' . $width . '" y="' . $height . '">' . $originalPath . '</original>';
+            echo '<square x="75" y="75">' . FF_STATIC_URL . PATH_FOTO . $v['P_THUMB_PATH'] . '</square>';
+            echo '</photo>';
+            //trap('http://' . FF_SERVER_NAME . '/api/qoop/?method=get_photo&username=' . $username . '&user_sig=' . md5('get_photo' . $password_token . $username . QOOP_VENDOR_PASSWORD) . '&password_token=' . $password_token . '&photo_id=' . $v['P_ID']);
+          }
+
+          echo '</photolist>';
+          echo '</answer>';
+        }
+        else
+        {
+          echo '<answer status="fail">';
+          echo '</answer>';
+        }
+      }
+      else
+      {
+        if($token !== false && $user_sig == md5($method . $password_token . QOOP_VENDOR_PASSWORD))
+        {
+          include_once PATH_CLASS . '/CFotobox.php';
+          include_once PATH_CLASS . '/CUser.php';
+          include_once PATH_CLASS . '/CToolbox.php';
+          $u = &CUser::getInstance();
+          $f = &CFotobox::getInstance();
+          $t = &CToolbox::getInstance();
+
+          if($token['T_U_ID'] > 0)
+          {
+            $userInfo = $u->find($token['T_U_ID']);
+            $photos = array_merge(
+                          $f->fotosSearch(array('USER_ID' => $userInfo['U_ID'])),
+                          $t->get($token['T_SESS_HASH'])
+                        );
+          }
+          else
+          {
+            $photos = $t->get($token['T_SESS_HASH']);
+          }
+          
+          echo '<answer status="ok">';
+          echo '<photolist total_photos="' . count($photos) . '" owner_id="' . $userInfo['U_ID'] . '">';
+          foreach($photos as $k => $v)
+          {
+            $originalFormat = substr($v['P_ORIG_PATH'], -3, 3);
+            if($originalFormat == 'peg')
+            {
+              $originalFormat = 'jpg';
+            }
+
+						// get the original path
+						// if it has been edited, get the edited version of the photo
+						//  if it has been rotated we need to get an image back in the correct orientation
+						$originalPath = FF_STATIC_URL . PATH_FOTO . $v['P_ORIG_PATH'];
+						if($v['P_HISTORY'] != '' || $v['P_ROTATION'] != 0)
+						{
+							$width = $v['P_WIDTH'];
+							$height = $v['P_HEIGHT'];
+							if($v['P_ROTATION'] == 90 || $v['P_ROTATION'] == 270)
+							{
+								$width = $v['P_HEIGHT'];
+								$height = $v['P_WIDTH'];
+							}
+							$originalPath = dynamicImage($v['P_ORIG_PATH'], $v['P_KEY'], $width, $height);
+						}
+
+            echo '<photo id="' . $v['P_ID'] . '" taken="' . date('Y-m-d', $v['P_TAKEN']) . '" uploaded="' . date('Y-m-d', $v['P_CREATED']) . '" orig_format="' . $originalFormat . '">';
+            echo '<title>' . htmlspecialchars($v['P_DESC']) . '</title>';
+            echo '<description>' . htmlspecialchars($v['P_DESC']) . '</description>';
+            echo '<small x="75" y="75">' . FF_STATIC_URL . PATH_FOTO . $v['P_THUMB_PATH'] . '</small>';
+            echo '<medium x="400" y="300">' . dynamicImage($v['P_THUMB_PATH'], $v['P_KEY'], 400, 300) . '</medium>';
+            echo '<large x="500" y="375">' . dynamicImage($v['P_THUMB_PATH'], $v['P_KEY'], 400, 300) . '</large>';
+            echo '<original x="' . $width . '" y="' . $height . '">' . $originalPath . '</original>';
+            echo '<square x="75" y="75">' . FF_STATIC_URL . PATH_FOTO . $v['P_THUMB_PATH'] . '</square>';
+            echo '</photo>';
+            //trap('http://' . FF_SERVER_NAME . '/api/qoop/?method=get_photo&username=' . $username . '&user_sig=' . md5('get_photo' . $password_token . $username . QOOP_VENDOR_PASSWORD) . '&password_token=' . $password_token . '&photo_id=' . $v['P_ID']);
+          }
+
+          /*
+          foreach($photosEcom as $k => $v)
+          {
+            $originalFormat = substr($v['P_ORIG_PATH'], -3, 3);
+            if($originalFormat == 'peg')
+            {
+              $originalFormat = 'jpg';
+            }
+            echo '<photo id="' . $v['P_ID'] . '" taken="' . date('Y-m-d', $v['P_TAKEN']) . '" uploaded="' . date('Y-m-d', $v['P_CREATED']) . '" orig_format="' . $originalFormat . '">';
+            echo '<title>' . htmlspecialchars($v['P_NAME']) . '</title>';
+            echo '<description>' . htmlspecialchars($v['P_DESC']) . '</description>';
+            echo '<small x="75" y="75">' . FF_STATIC_URL . PATH_FOTO . $v['P_THUMB_PATH'] . '</small>';
+            echo '<medium x="400" y="300">' . dynamicImage($v['P_THUMB_PATH'], $v['P_KEY'], 400, 300) . '</medium>';
+            echo '<large x="500" y="375">' . dynamicImage($v['P_THUMB_PATH'], $v['P_KEY'], 400, 300) . '</large>';
+            echo '<original x="' . $v['P_WIDTH'] . '" y="' . $v['P_HEIGHT'] . '">' . FF_STATIC_URL . PATH_FOTO . $v['P_ORIG_PATH'] . '</original>';
+            echo '<square x="75" y="75">' . FF_STATIC_URL . PATH_FOTO . $v['P_THUMB_PATH'] . '</square>';
+            echo '</photo>';
+            //trap('http://' . FF_SERVER_NAME . '/api/qoop/?method=get_photo&username=' . $username . '&user_sig=' . md5('get_photo' . $password_token . $username . QOOP_VENDOR_PASSWORD) . '&password_token=' . $password_token . '&photo_id=' . $v['P_ID']);
+          }
+          */
+
+          echo '</photolist>';
+          echo '</answer>';
+        }
+        else
+        {
+          echo '<answer status="fail">';
+          echo '</answer>';
+        }
+      }
+      break;
+
+    case 'get_albums':
+      include_once PATH_CLASS . '/CUser.php';
+      $u = &CUser::getInstance();
+
+      $password_token = $_GET['password_token'];
+      $user_sig = $_GET['user_sig'];
+      $username = !empty($_GET['username']) ? $_GET['username'] : false;
+
+      $token = $u->getToken($password_token);
+
+      if($username !== false)
+      {
+        if($token !== false && $user_sig == md5($method . $password_token . $username . QOOP_VENDOR_PASSWORD))
+        {
+          include_once PATH_CLASS . '/CFlix.php';
+          include_once PATH_CLASS . '/CToolbox.php';
+          $f = &CFlix::getInstance();
+          $t = &CToolbox::getInstance();
+
+          $userInfo = $u->userByUsername($username);
+          $flix = $f->search(array('USER_ID' => $userInfo['U_ID']));
+
+          echo '<answer status="ok">';
+
+          // toolbox photos, if they exist
+          $toolboxPhotos = $t->get($userInfo['U_ID']);
+          if(count($toolboxPhotos) > 0)
+          {
+            echo '<album id="0" num_photos="' . count($toolboxPhotos) . '" owner_id="' . $userInfo['U_ID'] . '">';
+            echo '<title>Photos from your toolbox</title>';
+            echo '<description></description>';
+            echo '</album>';
+          }
+
+          foreach($flix as $k => $v)
+          {
+            echo '<album id="' . $v['US_ID'] . '" num_photos="' . $v['US_FOTO_COUNT'] . '" owner_id="' . $userInfo['U_ID'] . '">';
+            echo '<title>' . htmlspecialchars($v['US_NAME']) . '</title>';
+            echo '<description></description>';
+            echo '</album>';
+          }
+
+          echo '</answer>';
+        }
+        else
+        {
+          echo '<answer status="fail">';
+          echo '</answer>';
+        }
+      }
+      else
+      {
+        if($token !== false && $user_sig == md5($method . $password_token . QOOP_VENDOR_PASSWORD))
+        {
+          include_once PATH_CLASS . '/CFlix.php';
+          include_once PATH_CLASS . '/CUser.php';
+          include_once PATH_CLASS . '/CToolbox.php';
+          $u = &CUser::getInstance();
+          $f = &CFlix::getInstance();
+          $t = &CToolbox::getInstance();
+
+          $userInfo = $u->find($token['T_U_ID']);
+          $flix = $f->search(array('USER_ID' => $userInfo['U_ID']));
+
+          echo '<answer status="ok">';
+
+          // toolbox photos, if they exist
+          $toolboxPhotos = $t->get($userInfo['U_ID']);
+          if(count($toolboxPhotos) > 0)
+          {
+            echo '<album id="toolbox" num_photos="' . count($toolboxPhotos) . '" owner_id="' . $userInfo['U_ID'] . '">';
+            echo '<title>Photos from your toolbox</title>';
+            echo '<description></description>';
+            echo '</album>';
+          }
+
+          // ecom_toolbox photos if they exist
+          $ecomToolboxPhotos = $t->get($token['T_SESS_HASH']);
+          if(count($ecomToolboxPhotos) > 0)
+          {
+            echo '<album id="ecom_toolbox" num_photos="' . count($ecomToolboxPhotos) . '" owner_id="0">';
+            echo '<title>Photos in your cart</title>';
+            echo '<description></description>';
+            echo '</album>';
+          }
+
+          foreach($flix as $v)
+          {
+            echo '<album id="' . $v['US_ID'] . '" num_photos="' . $v['US_FOTO_COUNT'] . '" owner_id="' . $userInfo['U_ID'] . '">';
+            echo '<title>' . htmlspecialchars($v['US_NAME']) . '</title>';
+            echo '<description>N/A</description>';
+            echo '</album>';
+          }
+
+          echo '</answer>';
+        }
+        else
+        {
+          echo '<answer status="fail">';
+          echo '</answer>';
+        }
+
+        //trap(ob_get_contents());
+        //ob_end_flush();
+      }
+      break;
+
+    case 'get_album_photos':
+      include_once PATH_CLASS . '/CUser.php';
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_CLASS . '/CToolbox.php';
+      $u = &CUser::getInstance();
+      $f = &CFlix::getInstance();
+      $t = &CToolbox::getInstance();
+
+      $album_id = $_GET['album_id'];
+      $password_token = $_GET['password_token'];
+      $user_sig = $_GET['user_sig'];
+      $username = !empty($_GET['username']) ? $_GET['username'] : false;
+
+      $token = $u->getToken($password_token);
+
+      /*if($album_id != '0') // only if not the toolbox
+      {
+        $flix = $f->search(array('FLIX_ID' => $album_id));
+      }*/
+
+      if($username !== false)
+      {
+        if($token !== false && /*count($flix) !== 0 &&*/ $user_sig == md5($method . $album_id . $password_token . $username . QOOP_VENDOR_PASSWORD))
+        {
+          $userInfo = $u->userByUsername($username);
+
+          if($album_id == 'toolbox') // toolbox
+          {
+            $photos = $t->get($userInfo['U_ID']);
+          }
+          elseif($album_id == 'ecom_toolbox') // ecom_toolbox
+          {
+            $photos = null;
+          }
+          else
+          {
+            $photos = $f->getFotos($album_id, $userInfo['U_ID']);
+          }
+
+          echo '<answer status="ok">';
+          echo '<albumlist id="' . $album_id . '" num_photos="' . count($photos) . '" owner_id="' . $userInfo['U_ID'] . '">';
+
+          foreach($photos as $k => $v)
+          {
+            echo '<photo id="' . $v['P_ID'] . '" />';
+          }
+
+          echo '</albumlist>';
+          echo '</answer>';
+
+        }
+        else
+        {
+          echo '<answer status="fail">';
+          echo '</answer>';
+        }
+      }
+      else
+      {
+        if($token !== false && /*count($flix) !== 0 &&*/ $user_sig == md5($method . $album_id . $password_token . QOOP_VENDOR_PASSWORD))
+        {
+          $userInfo = $u->find($token['T_U_ID']);
+
+          if($album_id == 'toolbox') // toolbox
+          {
+            $photos = $t->get($userInfo['U_ID']);
+            $ownerId = $userInfo['U_ID'];
+          }
+          elseif($album_id == 'ecom_toolbox') // ecom_toolbox
+          {
+            $photos = $t->get($token['T_SESS_HASH']);
+            $ownerId = 0;
+          }
+          else
+          {
+            $photos = $f->getFotos($album_id, $userInfo['U_ID']);
+            $ownerId = $userInfo['U_ID'];
+          }
+
+          echo '<answer status="ok">';
+          echo '<albumlist id="' . $album_id . '" num_photos="' . count($photos) . '" owner_id="' . $ownerId . '">';
+
+          foreach($photos as $k => $v)
+          {
+            echo '<photo id="' . $v['P_ID'] . '" />';
+          }
+
+          echo '</albumlist>';
+          echo '</answer>';
+        }
+        else
+        {
+          echo '<answer status="fail">';
+          echo '</answer>';
+        }
+      }
+      break;
+
+    case 'get_user_info':
+      include_once PATH_CLASS . '/CUser.php';
+      $u = &CUser::getInstance();
+
+      $password_token = $_GET['password_token'];
+      $user_sig = $_GET['user_sig'];
+
+      $token = $u->getToken($password_token);
+
+      if($token !== false && $user_sig == md5($method . $password_token . QOOP_VENDOR_PASSWORD))
+      {
+        $userInfo = $u->find($token['T_U_ID']);
+        $profileData = $u->profile($userInfo['U_ID']);
+        $avatarSrc = $profileData['P_AVATAR'] != '' ? PATH_FOTO . $profileData['P_AVATAR'] : 'images/avatar.jpg';
+
+        echo '<answer status="ok">';
+        echo '<user_info owner_id="' . $userInfo['U_ID'] . '">';
+        echo '<realname>' . htmlspecialchars($userInfo['U_NAMEFIRST'] . ' ' . $userInfo['U_NAMELAST']) . '</realname>';
+        echo '<username>' . htmlspecialchars($userInfo['U_USERNAME']) . '</username>';
+        echo '<location>' . htmlspecialchars($userInfo['U_CITY'] . ', ' . $userInfo['U_COUNTRY']) . '</location>';
+        echo '<image_url>' . $avatarSrc . '</image_url>';
+        echo '</user_info>';
+        echo '</answer>';
+      }
+      else
+      {
+        echo '<answer status="fail">';
+        echo '</answer>';
+      }
+      break;
+  }
+?>

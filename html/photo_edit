@@ -1,0 +1,81 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_HOMEROOT . '/init.php';
+  
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  include_once PATH_CLASS . '/CFotobox.php';
+  include_once PATH_CLASS . '/CImageEditor.php';
+  include_once PATH_CLASS . '/CImageMagick.php';
+  include_once PATH_CLASS . '/CCropInterface.php';
+  
+  $f  =& CFotobox::getInstance();
+  $foto_data = $f->fotoData($_GET['image_id'], $_USER_ID);
+  include_once PATH_DOCROOT . '/header_basic.dsp.php';
+  
+  $action = isset($_GET['action']) ? $_GET['action'] : 'image_crop';
+  
+  switch($action)
+  {
+    case 'image_crop':
+      $edit_mode = isset($_GET['edit_mode']) ? $_GET['edit_mode'] : 'flix';
+      $ci =&  new CCropInterface($_GET['image_id']);
+      $ie =&  new CImageEditor;
+      $im =& CImageMagick::getInstance();
+      
+      $ie->loadImage($_GET['image_id'], PATH_FOTOROOT . $foto_data['P_ORIG_PATH']);
+      
+      $src = $ie->temp();
+      
+      $im->image($src);
+      if($foto_data['P_ROTATION'] > 0)
+      {
+        $im->rotate($src, $src, $foto_data['P_ROTATION']);
+      }
+      $im->scale(FF_WEB_WIDTH, FF_WEB_HEIGHT);
+      
+      $src_local = str_replace(PATH_FOTOROOT, '', $src);
+      
+      //$ci->loadInterface($foto_data['P_WEB_PATH']);
+      switch($edit_mode)
+      {
+        case 'slideshow':
+          $ci->setRescalble(false);
+          $ci->setCropMinSize(40, 30);
+          $ci->setCropDefaultSize(100, 75);
+          break;
+        case 'free':
+        default:
+          $ci->setRescalble(true);
+          $ci->setCropMinSize(40, 40);
+          $ci->setCropDefaultSize(100, 100);
+          break;
+      }
+      
+      $ci->setResizing(true);
+      $ci->loadInterface($src_local, $src);
+      $ci->loadJavaScript();
+      
+      break;
+    case 'image_crop.act':
+      $ie =& new CImageEditor;
+      
+      $ie->loadImage($_GET['image_id'], PATH_FOTOROOT . $foto_data['P_ORIG_PATH']);
+      
+      $new_size = $ie->crop($_GET['image_id'], $_GET['sx'], $_GET['sy'], $_GET['ex'], $_GET['ey']);
+      
+      $foto_data['P_WIDTH'] = $new_size[0];
+      $foto_data['P_HEIGHT'] = $new_size[1];
+      
+      $foto_data['P_HASH'] = md5('ff_' . $_SERVER['REMOTE_ADDR'] . '_ip');
+      echo '<script language="javascript"> opener.photoEditRsp(' . jsonEncode($foto_data) . '); self.close(); </script>';
+      break;
+  }
+
+  include_once PATH_DOCROOT . '/footer_basic.dsp.php';
+  
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

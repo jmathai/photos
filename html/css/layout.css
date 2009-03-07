@@ -1,0 +1,202 @@
+/* HTML ELEMENTS */
+body,html{
+  height:100%;
+  margin:0px;
+  padding:0px;
+  margin-bottom: 1px;
+} 
+
+img.png{
+  behavior: url("/css/pngbehavior.htc");
+  padding:0px;
+}
+
+form{
+  display:inline;
+}
+
+/* ////// PAGE LAYOUT TEMPLATE ////// */
+
+#site{
+  width:980px;
+  margin:auto;
+}
+
+#main{
+  width:980px;
+}
+
+#header{
+  margin:auto;
+  height:45px;
+  width:100%;
+  background:url("/images/header_bg.gif") repeat-x;
+}
+
+#content{
+  width:980px;
+  background-color:#fff;
+  padding:0px 0px 10px 0px;
+}
+
+#contentMy{
+  width:980px;
+  background-color:#000;
+  margin-top:-15px;
+  padding:0px 0px 10px 0px;
+}
+
+#navigation{
+  width:150px;
+  float:left;
+}
+
+#dataDouble{
+  width:820px;
+  margin-left:10px;
+  float:left;
+}
+
+#dataSingle{
+  width:980px;
+}
+
+.dataSingleContent{
+  width:750px;
+  margin:auto;
+}
+
+#footer{
+  margin:auto;
+  width:370px;
+  padding:15px 0px 20px 0px;
+}
+
+/* sign up form */
+.formRow{
+  margin-top:4px;
+}
+
+.formLabel{
+  width:150px;
+  font-weight:bold;
+  text-align:right;
+  padding-right:10px;
+  margin-top:3px;
+  float:left;
+}
+
+.formField{
+  text-align:left;
+  width:550px;
+}
+
+.formText{
+  text-align:left;
+  width:550px;
+  padding-top:3px;
+}
+
+.formLabelLogin{
+  width:100px;
+  font-weight:bold;
+  text-align:right;
+  padding-right:10px;
+  margin-top:3px;
+  float:left;
+}
+
+.formFieldLogin{
+  text-align:left;
+}
+
+.formBlock{
+  padding:10px;
+  margin:3px 0px 10px 0px;
+  border:solid 1px #bfbfbf;
+  background-color:#efefef;
+}
+
+.formIndent{
+  margin-left:160px;
+}
+
+/* ////// LEFT NAVIGATION ////// */
+/* Quick Sets */
+.draggerSetParent{
+  width:140px;
+  white-space:nowrap;
+}
+
+.draggerSetChild{
+  width:140px;
+  white-space:nowrap;
+}
+
+.draggerSetParent:hover{
+  width:140px;
+}
+
+.draggerSetChild:hover{
+  width:140px;
+}
+
+.nav_row{
+  width: 149px;
+  height: 29px;
+  margin-top:1px;
+  padding-left:1px;
+  background-image: url("/images/navigation/nav_closed_bg.gif");
+}
+
+.nav_row_expanded{
+  width: 149px;
+  height: 29px;
+  margin-top:1px;
+  padding-left:1px;
+  background-image: url("/images/navigation/nav_open_bg.gif");
+}
+
+.nav_row_plain{
+  width: 149px;
+  height: 29px;
+  margin-top:1px;
+  padding-left:1px;
+  background-image: url("/images/navigation/nav_plain_bg.gif");
+}
+
+.sub_nav{
+  width:144px;
+  padding-top:5px;
+  padding-bottom:5px;
+  margin-left:2px;
+  border-left:solid 1px #979DAA;
+  border-right:solid 1px #979DAA;
+}
+
+.sub_nav_close{
+  width:144px;
+  padding-top:5px;
+  padding-bottom:5px;
+  margin-left:2px;
+  border-left:solid 1px #979DAA;
+  border-right:solid 1px #979DAA;
+  border-bottom:solid 1px #979DAA;
+}
+
+.sub_nav_divider{
+  padding-left:4px;
+  margin-left:2px;
+  margin-right:2px;
+  border-left:solid 1px #979DAA;
+  border-right:solid 1px #979DAA;
+}
+
+/* ----- old nav  -----*/
+
+.gradient_lt_grey
+{
+  height:25px;
+  background:url(/images/gradient_lt_grey.gif) repeat-x;
+  border:solid 1px #787878;
+}

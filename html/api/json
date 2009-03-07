@@ -1,0 +1,620 @@
+<?php
+  include_once '../init_constants.php';
+  
+  //header('Content-type: application/jsonrequest');
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  
+  $action = isset($_GET['action']) ? $_GET['action'] : null;
+  
+  $continue = false; // do not continue by default
+  
+  $errors = array(
+              'AUTH_FAILURE' => array('error' => true, 'code' => 99, 'message' => 'Authentication failure.'),
+              'AUTH_NO_CREDENTIALS' => array('error' => true, 'code' => 98, 'message' => 'No authentication token or key.'),
+              'PERM_INSUFFICIENT' => array('error' => true, 'code' => 20, 'message' => 'Insufficient privilages.')
+            );
+  
+  if($action != 'authenticate.login') // require authentication if not logging in
+  {
+    include_once PATH_CLASS . '/CUser.php';
+    $us =& CUser::getInstance();
+    
+    if(isset($_REQUEST['authenticationToken']))
+    {
+      $auth = $us->getToken($_REQUEST['authenticationToken']);
+      if($auth !== false)
+      {
+        $_USER_ID = $auth['T_U_ID'];
+        $continue = true;
+        $permission = FF_API_W; // write permission
+      }
+    }
+    else
+    if(isset($_REQUEST['authenticationKey']))
+    {
+      $auth = $us->find($_REQUEST['authenticationKey']);
+      if($auth !== false)
+      {
+        $_USER_ID = $auth['U_ID'];
+        $continue = true;
+        $permission = FF_API_R; // read permission
+      }
+    }
+    
+    if(!isset($auth)) // no authentication credentials supplied
+    {
+      $output = $errors['AUTH_NO_CREDENTIALS'];
+    }
+    else
+    if($auth === false) // authentication failure
+    {
+      $output = $errors['AUTH_FAILURE'];
+    }
+  }
+  else // continue if logging in
+  if($action == 'authenticate.login')
+  {
+    $continue = true;
+  }
+  else
+  {
+    $output = $errors['AUTH_NO_CREDENTIALS'];
+  }
+  
+  if($continue === true)
+  {
+    switch($action)
+    {
+      case 'authenticate.deleteToken':
+        break;
+      case 'authenticate.getToken':
+        include_once PATH_CLASS . '/CUser.php';
+        $us =& CUser::getInstance();
+        
+        $token  = $us->getToken($_REQUEST['token']);
+        $output = $token['T_TOKEN'];
+        break;
+      case 'authenticate.login':
+        include_once PATH_CLASS . '/CUserManage.php';
+        $usm =& CUserManage::getInstance();
+        
+        $output = $usm->generateToken($_REQUEST['username'], $_REQUEST['password']);
+        break;
+      
+      case 'image.addTags':
+        checkPermission(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        
+        $photoId  = array(intval($_REQUEST['id']));
+        $tags     = (array)explode(',', $_REQUEST['tags']);
+        
+        $fb  =& CFotobox::getInstance();
+        $fbm =& CFotoboxManage::getInstance();
+        
+        $fbm->addTags($photoId, $tags, $_USER_ID);
+        
+        $output = translateImage($fb->fotoData(intval($_REQUEST['id']), $_USER_ID));
+        break;
+      case 'image.getHash':
+        $output = md5('ff_' . $_SERVER['REMOTE_ADDR'] . '_ip');
+        break;
+      case 'image.getComments':
+        include_once PATH_CLASS . '/CComment.php';
+        $c =& CComment::getInstance();
+        
+        $photoId = intval($_REQUEST['id']);
+        
+        $output = $c->comments($photoId, 'foto');
+        break;
+      case 'image.getImage':
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fb =& CFotobox::getInstance();
+        
+        if(isset($_GET['id']))
+        {
+          translateImage($output = $fb->fotoData($_GET['id'], $_USER_ID));
+        }
+        else
+        if(isset($_GET['photoKey']))
+        {
+          translateImage($output = $fb->fotoData($_GET['key'], $_USER_ID));
+        }
+        else
+        {
+          $output = null;
+        }
+    
+        break;
+      case 'image.getUntagged':
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fb =& CFotobox::getInstance();
+        
+        $params = array('USER_ID' => $_USER_ID, 'UNTAGGED' => true);
+        
+        $output = translateImages($fb->fotosSearch($params));
+        break;
+      case 'image.edit':
+        image(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        
+        $fb   =& CFotobox::getInstance();
+        $fbm  =& CFotoboxManage::getInstance();
+        
+        $photoId  = intval($_REQUEST['id']);
+        $name     = $_REQUEST['name'];
+        $desc     = $_REQUEST['description'];
+        
+        $data     = array('up_id' => $photoId, 'up_u_id' => $_USER_ID, 'up_name' => $name, 'up_description' => $desc);
+        $fbm->update($data);
+        
+        $output = translateImage($fb->fotoData($photoId, $_USER_ID));
+        break;
+
+      case 'image.leaveComment': // not implemented
+        break;
+      case 'image.removeTags':
+        checkPermission(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        
+        $photoId = array(intval($_REQUEST['id']));
+        $tags     = (array)explode(',', $_REQUEST['tags']);
+        
+        $fb  =& CFotobox::getInstance();
+        $fbm =& CFotoboxManage::getInstance();
+        
+        $fbm->removeTags($photoId, $tags, $_USER_ID);
+        
+        $output = translateImage($fb->fotoData(intval($_REQUEST['id']), $_USER_ID));
+        break;
+      case 'image.search':
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fb =& CFotobox::getInstance();
+        
+        $translate = array(
+                            'dateCreatedBegin' => 'DATE_CREATED_START', 'dateCreatedEnd' => 'DATE_CREATED_END', 
+                            'dateTaken' => 'DATE_TAKEN_EXACT', 'dateTakenBegin' => 'DATE_TAKEN_START', 
+                            'dateTakenEnd' => 'DATE_TAKEN_END', 'limit' => 'LIMIT', 'tags' => 'TAGS', 
+                            'offset' => 'OFFSET', 'order' => 'ORDER', 'permission' => 'PERMISSION'
+                          );
+        $translateOrders = array(
+                              'dateCreated' => 'P_CREATED', 'dateTaken' => 'P_TAKEN_BY_DAY', 'views' => 'VIEWS'
+                            );
+        $params = array();
+        $params['USER_ID'] = $_USER_ID;
+        
+        foreach($_REQUEST as $k => $v)
+        {
+          if(isset($translate[$k]))
+          {
+            if($k != 'order')
+            {
+              $params[$translate[$k]] = $v;
+            }
+            else
+            {
+              $params[$translate[$k]] = $translateOrders[$v];
+            }
+          }
+        }
+        
+        // force public
+        $params['PERMISSION'] = 1;
+        
+        $output = translateImages($fb->fotosSearch($params));
+        $output['misc'] = array('totalRows' => $GLOBALS['dbh']->found_rows(), 'offset' => intval($_REQUEST['offset']));
+        if(isset($_REQUEST['limit']))
+        {
+          $output['misc']['limit'] = intval($_REQUEST['limit']);
+        }
+        break;
+      case 'image.transform.crop':
+        checkPermission(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CImageEditor.php';
+        
+        $fb =& CFotobox::getInstance();
+        $ie =& CImageEditor::getInstance();
+        
+        $photoId = intval($_REQUEST['id']);
+        $x1 = intval($_REQUEST['x1']);
+        $y1 = intval($_REQUEST['y1']);
+        $x2 = intval($_REQUEST['x2']);
+        $y2 = intval($_REQUEST['y2']);
+        
+        $photoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($photoData !== false)
+        {
+          $ie->loadImage($photoId, PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+          $ie->crop($photoId, $x1, $y1, $x2, $y2);
+        }
+        
+        $output = translateImage($photoData);
+        break;
+      case 'image.transform.greyscale':
+        checkPermission(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CImageEditor.php';
+        
+        $fb =& CFotobox::getInstance();
+        $ie =& CImageEditor::getInstance();
+        
+        $photoId = intval($_REQUEST['id']);
+        
+        $photoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($photoData !== false)
+        {
+          $ie->loadImage($photoId, PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+          $ie->setUser($_USER_ID);
+          $ie->desaturate();
+        }
+        
+        $output = translateImage($photoData);
+        break;
+      case 'image.transform.restore':
+        checkPermission(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CImageEditor.php';
+        
+        $fb =& CFotobox::getInstance();
+        $fbm =& CFotoboxManage::getInstance();
+        $ie =& CImageEditor::getInstance();
+        
+        $photoId = intval($_REQUEST['id']);
+        
+        $photoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($photoData !== false)
+        {
+          $ie->loadImage($photoId, PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+          $ie->setUser($_USER_ID);
+          
+          $ie->restore();
+          $fbm->update(array('up_id' => $photoId, 'up_rotation' => 0));
+          $photoData['P_ROTATION'] = 0; // set this so we didn't have to requery the database for the new rotation
+        }
+        
+        $output = translateImage($photoData);
+        break;
+      case 'image.transform.rotate':
+        checkPermission(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CImageEditor.php';
+        
+        $fb =& CFotobox::getInstance();
+        $fbm =& CFotoboxManage::getInstance();
+        $ie =& CImageEditor::getInstance();
+        
+        $photoId = intval($_REQUEST['id']);
+        $photoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($photoData !== false)
+        {
+          $ie->loadImage($photoId, PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+          $ie->setUser($_USER_ID);
+          
+          $degrees = rotation($photoData['P_ROTATION'], $_REQUEST['degrees']);
+          $ie->rotate($degrees);
+          $fbm->update(array('up_id' => $photoId, 'up_rotation' => $degrees));
+          $photoData['P_ROTATION'] = $degrees; // set this so we didn't have to requery the database for the new rotation
+        }
+        
+        $output = translateImage($photoData);
+        break;
+      case 'image.transform.sepia':
+        checkPermission(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CImageEditor.php';
+        
+        $fb =& CFotobox::getInstance();
+        $ie =& CImageEditor::getInstance();
+        
+        $photoId = intval($_REQUEST['id']);
+        
+        $photoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($photoData !== false)
+        {
+          $ie->loadImage($photoId, PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+          $ie->setUser($_USER_ID);
+          $ie->sepia();
+        }
+        
+        $output = translateImage($photoData);
+        break;
+      case 'image.transform.zoom':
+        checkPermission(FF_API_WRITE, $permission);
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CImageEditor.php';
+        
+        $fb =& CFotobox::getInstance();
+        $ie =& CImageEditor::getInstance();
+        
+        $photoId = intval($_REQUEST['id']);
+        $step = intval($_REQUEST['step']);
+        
+        $photoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($photoData !== false && ($step > 0 && $step < 100))
+        {
+          $cropBase = array(500, 375);
+          
+          $widthTrim = intval($step / 200 * $cropBase[0]); // divide by 200 instead of / 100 / 2
+          $heightTrim = intval($step / 200 * $cropBase[1]); // divide by 200 instead of / 100 / 2
+          
+          $x1 = $widthTrim;
+          $x2 = $cropBase[0] - $widthTrim;
+          $y1 = $heightTrim;
+          $y2 = $cropBase[1] - $heightTrim;
+          
+          $ie->loadImage($photoId, PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+          $ie->setUser($_USER_ID);
+          $ie->restore();
+          $ie->loadImage($photoId, PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+          $ie->crop($photoId, $x1, $y1, $x2, $y2);
+        }
+        
+        $output = translateImage($photoData);
+        break;
+      
+      case 'slideshow.addTags':
+        break;
+      case 'slideshow.edit':
+        break;
+      case 'slideshow.getComments':
+        break;
+      case 'slideshow.getUntagged': 
+        break;
+      case 'slideshow.leaveComment':
+        break;
+      case 'slideshow.removeTags':
+        break;
+      case 'slideshow.search':
+        include_once PATH_CLASS . '/CFlix.php';
+        $fl =& CFlix::getInstance();
+        
+        $translate = array(
+                            'id' => 'SLIDESHOW_ID', 'key' => 'KEY', 'limit' => 'LIMIT', 'offset' => 'OFFSET', 
+                            'order' => 'ORDER_BY', 'permission' => 'PERMISSION', 'tags' => 'TAGS'
+                          );
+        $translateOrders = array(
+                              'length' => 'length', 'title' => 'title', 'order' => 'order'
+                            );
+        $translateThumbnail = array(
+                              'thumbnailPath_str' => 'path', 'photoKey_str' => 'key'
+                            );
+        $params = array();
+        $params['USER_ID'] = $_USER_ID;
+        
+        foreach($_REQUEST as $k => $v)
+        {
+          if(isset($translate[$k]))
+          {
+            if($k != 'order')
+            {
+              $params[$translate[$k]] = $v;
+            }
+            else
+            {
+              $params[$translate[$k]] = $translateOrders[$v];
+            }
+          }
+        }
+        
+        // force public
+        $params['PERMISSION'] = PERM_SLIDESHOW_PUBLIC;
+        $results = $fl->search($params);
+        $output = translateSlideshows($results);
+        
+        $output['misc'] = array('totalRows' => $results[0]['ROWS'], 'offset' => intval($_REQUEST['offset']));
+        if(isset($_REQUEST['limit']))
+        {
+          $output['misc']['limit'] = intval($_REQUEST['limit']);
+        }
+        break;
+      case 'slideshow.load':
+        break;
+      
+      case 'upload.getKey':
+        include_once PATH_CLASS . '/CUser.php';
+        $u =& CUser::getInstance();
+        $output = $u->userIdEnc($_USER_ID);
+        break;
+      
+      case 'user.getInfo':
+        break;
+      case 'user.getTags':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $limit = !empty($_GET['limit']) ? $_GET['limit'] : 1000000000;
+        
+        
+        switch($_GET['order'])
+        {
+          case 'random':
+            $tags = $t->tags($_USER_ID, 'RANDOM');
+            break;
+          case 'alpha':
+          default:
+            $tags = $t->tags($_USER_ID, 'TAG');
+            break;
+        }
+
+        $output = array();
+        foreach($tags as $k => $v)
+        {
+          if($k < $limit)
+          {
+            $output[] = array('tag' => $v['TAG'], 'tagCount' => $v['TAG_COUNT'], 'tagWeight' => $v['WEIGHT']);
+          }
+          else
+          {
+            break;
+          }
+        }
+        
+        $output[0]['totalRows'] = $tags[0]['COUNT'];
+        $output[0]['minimum']   = $tags[0]['MIN'];
+        $output[0]['maximum']   = $tags[0]['MAX'];
+        if($permission == FF_API_R)
+        {
+          $output[0]['username']= $auth['U_USERNAME'];
+        }
+        break;
+      case 'user.search':
+        break;
+      
+        
+      case 'video.getVideo':
+        break;
+      case 'video.search':
+        break;
+    }
+  }
+  
+  $output = jsonEncode($output);
+  
+  doOutput($output); // echo out appropriate content
+  
+  function doOutput($output)
+  {
+    if(!empty($_GET['callback']))
+    {
+      if(empty($_GET['arguments']))
+      {
+        echo $_GET['callback'] . '(' . $output . ');';
+      }
+      else
+      {
+        $arguments = jsonEncode($_GET['arguments']);
+        echo $_GET['callback'] . '(' . $output . ', ' . $arguments . ');';
+      }
+    }
+    else
+    {
+      echo $output;
+    }
+  }
+  
+  function checkPermission($resource, $permission)
+  {
+    global $errors;
+    if($resource & $permission != $resource)
+    {
+      $output = jsonEncode($errors['PERM_INSUFFICIENT']);
+      doOutput($output);
+      die();
+    }
+  }
+  
+  function translateImage($imageObj)
+  {
+    $retval = array();
+    $translation = array(
+                      'P_ID' => 'id',
+                      'P_U_ID' => 'userId',
+                      'P_KEY' => 'key',
+                      'P_TAGS' => 'tags',
+                      'P_NAME' => 'name',
+                      'P_SIZE' => 'size',
+                      'P_WIDTH' => 'width',
+                      'P_HEIGHT' => 'height',
+                      'P_DESC' => 'description',
+                      'P_ROTATION' => 'rotation',
+                      'P_PRIVACY' => 'permission',
+                      'P_VIEWS' => 'views',
+                      'P_CAMERA_MAKE' => 'cameraMake',
+                      'P_CAMERA_MODEL' => 'cameraModel',
+                      'P_ORIGINAL_PATH' => 'originalPath',
+                      'P_THUMB_PATH' => 'thumbnailPath',
+                      'P_MODIFIED' => 'dateModified',
+                      'P_TAKEN' => 'dateTaken',
+                      'P_CREATED' => 'dateCreated',
+                      
+                      'dummy' => 'value'
+                    );
+    
+    foreach($imageObj as $k => $v)
+    {
+      if(isset($translation[$k]))
+      {
+        $retval[$translation[$k]] = $v;
+      }
+    }
+    return $retval;
+  }
+  
+  function translateImages($imagesObj)
+  {
+    $retval = array();
+    foreach($imagesObj as $v)
+    {
+      array_push($retval, translateImage($v));
+    }
+    return $retval;
+  }
+  
+  function translateSlideshow($slideshowObj)
+  {
+    $retval = array();
+    $translation = array(
+                      'US_ID' => 'id',
+                      'US_U_ID' => 'userId',
+                      'US_KEY' => 'key',
+                      'US_TAGS' => 'tags',
+                      'US_NAME' => 'name',
+                      'US_FOTO_COUNT' => 'frames',
+                      'US_VIEWS' => 'views',
+                      'US_VIEWS_COMPLETE' => 'viewsComplete',
+                      'US_PRIVACY' => 'permission',
+                      'US_DATE_MODIFIED' => 'dateModified',
+                      'US_DATE_CREATED' => 'dateCreated',
+                      'US_PHOTO' => 'thumbnail',
+                      'US_WIDTH' => 'width',
+                      'US_HEIGHT' => 'height',
+                      
+                      'dummy' => 'value'
+                    );
+    
+    foreach($slideshowObj as $k => $v)
+    {
+      if($k != 'US_PHOTO')
+      {
+        if(isset($translation[$k]))
+        {
+          $retval[$translation[$k]] = $v;
+        }
+      }
+      else
+      {
+        $retval[$translation[$k]]['path'] = $v['thumbnailPath_str'];
+        $retval[$translation[$k]]['key']  = $v['photoKey_str'];
+      }
+    }
+    return $retval;
+  }
+  
+  function translateSlideshows($slideshowsObj)
+  {
+    $retval = array();
+    foreach($slideshowsObj as $v)
+    {
+      array_push($retval, translateSlideshow($v));
+    }
+    
+    $retval[0]['totalRows'] = $slideshowsObj[0]['ROWS'];
+    return $retval;
+  }
+  
+  function cleanTags($string)
+  {
+    return preg_replace('/^\,|\,$/', '', $string);
+  }
+?>

@@ -1,0 +1,145 @@
+<?php
+  header('Content-type: text/xml');
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  
+  $mode = isset($_GET['mode']) ? $_GET['mode'] : 'user';
+  
+  switch($mode)
+  {
+    case 'fotos_by_tags':
+      include_once PATH_CLASS . '/CFotobox.php';
+      include_once PATH_CLASS . '/CUser.php';
+      $fb = &CFotobox::getInstance();
+      $u = &CUser::getInstance();
+      
+      $username = isset($_GET['username']) ? $_GET['username'] : '';
+      $tags = isset($_GET['tags']) ? $_GET['tags'] : '';
+      $content = '';
+      $limit = 25;
+      
+      $user = $u->my($username);
+      $fotos = $fb->fotosByTags($tags, $user['U_ID'], 3, 'P_CREATED', 0, $limit);
+      
+      $templateMain  = file_get_contents(PATH_DOCROOT . '/feed_rss.tpl.php');
+      $templateInner = file_get_contents(PATH_DOCROOT . '/feed_rss_content.tpl.php');
+      
+      $content = str_replace(array('{TITLE}', '{DESCRIPTION}', '{LINK}', '{GENERATOR}', '{TTL}'), array("{$user['U_USERNAME']}'s recent fotos tagged with {$tags} on FotoFlix", "{$user['U_USERNAME']}'s recent fotos tagged with {$tags} published as public on FotoFlix", 'http://' . FF_SERVER_NAME . '/', 60), $templateMain);
+      $data = '';
+      
+      foreach($fotos as $v)
+      {
+        $title = ($v['P_NAME'] == '' ? 'Foto' : $v['P_NAME']) . ' published by ' . $user['U_USERNAME'];
+        $url = 'http://' . FF_SERVER_NAME . '/users/' . $user['U_USERNAME'] . '/foto/' . $v['P_ID'] . '/';
+        $description = '<div><a href="' . $url . '"><img src="http://' . FF_SERVER_NAME . PATH_FOTO . $v['P_WEB_PATH'] . '" border="0" style="border:1px solid black;" /></a></div><div style="padding-top:5px;">' . $v['P_NAME'] . '</div><div style="padding-top:5px;">' . $v['P_DESC'] . '</div>';
+        $pubDate= date('D, d M Y H:m:i O', $v['P_CREATED']); // Sat, 25 Jun 2005 12:30:21
+        
+        $data .= str_replace(array('{TITLE}', '{URL}', '{DESCRIPTION}', '{PUBDATE}'), array(htmlspecialchars($title), $url, htmlspecialchars($description), $pubDate), $templateInner);
+      }
+      $content = str_replace('{CONTENT}', $data, $content);
+      
+      echo $content;
+      break;
+      
+    case 'flix_by_tags':
+      include_once PATH_CLASS . '/CFotobox.php';
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_CLASS . '/CUser.php';
+      $fb = &CFotobox::getInstance();
+      $f = &CFlix::getInstance();
+      $u = &CUser::getInstance();
+      
+      $username = isset($_GET['username']) ? $_GET['username'] : '';
+      $tags = isset($_GET['tags']) ? $_GET['tags'] : '';
+      $content = '';
+      $limit = 25;
+      
+      $user = $u->my($username);
+      $flix = $f->flixByTags($tags, $user['U_ID'], 3, 'user', 'modified', 0, $limit);
+      
+      $templateMain  = file_get_contents(PATH_DOCROOT . '/feed_rss.tpl.php');
+      $templateInner = file_get_contents(PATH_DOCROOT . '/feed_rss_content.tpl.php');
+      
+      $content = str_replace(array('{TITLE}', '{DESCRIPTION}', '{LINK}', '{GENERATOR}', '{TTL}'), array("{$user['U_USERNAME']}'s recent flix tagged with {$tags} on FotoFlix", "{$user['U_USERNAME']}'s recent flix tagged with {$tags} published as public on FotoFlix", 'http://' . FF_SERVER_NAME . '/', 60), $templateMain);
+      $data = '';
+      
+      foreach($flix as $v)
+      {
+        $fotoData = $fb->fotoData( $flix['A_DATA'][0]['D_UP_ID'] );
+        $title = ($v['A_NAME'] == '' ? 'Flix' : $v['A_NAME']) . ' published by ' . $user['U_USERNAME'];
+        $url = 'http://' . FF_SERVER_NAME . '/fastflix?' . $v['A_FASTFLIX'];
+        $description = '<div><a href="' . $url . '"><img src="http://' . FF_SERVER_NAME . PATH_FOTO . $fotoData['P_THUMB_PATH'] . '" border="0" style="border:1px solid black;" /></a></div><div style="padding-top:5px;">' . $v['A_NAME'] . '</div><div style="padding-top:5px;">' . $v['A_DESC'] . '</div>';
+        $pubDate= date('D, d M Y H:m:i O', $v['A_CREATED']); // Sat, 25 Jun 2005 12:30:21
+        
+        $data .= str_replace(array('{TITLE}', '{URL}', '{DESCRIPTION}', '{PUBDATE}'), array(htmlspecialchars($title), $url, htmlspecialchars($description), $pubDate), $templateInner);
+      }
+      $content = str_replace('{CONTENT}', $data, $content);
+      
+      echo $content;
+      break;
+      
+    case 'recent_public':
+      //fotosByPrivacy($user_id = false, $sort = 'P_MOD_YMD', $filter = false, $offset = false, $limit = 0, $type = 'Public')
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CUser.php';
+        $us =& CUser::getInstance();
+        $fb =& CFotobox::getInstance();
+        
+        $count = isset($_GET['count']) ? intval($_GET['count']) : 25;
+        $content = '';
+        
+        $fotos = $fb->fotosByPrivacy(false, false, false, $count, 3, 'P_CREATED');
+        $templateMain  = file_get_contents(PATH_DOCROOT . '/feed_rss.tpl.php');
+        $templateInner = file_get_contents(PATH_DOCROOT . '/feed_rss_content.tpl.php');
+        
+        $content = str_replace(array('{TITLE}', '{DESCRIPTION}', '{LINK}', '{GENERATOR}', '{TTL}'), array('Recent public fotos on FotoFlix', 'Recent fotos published as public by FotoFlix users', 'http://' . FF_SERVER_NAME . '/', 60), $templateMain);
+        $data = '';
+        foreach($fotos as $v)
+        {
+          $userData = $us->find($v['P_U_ID']);
+          $title = ($v['P_NAME'] == '' ? 'Foto' : $v['P_NAME']) . ' published by ' . $userData['U_USERNAME'];
+          $url    = 'http://' . FF_SERVER_NAME . '/users/' . $userData['U_USERNAME'] . '/foto/' . $v['P_ID'] . '/';
+          $description = '<div><a href="' . $url . '"><img src="http://' . FF_SERVER_NAME . PATH_FOTO . $v['P_WEB_PATH'] . '" border="0" style="border:1px solid black;" /></a></div><div style="padding-top:5px;">' . $v['P_NAME'] . '</div><div style="padding-top:5px;">' . $v['P_DESC'] . '</div>';
+          $pubDate= date('D, d M Y H:m:i O', $v['P_CREATED']); // Sat, 25 Jun 2005 12:30:21
+          $data  .= str_replace(array('{TITLE}', '{URL}', '{DESCRIPTION}', '{PUBDATE}'), array(htmlspecialchars($title), $url, htmlspecialchars($description), $pubDate), $templateInner);
+        }
+        $content = str_replace('{CONTENT}', $data, $content);
+        
+        echo $content;
+      break;
+    case 'user':
+      if(isset($_GET['username']))
+      {
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        $us =& CUser::getInstance();
+        $fb =& CFotobox::getInstance();
+        $content = '';
+        
+        $userData = $us->my($_GET['username']);
+        if($userData['U_ID'] != '')
+        {
+          $fotos = $fb->fotosByPrivacy($userData['U_ID'], false, false, 10, 3, 'P_UPL_YMD');
+          $templateMain  = file_get_contents(PATH_DOCROOT . '/feed_rss.tpl.php');
+          $templateInner = file_get_contents(PATH_DOCROOT . '/feed_rss_content.tpl.php');
+          
+          $content = str_replace(array('{TITLE}', '{DESCRIPTION}', '{LINK}', '{GENERATOR}', '{TTL}'), array("{$userData['U_USERNAME']}'s fotos", "{$userData['U_USERNAME']}'s most recent fotos at FotoFlix", 'http://' . FF_SERVER_NAME . '/', 60), $templateMain);
+          $data = '';
+          foreach($fotos as $v)
+          {
+            $title = ($v['P_NAME'] == '' ? 'Foto' : $v['P_NAME']) . ' published by ' . $userData['U_USERNAME'] . ' (' . date('m-d-Y', $v['P_CREATED']) . ')';
+            $url    = 'http://' . FF_SERVER_NAME . '/users/' . $userData['U_USERNAME'] . '/foto/' . $v['P_ID'] . '/';
+            $description = '<a href="' . $url . '"><img src="http://' . FF_SERVER_NAME . PATH_FOTO . $v['P_WEB_PATH'] . '" border="0" style="border:1px solid black;" /></a>';
+            $pubDate= date('D, d M Y H:m:i O', $v['P_CREATED']); // Sat, 25 Jun 2005 12:30:21
+            $data  .= str_replace(array('{TITLE}', '{URL}', '{DESCRIPTION}', '{PUBDATE}'), array(htmlspecialchars($title), $url, htmlspecialchars($description), $pubDate), $templateInner);
+          }
+          $content = str_replace('{CONTENT}', $data, $content);
+        }
+        
+        echo $content;
+      }
+      
+      break;
+  }
+?>

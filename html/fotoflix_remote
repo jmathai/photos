@@ -1,0 +1,37 @@
+<?php
+  /*
+  * THIS FILE GETS PARSED BY PHP AND OUTPUTS JAVASCRIPT FOR REMOTE FOTOFLIX FUNCTIONS
+  */
+  include_once '../init_constants.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_HOMEROOT . '/init.php';
+  
+  include_once PATH_DOCROOT .'/init_database.php';
+  include_once PATH_CLASS . '/CFlix.php';
+  
+  $fl =& CFlix::getInstance();
+  $params = explode('/', $_SERVER['REQUEST_URI']);
+  
+  $fastflix = $params[3];
+  
+  $flix_data= $fl->fastflix($fastflix);
+  $sizeArr  = explode('x', $flix_data['A_SIZE']);
+  $width = $sizeArr[0];
+  $height= $sizeArr[1];
+?>
+function _ff_window_<?php echo $flix_data['A_ID']; ?>()
+{
+  _ff_winw = <?php echo intval($width); ?>; //window width
+  _ff_winh = <?php echo intval($height); ?>; //window height
+  _ff_w = screen.width; // screen width
+  _ff_h = screen.height; // screen height
+  // Where to place the Window
+  _ff_top = (_ff_w - _ff_winw)/2;
+  _ff_left = (_ff_h - _ff_winh)/2;
+  _ff_fastflix_popup = window.open("http://<?php echo FF_SERVER_NAME . '/fastflix_popup?' . $flix_data['A_FASTFLIX']; ?>", "fastflix_popup", "width="+_ff_winw+",height="+_ff_winh+",left="+_ff_left+",top="+_ff_top+",location=no,menubar=no,resizable=no,scrollbars=no,status=no,toolbar=no,fullscreen=no");
+  _ff_fastflix_popup.focus();
+}
+
+<?php
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <script type="text/javascript" src="http://v3.fotoflix.com/js/pmb.js"></script>
+  <script type="text/javascript">
+    var pmb = new PMB();
+    var host = 'http://v3.fotoflix.com';
+    function loadPhotos(term){
+      pmb.photo.search({TAGS: term,LIMIT:12,callback:'loadPhotosRsp'});
+    }
+    function loadPhotosRsp(data){
+      var _html = '';
+      var photo,tags;
+      
+      for(i=0; i<data.length; i++){
+        photo = data[i];
+        tags = photo.P_TAGS.split(',');
+        _html +=  '<div style="float:left; padding:20px; width:125px; height:150px;">'
+              +   ' <a href="'+host+'/fotos'+photo.P_WEB_PATH+'" target="_blank"><img src="'+host+'/fotos' + photo.P_THUMB_PATH + '" width="75" height="75" vspace="5" hspace="5" border="0" /></a><br/>'
+              +   ' <input type="checkbox" id="photoSelect" value="'+photo.P_ID+'" />&nbsp;Select<br/>'
+              +   ' Current tags:<br/><span id="tagsfor'+photo.P_ID+'">';
+        for(j=0; j<tags.length; j++){
+          if(tags[j]!=''){
+            _html += formatTag(photo.P_ID, tags[j]);
+          }
+        }
+        _html +=  '</span><br/>'
+              +   ' <form style="display:inline;" onsubmit="pmb.photo.addTags('+photo.P_ID+',document.getElementById(\'tag'+i+'\').value,\'refreshTags\'); document.getElementById(\'tag'+i+'\').value=\'\'; return false;"><input type="text" id="tag'+i+'" size="7" />&nbsp;<input type="submit" value="add" /></form>'
+              +   '</div>';
+      }
+      document.getElementById('photos').innerHTML = _html;
+      document.getElementById('button').value = 'search';
+    }
+    function refreshTags(data){
+      var tags  =  data.P_TAGS.split(',');
+      var _html = '';
+      
+      for(j=0; j<tags.length; j++){
+        if(tags[j] != ''){
+          _html += formatTag(data.P_ID, tags[j]);
+        }
+      }
+      document.getElementById('tagsfor'+data.P_ID).innerHTML = _html;
+    }
+    function formatTag(id, tag){
+      return '<a href="javascript:pmb.photo.removeTags('+parseInt(id)+',\''+tag+'\',\'refreshTags\');">x</a> '+tag+',&nbsp;';
+    }
+    function checkboxValue(element){
+      var items = [];
+      for(i=0; i<element.length; i++){
+        if(element[i].checked){
+          items.push(element[i].value);
+        }
+      }
+      return items.join(',');
+    }
+    function swap(){
+      document.getElementById('photos').style.display = document.getElementById('photos').style.display == 'block' ? 'none' : 'block';
+      document.getElementById('editor').style.display = document.getElementById('photos').style.display == 'block' ? 'none' : 'block';
+    }
+    function swapOn(){
+      document.getElementById('photos').style.display = 'none';
+      document.getElementById('editor').style.display = 'block';
+    }
+    function swapOff(){
+      document.getElementById('photos').style.display = 'block';
+      document.getElementById('editor').style.display = 'none';
+    }
+  </script>
+</head>
+<body>
+<div id="photoToolbar">
+  <form onsubmit="loadPhotos(document.getElementById('search').value); swapOff(); return false;">
+    <input type="text" style="width:100px;" id="search" />&nbsp;<input type="submit" id="button" value="search" onclick="this.value='Please wait...';"/>
+    &nbsp;&nbsp;
+    <input type="button" onclick="document.getElementById('editor').innerHTML = pmb.slideshow.editor(checkboxValue(document.photoForm.photoSelect)); swapOn();" value="create slideshow"/>
+  </form>
+</div>
+<form name="photoForm">
+<div id="photos" style="display:block;"></div>
+<div id="editor" style="display:none;"></div>
+</form>
+</body>
+</html>

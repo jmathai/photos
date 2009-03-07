@@ -1,0 +1,2258 @@
+-- 04/03/06 - KH --
+  CREATE TABLE `user_audit` (
+  `ua_id` int(10) unsigned NOT NULL auto_increment COMMENT 'ID for audit table',
+  `ua_u_id` int(10) unsigned NOT NULL COMMENT 'ID to users table',
+  `ua_reason` enum('Violation') collate latin1_general_ci NOT NULL COMMENT 'reason the user was audited',
+  `ua_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the user was audited',
+  PRIMARY KEY  (`ua_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Keeps track of when a user is audited' AUTO_INCREMENT=1 ;
+
+  CREATE TABLE `user_violations` (
+  `uv_id` int(10) unsigned NOT NULL auto_increment COMMENT 'user violations id',
+  `uv_u_id` int(10) unsigned NOT NULL COMMENT 'id of user who commited the violation',
+  `uv_up_id` int(10) unsigned NOT NULL COMMENT 'id of the photo in violation',
+  `uv_dateCreated` datetime NOT NULL COMMENT 'date the violation occurred',
+  PRIMARY KEY  (`uv_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Keeps track of the violations for a user' AUTO_INCREMENT=1 ;
+  
+  ALTER TABLE `user_fotos` CHANGE `up_status` `up_status` ENUM( 'active', 'deleted', 'violation' ) NOT NULL DEFAULT 'active';
+  
+-- 04/04/06 - KH --
+  
+  CREATE TABLE `foto_objectionable` (
+  `fo_us_hash` char(13) collate latin1_general_ci NOT NULL COMMENT 'session id of the user flagging the foto',
+  `fo_up_id` int(10) unsigned NOT NULL COMMENT 'id of the foto being flagged',
+  `fo_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the foto was flagged',
+  PRIMARY KEY  (`fo_us_hash`,`fo_up_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Keeps track of fotos that are flagged as objectionable';
+
+  CREATE TABLE `foto_quarantined` (
+  `fq_id` int(10) unsigned NOT NULL auto_increment COMMENT 'foto quarantined id',
+  `fq_up_id` int(10) unsigned NOT NULL COMMENT 'id of the quarantined foto',
+  `fq_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the foto was quarantined',
+  PRIMARY KEY  (`fq_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Keeps track of fotos that have been quarantined' AUTO_INCREMENT=1 ;
+  
+-- 04/11/06 - KH --
+
+  CREATE TABLE `report` (
+    `r_id` int(10) unsigned NOT NULL auto_increment COMMENT 'ID of the report',
+    `r_u_id` int(10) unsigned NOT NULL COMMENT 'ID of the user requesting the report',
+    `r_rt_id` int(10) unsigned NOT NULL COMMENT 'ID of the type of report to generate',
+    `r_frequency` enum('weekly','monthly') collate latin1_general_ci NOT NULL COMMENT 'frequency to generate the report',
+    `r_email` varchar(255) collate latin1_general_ci default NULL COMMENT 'who to send the report to (comma separated), null to send to no one',
+    `r_active` enum('Y','N') collate latin1_general_ci NOT NULL COMMENT 'if the report is active or not',
+    `r_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the report started',
+    PRIMARY KEY  (`r_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Reports that need to be generated and/or sent out' AUTO_INCREMENT=1 ;
+  
+  CREATE TABLE `report_archive` (
+    `ra_id` int(10) unsigned NOT NULL auto_increment COMMENT 'ID of the archived report',
+    `ra_u_id` int(10) unsigned NOT NULL COMMENT 'ID of the user the report was generated for',
+    `ra_r_id` int(10) unsigned NOT NULL COMMENT 'ID of the generated report',
+    `ra_title` varchar(255) collate latin1_general_ci NOT NULL COMMENT 'title of the archived report',
+    `ra_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the report was generated and archived',
+    PRIMARY KEY  (`ra_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Archives all generated reports' AUTO_INCREMENT=1 ;
+  
+  CREATE TABLE `report_type` (
+    `rt_id` int(10) unsigned NOT NULL auto_increment COMMENT 'ID of the report type',
+    `rt_name` varchar(255) collate latin1_general_ci NOT NULL COMMENT 'name of the type of report',
+    PRIMARY KEY  (`rt_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Types of reports that can be generated' AUTO_INCREMENT=1 ;
+  
+  INSERT INTO `report_type` VALUES (1, 'Flix Report');
+  INSERT INTO `report_type` VALUES (2, 'Fotos Report');
+
+-- 04/17/06 - JM --
+  CREATE TABLE `user_slideshows` (
+    `us_id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `us_key` CHAR( 32 ) NOT NULL ,
+    `us_tags` VARCHAR( 255 ) NULL ,
+    `us_order` SMALLINT NOT NULL DEFAULT '0',
+    `us_fotoCount` SMALLINT NOT NULL DEFAULT '0',
+    `us_length` SMALLINT NOT NULL DEFAULT '0',
+    `us_views` INT NOT NULL DEFAULT '0',
+    `us_viewsComplete` INT NOT NULL DEFAULT '0',
+    `us_privacy` CHAR( 3 ) NOT NULL DEFAULT '311',
+    `us_dateModified` DATETIME NOT NULL ,
+    `us_dateCreated` DATETIME NOT NULL ,
+    `us_status` ENUM( 'Active', 'Deleted' ) NOT NULL DEFAULT 'Active',
+    INDEX ( `us_key` ) ,
+    FULLTEXT (
+      `us_tags`
+    )
+  ) TYPE = MYISAM ;
+  
+  ALTER TABLE `user_slideshows` ADD `us_u_id` INT UNSIGNED NOT NULL AFTER `us_id` ;
+  
+  ALTER TABLE `user_slideshows` CHANGE `us_id` `us_id` INT( 11 ) UNSIGNED NOT NULL AUTO_INCREMENT ,
+    CHANGE `us_order` `us_order` SMALLINT( 6 ) UNSIGNED NOT NULL DEFAULT '0',
+    CHANGE `us_fotoCount` `us_fotoCount` SMALLINT( 6 ) UNSIGNED NOT NULL DEFAULT '0',
+    CHANGE `us_length` `us_length` SMALLINT( 6 ) UNSIGNED NOT NULL DEFAULT '0',
+    CHANGE `us_views` `us_views` INT( 11 ) UNSIGNED NOT NULL DEFAULT '0',
+    CHANGE `us_viewsComplete` `us_viewsComplete` INT( 11 ) UNSIGNED NOT NULL DEFAULT '0';
+    
+  ALTER TABLE `user_slideshows` ADD INDEX ( `us_u_id` );
+  
+  CREATE TABLE `user_slideshow_elements` (
+    `use_id` INT UNSIGNED NOT NULL ,
+    `use_us_id` INT UNSIGNED NOT NULL ,
+    `use_parent_id` INT UNSIGNED NOT NULL DEFAULT '0',
+    `use_name` VARCHAR( 32 ) NOT NULL ,
+    `use_value` VARCHAR( 255 ) NOT NULL ,
+    `use_order` SMALLINT UNSIGNED NOT NULL DEFAULT '0',
+    PRIMARY KEY ( `use_id` )
+  ) TYPE = MYISAM ;
+  
+  ALTER TABLE `user_slideshow_elements` ADD INDEX ( `use_us_id` , `use_parent_id` );
+
+-- 04/18/06 - JM --
+  ALTER TABLE `user_slideshow_elements` CHANGE `use_id` `use_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+-- 04/20/06 - JM --
+  ALTER TABLE `user_slideshow_elements` CHANGE `use_parent_id` `use_group_id` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0';
+  
+-- 04/20/06 - KH --
+
+  ALTER TABLE `report_archive` ADD `ra_filename` VARCHAR( 32 ) NOT NULL COMMENT 'Contains the hashed filename';
+  ALTER TABLE `report_archive` CHANGE `ra_filename` `ra_filename` VARCHAR( 41 ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL COMMENT 'Contains the hashed filename';
+
+-- 04/21/06 - KH --
+  ALTER TABLE `report` CHANGE `r_frequency` `r_frequency` ENUM( 'Weekly', 'Monthly' ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL COMMENT 'frequency to generate the report';
+  
+  CREATE TABLE `report_data` (
+    `rd_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'ID for the report_data table',
+    `rd_element_id` INT( 10 ) UNSIGNED NOT NULL COMMENT 'ID of the element we are logging data for',
+    `rd_type` ENUM( 'Foto Viewed', 'Flix Viewed', 'Flix Viewed Complete' ) NOT NULL COMMENT 'Type of data we are logging',
+    `rd_ipAddress` VARCHAR( 15 ) NOT NULL COMMENT 'IP address of person who created this record',
+    `rd_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'DateTime this record was created'
+    ) TYPE = MYISAM COMMENT = 'Tracks many different types of data for the reports';
+  
+  ALTER TABLE `report_data` CHANGE `rd_element_id` `rd_element_key` VARCHAR( 32 ) NOT NULL COMMENT 'Key of the element we are logging data for';
+  ALTER TABLE `report_data` DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci;
+  
+  ALTER TABLE `report_data` CHANGE `rd_element_key` `rd_element_key` VARCHAR( 32 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL COMMENT 'Key of the element we are logging data for',
+    CHANGE `rd_type` `rd_type` ENUM( 'Foto Viewed', 'Flix Viewed', 'Flix Viewed Complete' ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL COMMENT 'Type of data we are logging',
+    CHANGE `rd_ipAddress` `rd_ipAddress` VARCHAR( 15 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL COMMENT 'IP address of person who created this record';
+    
+-- 04/21/06 - JM --
+  CREATE TABLE `user_sub_accounts` (
+    `usa_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `usa_u_id` INT UNSIGNED NOT NULL ,
+    `usa_username` VARCHAR( 16 ) NOT NULL ,
+    `usa_password` VARCHAR( 32 ) NOT NULL ,
+    `usa_dateCreated` DATETIME NOT NULL ,
+    `usa_status` ENUM( 'active', 'deleted' ) NOT NULL
+    ) TYPE = MYISAM ;
+  
+  ALTER TABLE `user_sub_accounts` ADD INDEX ( `usa_u_id` );
+  
+  -- 04/24/06 - JM --
+  ALTER TABLE `user_sub_accounts` ADD `usa_email` VARCHAR( 128 ) NULL AFTER `usa_password` ;
+  
+  CREATE TABLE `user_permissions` (
+    `up_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `up_usa_id` INT UNSIGNED NOT NULL DEFAULT '0',
+    `up_action` VARCHAR( 64 ) NOT NULL ,
+    `up_permission` TINYINT UNSIGNED NOT NULL DEFAULT '0'
+    ) TYPE = MYISAM ;
+  
+  ALTER TABLE `user_permissions` ADD UNIQUE (
+    `up_usa_id` ,
+    `up_action`
+    );
+    
+-- 04/25/06 - JM --
+  ALTER TABLE `user_sub_accounts` ADD `usa_dateLastLogin` DATETIME NOT NULL AFTER `usa_email` ;
+
+  CREATE TABLE `user_permission_types` (
+    `upt_name` VARCHAR( 16 ) NOT NULL ,
+    `upt_defaultValue` TINYINT UNSIGNED NOT NULL DEFAULT '0',
+    `upt_active` ENUM( 'Y', 'N' ) NOT NULL ,
+    PRIMARY KEY ( `upt_name` )
+  ) TYPE = MYISAM ;
+  
+  ALTER TABLE `user_sub_accounts` CHANGE `usa_password` `usa_password` VARCHAR( 16 ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL;
+  
+-- 04/27/06 - KH --
+  
+  CREATE TABLE `flix_scheduled` (
+    `fs_id` int(10) unsigned NOT NULL COMMENT 'ID of the scheduled flix',
+    `fs_uf_id` int(10) NOT NULL COMMENT 'ID of the flix',
+    `fs_u_id` int(10) unsigned NOT NULL COMMENT 'ID fo the user of the flix',
+    `fs_beginDate` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date to make the flix public',
+    `fs_endDate` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date to make the flix private',
+    PRIMARY KEY  (`fs_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Schedule of Flix to become public and go back to private';
+  
+-- 04/28/06 - KH --
+  
+  ALTER TABLE `flix_scheduled` ADD `fs_privacy` CHAR( 3 ) NOT NULL COMMENT 'The privacy value to make the flix between the begin and end dates';
+  
+  ALTER TABLE `flix_scheduled` ADD `fs_initialPrivacy` CHAR( 3 ) NOT NULL COMMENT 'The value to change the privacy back to' AFTER `fs_endDate` ;
+
+-- 05/04/06 - KH --
+
+  CREATE TABLE `private_message_content` (
+    `pmc_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'ID of the message content',
+    `pmc_content` TEXT NOT NULL COMMENT 'The message content',
+    `pmc_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'Date the message content was created'
+  ) TYPE = MYISAM COMMENT = 'Content for a private message';
+  
+  CREATE TABLE `private_message` (
+    `pm_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'ID of the message',
+    `pm_sender_id` INT( 10 ) UNSIGNED NOT NULL COMMENT 'ID of the sender',
+    `pm_receiver_id` INT( 10 ) UNSIGNED NOT NULL COMMENT 'ID of the receiver',
+    `pm_subject` VARCHAR( 100 ) NOT NULL COMMENT 'Subject of the message',
+    `pm_pmc_id` INT( 10 ) UNSIGNED NOT NULL COMMENT 'ID of the message content',
+    `pm_status` ENUM( 'New', 'Read', 'Deleted' ) NOT NULL COMMENT 'If the message is new, has been read, or is deleted',
+    `pm_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'Date the message was created'
+  ) TYPE = MYISAM COMMENT = 'Tracks private messages';
+  
+  CREATE TABLE `private_message_ban` (
+    `pmb_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'ID of the ban',
+    `pmb_u_id` INT( 10 ) UNSIGNED NOT NULL COMMENT 'ID of the person doing the banning',
+    `pmb_who` INT( 10 ) UNSIGNED NOT NULL COMMENT 'ID of the person who is being banned',
+    `pmb_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'Date the person was banned'
+  ) TYPE = MYISAM COMMENT = 'Tracks those who are banned from messagine someone';
+  
+  CREATE TABLE `private_message_optout` (
+    `pmo_id` int(10) unsigned NOT NULL auto_increment COMMENT 'ID of the optout',
+    `pmo_u_id` int(10) unsigned NOT NULL COMMENT 'ID of the person opting out',
+    `pmo_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date user opted out',
+    PRIMARY KEY  (`pmo_id`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci COMMENT='Tracks people who don''t want to receive private messages' AUTO_INCREMENT=8 ;
+  
+  ALTER TABLE `private_message` ADD `pm_type` ENUM( 'Sent', 'Received' ) NOT NULL COMMENT 'Type of message' AFTER `pm_status` ;
+  
+-- 05/08/06 - KH --
+  ALTER TABLE `board` CHANGE `b_bc_id` `b_bc_id` INT( 10 ) UNSIGNED NULL;
+  
+  ALTER TABLE `board` CHANGE `b_id` `b_id` INT( 10 ) UNSIGNED NOT NULL;
+
+-- 05/10/2006 - KH --
+  ALTER TABLE `groups` ADD `g_tags` ENUM( 'Y', 'N' ) NOT NULL;
+  ALTER TABLE `groups` CHANGE `g_tags` `g_tags` ENUM( 'Y', 'N' ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL DEFAULT 'N';
+  
+-- 05/11/2006 - KH --
+  ALTER TABLE `group_fotoflix_map` ADD `u_id` INT( 10 ) NOT NULL DEFAULT '0' AFTER `uf_id` ;
+  
+-- 05/11/06 - JM --
+  CREATE TABLE `toolbox` (
+    `t_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `t_u_id` INT UNSIGNED NOT NULL ,
+    `t_itemId` INT UNSIGNED NOT NULL ,
+    `t_itemType` ENUM( 'foto', 'flix' ) NOT NULL DEFAULT 'foto',
+    `t_itemOrder` SMALLINT UNSIGNED NOT NULL
+    ) TYPE = MYISAM ;
+  
+  ALTER TABLE `toolbox` ADD INDEX ( `t_u_id` , `t_itemType` );
+  ALTER TABLE `board` CHANGE `b_id` `b_id` INT( 10 ) UNSIGNED NOT NULL;
+
+-- 05/12/06 - JM --
+  ALTER TABLE `toolbox` RENAME `user_toolbox` ;
+  
+-- 05/31/06 - KH --
+  CREATE TABLE `group_quick_sets` (
+    `gqs_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+    `gqs_p_id` int( 10 ) unsigned NOT NULL default '0',
+    `gqs_g_id` int( 10 ) unsigned NOT NULL default '0',
+    `gqs_name` varchar( 32 ) NOT NULL default '',
+    `gqs_tags` varchar( 255 ) default NULL ,
+    `gqs_icon` varchar( 128 ) default NULL ,
+    `gqs_public` enum( 'Y', 'N' ) NOT NULL default 'Y',
+    `gqs_order` smallint( 5 ) unsigned NOT NULL default '0',
+    PRIMARY KEY ( `gqs_id` , `gqs_g_id` ) ,
+    KEY `parent_user` ( `gqs_p_id` , `gqs_g_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = latin1 AUTO_INCREMENT =11;
+  
+-- 06/08/06 - JM --
+  ALTER TABLE `group_fotos_map` RENAME `group_foto_map` ;
+  ALTER TABLE `group_foto_map` ADD `u_orig_id` INT UNSIGNED NOT NULL AFTER `u_id` ;
+  
+-- 06/12/06 - JM --
+  ALTER TABLE `user_fotos` CHANGE `up_history` `up_history` TEXT CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL;
+
+-- 06/13/06 - JM --
+  ALTER TABLE `groups` PACK_KEYS =0 CHECKSUM =0 DELAY_KEY_WRITE =0 AUTO_INCREMENT =100;
+  
+-- 06/22/06 - JM --
+  CREATE TABLE `user_tokens` (
+    `ut_key` VARCHAR( 32 ) NOT NULL ,
+    `ut_u_id` INT UNSIGNED NOT NULL ,
+    `ut_expires` INT UNSIGNED NOT NULL DEFAULT '0',
+    PRIMARY KEY ( `ut_key` )
+  ) TYPE = MYISAM ;
+  
+  ALTER TABLE `user_tokens` CHANGE `ut_key` `ut_token` VARCHAR( 32 ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL
+  ALTER TABLE `groups` PACK_KEYS =0 CHECKSUM =0 DELAY_KEY_WRITE =0 AUTO_INCREMENT =100;
+
+-- 06/22/06 - KH --
+  CREATE TABLE `pool_users` (
+    `pu_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'pool id',
+    `pu_name` VARCHAR( 255 ) NOT NULL COMMENT 'name for the pool',
+    `pu_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'date the pool was created'
+  ) TYPE = MYISAM COMMENT = 'Tracks users in a pool';
+  
+  CREATE TABLE `pool_users_map` (
+    `pum_pu_id` INT( 10 ) UNSIGNED NOT NULL COMMENT 'pool id',
+    `pum_u_id` INT( 10 ) UNSIGNED NOT NULL COMMENT 'user id',
+    PRIMARY KEY ( `pum_pu_id` , `pum_u_id` )
+  ) TYPE = MYISAM COMMENT = 'Maps users to pools';
+  
+-- 06/27/06 - KH --
+  ALTER TABLE `group_invite` ADD `gi_dateResponded` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+    ADD `gi_status` ENUM( 'Pending', 'Accepted', 'Declined' ) NOT NULL DEFAULT 'Pending';
+    
+-- 07/02/06 - KH --
+  CREATE TABLE `scrapbook_book` (
+    `sb_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `sb_u_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `sb_title` VARCHAR( 128 ) NULL ,
+    `sb_description` VARCHAR( 255 ) NULL ,
+    `sb_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00'
+  ) TYPE = MYISAM ;
+  
+  CREATE TABLE `scrapbook_page` (
+    `sp_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `sp_u_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `sp_title` VARCHAR( 128 ) NULL ,
+    `sp_description` VARCHAR( 255 ) NULL ,
+    `sp_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00'
+  ) TYPE = MYISAM ;
+  
+  CREATE TABLE `scrapbook_book_page_map` (
+    `sbpm_sb_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `sbpm_sp_id` INT( 10 ) UNSIGNED NOT NULL ,
+    PRIMARY KEY ( `sbpm_sb_id` , `sbpm_sp_id` )
+  ) TYPE = MYISAM ;
+  
+  CREATE TABLE `scrapbook_item` (
+    `si_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `si_u_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `si_size` INT( 10 ) UNSIGNED NOT NULL ,
+    `si_x` INT( 10 ) UNSIGNED NOT NULL ,
+    `si_y` INT( 10 ) UNSIGNED NOT NULL ,
+    `si_type` ENUM( 'Photo', 'Slideshow', 'Video', 'Text', 'Thought Bubble', 'Conversation Bubble', 'Square', 'Circle', 'Graphic', 'Background' ) NOT NULL ,
+    `si_extra` VARCHAR( 512 ) NULL ,
+    `si_transformations` VARCHAR( 255 ) NULL ,
+    `si_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+    PRIMARY KEY ( `si_id` )
+  ) TYPE = MYISAM ;
+  
+  CREATE TABLE `scrapbook_page_item_map` (
+    `spim_sp_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `spim_si_id` INT( 10 ) UNSIGNED NOT NULL ,
+    PRIMARY KEY ( `spim_sp_id` , `spim_si_id` )
+  ) TYPE = MYISAM ;
+  
+  ALTER TABLE `scrapbook_item` CHANGE `si_size` `si_size` ENUM( 'small', 'medium', 'large' ) NOT NULL;
+  ALTER TABLE `scrapbook_item` CHANGE `si_id` `si_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT;
+  
+-- 07/12/2006 - KH --
+  ALTER TABLE `group_foto_map` ADD `up_orig_id` INT(10) UNSIGNED NOT NULL AFTER `u_orig_id`;
+  
+  ALTER TABLE `group_fotoflix_map` ADD `u_orig_id` INT( 10 ) UNSIGNED NOT NULL AFTER `u_id` ,
+    ADD `uf_orig_id` INT( 10 ) UNSIGNED NOT NULL AFTER `u_orig_id` ;
+    
+-- 07/12/06 - JM -- 
+  INSERT INTO `ecom_catalog` ( `ecg_id` , `ecg_name` , `ecg_type` , `ecg_description` , `ecg_edit_url` , `ecg_price` , `ecg_priceSpecial` , `ecg_priceSpecialStart` , `ecg_priceSpecialEnd` , `ecg_photos` , `ecg_userMode` , `ecg_availability` , `ecg_shipping` , `ecg_recurring` , `ecg_default_quantity` , `ecg_max_quantity` , `ecg_group` , `ecg_additional` , `ecg_children` , `ecg_active` )
+    VALUES (
+      NULL , 'Membership A', 'account', 'Basic plan', NULL , '5.00', NULL , NULL , NULL , NULL , 'all', 'in stock', '0', 'Y', '1', '1', '4', '1', NULL , '1'
+    ), (
+      NULL , 'Membership B', 'account', 'Second tier', NULL , '10.00', NULL , NULL , NULL , NULL , 'all', 'in stock', '0', 'Y', '1', '1', '4', '2', NULL , '1'
+    );
+    
+  INSERT INTO `ecom_catalog` ( `ecg_id` , `ecg_name` , `ecg_type` , `ecg_description` , `ecg_edit_url` , `ecg_price` , `ecg_priceSpecial` , `ecg_priceSpecialStart` , `ecg_priceSpecialEnd` , `ecg_photos` , `ecg_userMode` , `ecg_availability` , `ecg_shipping` , `ecg_recurring` , `ecg_default_quantity` , `ecg_max_quantity` , `ecg_group` , `ecg_additional` , `ecg_children` , `ecg_active` )
+    VALUES (
+      NULL , 'Membership C', 'account', 'Pro user', NULL , '20.00', NULL , NULL , NULL , NULL , 'all', 'in stock', '0', 'Y', '1', '1', '4', '3', NULL , '1'
+    );
+    
+  ALTER TABLE `users` CHANGE `u_accountType` `u_accountType` TINYINT UNSIGNED NOT NULL DEFAULT '1';
+  
+-- 07/13/06 - JM --
+  ALTER TABLE `ecom_orders` RENAME `ecom_orders_back` ;
+  
+  CREATE TABLE `ecom_orders` (
+    `eo_id` int( 10 ) unsigned AUTO_INCREMENT ,
+    `eo_u_id` int( 10 ) unsigned NOT NULL default '0',
+    `eo_cc_fname` varchar( 30 ) NOT NULL default '',
+    `eo_cc_lname` varchar( 30 ) NOT NULL default '',
+    `eo_cc_street` varchar( 50 ) NOT NULL default '',
+    `eo_cc_state` char( 2 ) NOT NULL default '',
+    `eo_cc_city` varchar( 30 ) NOT NULL default '',
+    `eo_cc_zip` varchar( 12 ) NOT NULL default '',
+    `eo_cc_type` enum( 'VS', 'MS', 'DC' ) default NULL ,
+    `eo_cc_month` char( 2 ) default NULL ,
+    `eo_cc_year` varchar( 4 ) default NULL ,
+    `eo_cc_ccv` varchar( 4 ) default NULL ,
+    `eo_cc_num` varchar( 128 ) default NULL ,
+    `eo_dateCreated` int( 10 ) unsigned NOT NULL default '0',
+    `eo_dateModified` int( 10 ) unsigned NOT NULL default '0',
+    `eo_status` enum( 'Pending', 'Processing', 'Ready To Ship', 'Shipped', 'Cancelled' ) NOT NULL default 'Pending',
+    PRIMARY KEY ( `eo_id` )
+    ) ENGINE = MYISAM DEFAULT CHARSET = latin1;
+
+-- 07/14/06 - JM --
+  ALTER TABLE `ecom_orders` CHANGE `eo_cc_fname` `eo_cc_fname` VARCHAR( 30 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL ,
+    CHANGE `eo_cc_lname` `eo_cc_lname` VARCHAR( 30 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL ,
+    CHANGE `eo_cc_street` `eo_cc_street` VARCHAR( 50 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL ,
+    CHANGE `eo_cc_state` `eo_cc_state` CHAR( 2 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL ,
+    CHANGE `eo_cc_city` `eo_cc_city` VARCHAR( 30 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL ,
+    CHANGE `eo_cc_zip` `eo_cc_zip` VARCHAR( 12 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NULL ;
+    
+  ALTER TABLE `ecom_orders` DROP `eo_cc_type`;
+
+-- 07/17/06 - JM --
+  ALTER TABLE `user_pages` CHANGE `p_nameType` `p_nameType` ENUM( 'none', 'username', 'realname' ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL DEFAULT 'username';
+
+-- 07/18/06 - JM --
+  ALTER TABLE `user_fotos` CHANGE `up_privacy` `up_privacy` TINYINT UNSIGNED NOT NULL DEFAULT '1';
+
+-- 07/19/06 - JM --
+  ALTER TABLE `user_fotos` CHANGE `up_privacy` `up_privacy` INT UNSIGNED NOT NULL DEFAULT '1';
+  
+-- 07/20/06 - JM --
+  ALTER TABLE `user_slideshows` ADD `us_name` VARCHAR( 128 ) NOT NULL AFTER `us_key` ;
+  
+-- 07/21/06 - JM --
+  CREATE TABLE `user_fotos_dynamic` (
+    `ufd_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `ufd_up_id` INT UNSIGNED NOT NULL ,
+    `ufd_source` VARCHAR( 128 ) NOT NULL ,
+    `ufd_dateCreated` DATE NOT NULL ,
+    `ufd_dateAccessed` DATE NOT NULL ,
+    INDEX ( `ufd_up_id` )
+    ) TYPE = MYISAM ;
+  
+  ALTER TABLE `user_fotos_dynamic` ADD `ufd_u_id` INT UNSIGNED NOT NULL AFTER `ufd_id` ;
+  ALTER TABLE `user_profiles` ADD `p_avatar_id` INT UNSIGNED NOT NULL AFTER `p_avatar` ;
+  ALTER TABLE `user_profiles` CHANGE `p_avatar_id` `p_avatar_key` VARCHAR( 32 ) NOT NULL;
+  ALTER TABLE `user_fotos_dynamic` ADD INDEX ( `ufd_u_id` );
+
+-- 07/22/06 - JM --
+  ALTER TABLE `user_fotos_dynamic` ADD `ufd_width` SMALLINT UNSIGNED NOT NULL DEFAULT '0' AFTER `ufd_source` ,
+    ADD `ufd_height` SMALLINT UNSIGNED NOT NULL DEFAULT '0' AFTER `ufd_width` ;
+    
+-- 07/24/06 - JM --
+  ALTER TABLE `user_pages` DROP `p_nameType` ;
+  ALTER TABLE `user_pages` DROP `p_flixQuantity`;
+  ALTER TABLE `user_pages` ADD `p_password` VARCHAR( 16 ) NULL AFTER `p_u_id` ;
+  
+-- 07/27/2006 - KH --
+  ALTER TABLE `report` CHANGE `r_frequency` `r_frequency` ENUM( 'Weekly', 'Monthly' ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL;
+  ALTER TABLE `user_slideshow_elements` ADD `use_status` ENUM( 'active', 'deleted' ) NOT NULL DEFAULT 'active' AFTER `use_order` ;
+  CREATE TABLE `user_slideshow_schedule` (
+    `uss_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `uss_us_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `uss_startDate` DATETIME NOT NULL ,
+    `uss_endDate` DATETIME NOT NULL ,
+    `uss_dateCreated` DATETIME NOT NULL
+    ) TYPE = MYISAM ;
+
+-- 07/27/2006 - JM --
+  UPDATE `report_type` SET `rt_name` = 'Slideshow Report' WHERE `rt_id` =1 LIMIT 1 ;
+  UPDATE `report_type` SET `rt_name` = 'Photos Report' WHERE `rt_id` =2 LIMIT 1 ;
+  
+-- 07/31/2006 - JM --
+  ALTER TABLE `user_slideshows` CHANGE `us_privacy` `us_privacy` INT( 10 ) UNSIGNED NOT NULL DEFAULT '1';
+  ALTER TABLE `user_slideshow_elements` CHANGE `use_value` `use_value` VARCHAR( 255 ) CHARACTER SET latin1 COLLATE latin1_general_ci NULL;
+  
+-- 08/01/2006 - JM --
+  CREATE TABLE `user_slideshow_settings` (
+    `uss_id` INT UNSIGNED NOT NULL ,
+    `uss_us_id` INT UNSIGNED NOT NULL ,
+    `uss_group_id` SMALLINT UNSIGNED NOT NULL DEFAULT '0',
+    `uss_name` VARCHAR( 32 ) NOT NULL ,
+    `uss_value` VARCHAR( 64 ) NOT NULL ,
+    `uss_order` SMALLINT UNSIGNED NOT NULL DEFAULT '0',
+    `uss_status` ENUM( 'active', 'deleted' ) NOT NULL DEFAULT 'active',
+    PRIMARY KEY ( `uss_id` ) ,
+    INDEX ( `uss_us_id` )
+    ) TYPE = MYISAM ;
+  
+  ALTER TABLE `user_slideshow_settings` CHANGE `uss_id` `uss_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT;
+  ALTER TABLE `user_slideshow_settings` CHANGE `uss_value` `uss_value` VARCHAR( 64 ) CHARACTER SET latin1 COLLATE latin1_general_ci NULL ;
+  
+-- 08/03/2006 - JM --
+  ALTER TABLE `user_slideshows` ADD `us_elements` TEXT NOT NULL AFTER `us_tags` , ADD `us_settings` TEXT NOT NULL AFTER `us_elements` ;
+  DROP TABLE `user_profiles`;
+  CREATE TABLE `user_profiles` (
+    `up_u_id` INT UNSIGNED NOT NULL ,
+    `up_profile` TEXT NULL ,
+    PRIMARY KEY ( `up_u_id` )
+    ) TYPE = MYISAM ;
+    
+  ALTER TABLE `users` DROP `u_defaultCreativeCommons` ,
+    DROP `u_defaultPrivacy` ,
+    DROP `u_ues_reference` ,
+    DROP `u_myEnabled` ,
+    DROP `u_apiEnabled` ;
+    
+  ALTER TABLE `user_prefs` CHANGE `up_value` `up_value` VARCHAR( 128 ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL;
+  ALTER TABLE `user_profiles` CHANGE `up_u_id` `p_u_id` INT( 10 ) UNSIGNED NOT NULL ,
+    CHANGE `up_profile` `p_profile` TEXT CHARACTER SET latin1 COLLATE latin1_general_ci NULL DEFAULT NULL;
+    
+-- 08/07/2006 - JM --
+  UPDATE `ecom_catalog` SET `ecg_edit_url` = NULL ,
+    `ecg_priceSpecial` = NULL ,
+    `ecg_priceSpecialStart` = NULL ,
+    `ecg_priceSpecialEnd` = NULL ,
+    `ecg_photos` = NULL ,
+    `ecg_additional` = '0-Monthly',
+    `ecg_children` = NULL WHERE `ecg_id` =26 LIMIT 1 ;
+  
+  UPDATE `ecom_catalog` SET `ecg_edit_url` = NULL ,
+    `ecg_priceSpecial` = NULL ,
+    `ecg_priceSpecialStart` = NULL ,
+    `ecg_priceSpecialEnd` = NULL ,
+    `ecg_photos` = NULL ,
+    `ecg_additional` = '1-Monthly',
+    `ecg_children` = NULL WHERE `ecg_id` =27 LIMIT 1 ;
+  
+  UPDATE `ecom_catalog` SET `ecg_edit_url` = NULL ,
+    `ecg_priceSpecial` = NULL ,
+    `ecg_priceSpecialStart` = NULL ,
+    `ecg_priceSpecialEnd` = NULL ,
+    `ecg_photos` = NULL ,
+    `ecg_additional` = '3-Monthly',
+    `ecg_children` = NULL WHERE `ecg_id` =28 LIMIT 1 ;
+    
+-- 08/08/06 - KH --
+  ALTER TABLE `comments` CHANGE `c_u_id` `c_by_u_id` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0';
+  ALTER TABLE `comments` ADD `c_for_u_id` INT( 10 ) UNSIGNED NOT NULL AFTER `c_by_u_id` ;
+  
+-- 08/11/06 - JM --
+  TRUNCATE TABLE `faqs`;
+  ALTER TABLE `faqs` CHANGE `f_category` `f_category` ENUM( 'Account', 'General', 'Photos', 'Slideshows' ) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL DEFAULT 'Account';
+  
+-- 08/11/2006 - KH --
+  TRUNCATE TABLE `ecom_catalog`;
+  INSERT INTO `ecom_catalog` VALUES (1, 'Personal', 'account', 'Basic plan', NULL, 5.00, NULL, NULL, NULL, NULL, 'all', 'in stock', 0, 'Y', 1, 1, 4, '0-Monthly', NULL, 1);
+  INSERT INTO `ecom_catalog` VALUES (2, 'Personal', 'account', 'Basic plan', NULL, 48.00, NULL, NULL, NULL, NULL, 'all', 'in stock', 0, 'Y', 1, 1, 4, '0-Yearly', NULL, 1);
+  INSERT INTO `ecom_catalog` VALUES (3, 'Professional', 'account', 'Pro plan', NULL, 10.00, NULL, NULL, NULL, NULL, 'all', 'in stock', 0, 'Y', 1, 1, 4, '1-Monthly', NULL, 1);
+  INSERT INTO `ecom_catalog` VALUES (4, 'Professional', 'account', 'Pro plan', NULL, 96.00, NULL, NULL, NULL, NULL, 'all', 'in stock', 0, 'Y', 1, 1, 4, '1-Yearly', NULL, 1);
+
+-- 08/14/2006 - JM --
+  CREATE DATABASE `photagious_v1` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`board` (
+  `b_id` int( 10 ) unsigned NOT NULL ,
+  `b_bc_id` int( 10 ) unsigned default NULL ,
+  `b_u_id` int( 10 ) unsigned default NULL ,
+  `b_title` varchar( 100 ) NOT NULL ,
+  `b_description` text,
+  `b_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  `b_bp_id` int( 10 ) unsigned default NULL ,
+  `b_order` tinyint( 3 ) unsigned NOT NULL ,
+  `b_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `b_visible` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `b_id` ) ,
+  KEY `b_bc_id` ( `b_bc_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COMMENT = 'An individual discussion board';
+  
+  CREATE TABLE `photagious_v1`.`board_category` (
+  `bc_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `bc_title` varchar( 100 ) NOT NULL ,
+  `bc_order` tinyint( 3 ) unsigned NOT NULL default '0',
+  `bc_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  `bc_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `bc_visible` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `bc_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COMMENT = 'Discussion board catagories';
+  
+  CREATE TABLE `photagious_v1`.`board_post` (
+  `bp_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `bp_b_id` int( 10 ) unsigned NOT NULL ,
+  `bp_parentID` int( 10 ) unsigned NOT NULL ,
+  `bp_u_id` int( 10 ) unsigned NOT NULL ,
+  `bp_title` varchar( 100 ) NOT NULL ,
+  `bp_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  `bp_replies` smallint( 5 ) unsigned NOT NULL default '0',
+  `bp_lastPostID` int( 10 ) unsigned default NULL ,
+  `bp_views` int( 10 ) unsigned NOT NULL default '0',
+  `bp_lastViewID` int( 10 ) unsigned default NULL ,
+  `bp_sticky` enum( 'Y', 'N' ) NOT NULL default 'N',
+  `bp_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `bp_visible` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `bp_id` ) ,
+  KEY `bp_b_id` ( `bp_b_id` ) ,
+  KEY `bp_u_id` ( `bp_u_id` ) ,
+  KEY `bp_parentID` ( `bp_parentID` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COMMENT = 'An individual post on a discussion board';
+  
+  CREATE TABLE `photagious_v1`.`board_postcontent` (
+  `bpc_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `bpc_bp_id` int( 10 ) unsigned NOT NULL ,
+  `bpc_content` text NOT NULL ,
+  PRIMARY KEY ( `bpc_id` ) ,
+  UNIQUE KEY `bpc_bp_id` ( `bpc_bp_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COMMENT = 'The body of an individual post';
+  
+  CREATE TABLE `photagious_v1`.`board_views` (
+  `bv_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `bv_bp_id` int( 10 ) unsigned NOT NULL ,
+  `bv_u_id` int( 10 ) unsigned NOT NULL ,
+  `bv_dateViewed` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `bv_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COMMENT = 'Keeps track of each time a post is viewed';
+  
+  CREATE TABLE `photagious_v1`.`board_watch` (
+  `bw_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `bw_bp_id` int( 10 ) unsigned NOT NULL ,
+  `bw_u_id` int( 10 ) unsigned NOT NULL ,
+  `bw_dateSaved` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `bw_id` ) ,
+  UNIQUE KEY `u_id_bp_id` ( `bw_u_id` , `bw_bp_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COMMENT = 'Discussion board posts a user wishes to watch';
+  
+  CREATE TABLE `photagious_v1`.`comments` (
+  `c_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `c_by_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `c_for_u_id` int( 10 ) unsigned NOT NULL ,
+  `c_element_id` int( 11 ) unsigned NOT NULL default '0',
+  `c_comment` varchar( 255 ) NOT NULL default '',
+  `c_type` enum( 'foto', 'flix' ) NOT NULL default 'foto',
+  `c_time` int( 11 ) NOT NULL default '0',
+  PRIMARY KEY ( `c_id` ) ,
+  KEY `c_type_element_id` ( `c_type` , `c_element_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_carts` (
+  `ec_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ec_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `ec_us_hash` char( 32 ) NOT NULL default '',
+  `ec_dateCreated` int( 10 ) unsigned NOT NULL default '0',
+  `ec_dateModified` int( 10 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `ec_id` ) ,
+  KEY `ec_us_hash` ( `ec_u_id` , `ec_us_hash` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_cart_details` (
+  `ecd_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `parent_ecd_id` int( 10 ) unsigned NOT NULL default '0',
+  `ecd_ec_id` int( 10 ) unsigned NOT NULL default '0',
+  `ecd_ecg_id` int( 10 ) unsigned NOT NULL default '0',
+  `ecd_quantity` smallint( 5 ) unsigned NOT NULL default '0',
+  `ecd_price` double( 6, 2 ) unsigned NOT NULL default '0.00',
+  `ecd_details` text,
+  PRIMARY KEY ( `ecd_id` ) ,
+  KEY `ecd_ec_id` ( `ecd_ec_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_catalog` (
+  `ecg_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ecg_name` varchar( 50 ) NOT NULL default '',
+  `ecg_type` enum( '', 'dvd', 'dvd-copy', 'diskspace', 'account', 'account_pro', 'promo' ) NOT NULL default '',
+  `ecg_description` text,
+  `ecg_edit_url` varchar( 50 ) default NULL ,
+  `ecg_price` float( 5, 2 ) NOT NULL default '0.00',
+  `ecg_priceSpecial` float( 5, 2 ) default NULL ,
+  `ecg_priceSpecialStart` int( 10 ) unsigned default NULL ,
+  `ecg_priceSpecialEnd` int( 10 ) unsigned default NULL ,
+  `ecg_photos` varchar( 250 ) default NULL ,
+  `ecg_userMode` enum( 'all', 'basic', 'premium' ) NOT NULL default 'all',
+  `ecg_availability` enum( 'in stock', 'backordered', 'out of stock' ) NOT NULL default 'in stock',
+  `ecg_shipping` tinyint( 4 ) NOT NULL default '0',
+  `ecg_recurring` enum( 'Y', 'N' ) NOT NULL default 'N',
+  `ecg_default_quantity` smallint( 5 ) unsigned NOT NULL default '0',
+  `ecg_max_quantity` tinyint( 3 ) unsigned NOT NULL default '0',
+  `ecg_group` tinyint( 4 ) default NULL ,
+  `ecg_additional` varchar( 25 ) default NULL ,
+  `ecg_children` tinytext,
+  `ecg_active` tinyint( 1 ) unsigned NOT NULL default '1',
+  PRIMARY KEY ( `ecg_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_orders` (
+  `eo_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `eo_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `eo_cc_fname` varchar( 30 ) default NULL ,
+  `eo_cc_lname` varchar( 30 ) default NULL ,
+  `eo_cc_street` varchar( 50 ) default NULL ,
+  `eo_cc_state` char( 2 ) default NULL ,
+  `eo_cc_city` varchar( 30 ) default NULL ,
+  `eo_cc_zip` varchar( 12 ) default NULL ,
+  `eo_cc_month` char( 2 ) default NULL ,
+  `eo_cc_year` varchar( 4 ) default NULL ,
+  `eo_cc_ccv` varchar( 4 ) default NULL ,
+  `eo_cc_num` varchar( 128 ) default NULL ,
+  `eo_dateCreated` int( 10 ) unsigned NOT NULL default '0',
+  `eo_dateModified` int( 10 ) unsigned NOT NULL default '0',
+  `eo_status` enum( 'Pending', 'Processing', 'Ready To Ship', 'Shipped', 'Cancelled' ) NOT NULL default 'Pending',
+  PRIMARY KEY ( `eo_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_order_details` (
+  `eod_id` int( 10 ) unsigned NOT NULL default '0',
+  `parent_eod_id` int( 10 ) unsigned NOT NULL default '0',
+  `eod_eo_id` int( 10 ) unsigned NOT NULL default '0',
+  `eod_ecg_id` int( 10 ) unsigned NOT NULL default '0',
+  `eod_quantity` smallint( 5 ) unsigned NOT NULL default '0',
+  `eod_price` double( 6, 2 ) unsigned NOT NULL default '0.00',
+  `eod_details` text,
+  PRIMARY KEY ( `eod_id` ) ,
+  KEY `eod_eo_id` ( `eod_eo_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_order_shipping` (
+  `eos_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `eos_eo_id` int( 10 ) unsigned NOT NULL default '0',
+  `eos_name` varchar( 50 ) default NULL ,
+  `eos_address` varchar( 75 ) default NULL ,
+  `eos_city` varchar( 50 ) default NULL ,
+  `eos_state` varchar( 35 ) default NULL ,
+  `eos_zip` varchar( 12 ) default NULL ,
+  PRIMARY KEY ( `eos_id` ) ,
+  KEY `eos_eo_id` ( `eos_eo_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_promotions` (
+  `ep_id` smallint( 5 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ep_ecg_id` int( 10 ) unsigned NOT NULL default '0',
+  `ep_code` varchar( 50 ) NOT NULL default '',
+  `ep_timeStart` datetime NOT NULL default '0000-00-00 00:00:00',
+  `ep_timeEnd` datetime NOT NULL default '0000-00-00 00:00:00',
+  `ep_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `ep_id` ) ,
+  KEY `ep_code` ( `ep_code` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_recur` (
+  `er_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `er_eo_id` int( 10 ) unsigned NOT NULL default '0',
+  `er_ecg_id` int( 10 ) unsigned NOT NULL default '0',
+  `er_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `er_ccNum` varchar( 128 ) NOT NULL default '',
+  `er_ccExpMonth` char( 2 ) NOT NULL default '',
+  `er_ccExpYear` varchar( 4 ) NOT NULL default '',
+  `er_ccCcv` varchar( 4 ) NOT NULL default '',
+  `er_ccNameFirst` varchar( 30 ) NOT NULL default '',
+  `er_ccNameLast` varchar( 30 ) NOT NULL default '',
+  `er_ccStreet` varchar( 50 ) NOT NULL default '',
+  `er_ccCity` varchar( 30 ) NOT NULL default '',
+  `er_ccState` char( 2 ) NOT NULL default '',
+  `er_ccZip` varchar( 12 ) NOT NULL default '',
+  `er_initialDate` date NOT NULL default '0000-00-00',
+  `er_period` enum( 'Monthly', 'Yearly' ) NOT NULL default 'Yearly',
+  `er_amount` double( 6, 2 ) NOT NULL default '0.00',
+  `er_status` enum( 'Active', 'Disabled' ) NOT NULL default 'Active',
+  PRIMARY KEY ( `er_id` ) ,
+  KEY `er_eo_id` ( `er_u_id` , `er_ecg_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`ecom_recur_results` (
+  `err_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `err_er_id` int( 10 ) unsigned NOT NULL default '0',
+  `err_dateTime` datetime NOT NULL default '0000-00-00 00:00:00',
+  `err_result` enum( 'Success', 'Failure' ) NOT NULL default 'Success',
+  PRIMARY KEY ( `err_id` ) ,
+  KEY `err_er_id` ( `err_er_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`email_campaigns` (
+  `ec_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ec_name` varchar( 50 ) NOT NULL default '',
+  PRIMARY KEY ( `ec_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`email_campaign_tracker` (
+  `ect_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `ect_ec_id` int( 10 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `ect_u_id` , `ect_ec_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`email_unsubscribe` (
+  `eu_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `eu_ec_id` int( 10 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `eu_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`faqs` (
+  `f_id` smallint( 5 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `f_category` enum( 'Account', 'General', 'Photos', 'Slideshows' ) NOT NULL default 'Account',
+  `f_question` text NOT NULL ,
+  `f_answer` text,
+  `f_notes` text,
+  `f_keywords` varchar( 100 ) default NULL ,
+  `f_link` varchar( 150 ) default NULL ,
+  `f_rating` tinyint( 3 ) unsigned NOT NULL default '0',
+  `f_dateCreated` date NOT NULL default '0000-00-00',
+  `f_dateModified` date NOT NULL default '0000-00-00',
+  `f_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `f_id` ) ,
+  FULLTEXT KEY `search` ( `f_question` , `f_answer` , `f_keywords` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`feedback` (
+  `f_id` smallint( 5 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `f_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `f_action` varchar( 50 ) NOT NULL default '',
+  `f_queryString` varchar( 75 ) default NULL ,
+  `f_get` text,
+  `f_post` text,
+  `f_referer` varchar( 100 ) default NULL ,
+  `f_feedback` text,
+  `f_assigned` enum( 'John', 'Jaisen', 'Cecil' ) NOT NULL default 'John',
+  `f_status` enum( '1 - Open', '2 - Pending', '3 - Closed' ) NOT NULL default '1 - Open',
+  `f_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `f_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`flix_scheduled` (
+  `fs_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the scheduled flix',
+  `fs_uf_id` int( 10 ) NOT NULL COMMENT 'ID of the flix',
+  `fs_u_id` int( 10 ) unsigned NOT NULL COMMENT 'ID fo the user of the flix',
+  `fs_beginDate` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date to make the flix public',
+  `fs_endDate` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date to make the flix private',
+  `fs_initialPrivacy` char( 3 ) COLLATE utf8_general_ci NOT NULL COMMENT 'The value to change the privacy back to',
+  `fs_privacy` char( 3 ) COLLATE utf8_general_ci NOT NULL COMMENT 'The privacy value to make the flix between the begin and end dates',
+  PRIMARY KEY ( `fs_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Schedule of Flix to become public and go back to private';
+  
+  CREATE TABLE `photagious_v1`.`flix_templates` (
+  `ft_id` smallint( 6 ) NOT NULL AUTO_INCREMENT ,
+  `ft_music` varchar( 25 ) default NULL ,
+  `ft_size` enum( '750x450', '420x430', '400x330', '475x450', '450x300', '750x300', '400x270', '400x390', '680x520', '515x560', '85x110', '190x220', '500x405', '500x260', '800x600', '550x600' ) NOT NULL default '750x450',
+  `ft_container` enum( 'ff_container.swf', 'ff_container_basic.swf', 'ff_container_no.swf', 'ff_container_medium.swf', 'ff_container_horizontal.swf', 'ff_container_wide.swf', 'ff_container_test.swf', 'ff_container_cc.swf', 'ff_container_large.swf', 'ff_container_home.swf', 'ff_container_mini.swf', 'ff_container_foto_pod.swf', 'ff_container_nt_large.swf', 'ff_container_500_260.swf', 'ff_container_800_600.swf', 'ff_container_550_600.swf' ) NOT NULL default 'ff_container.swf',
+  `ft_name` varchar( 50 ) NOT NULL default '',
+  `ft_screenshot` varchar( 50 ) NOT NULL default '',
+  `ft_swf` varchar( 35 ) NOT NULL default '',
+  `ft_background` varchar( 64 ) NOT NULL ,
+  `ft_categories` set( 'Featured', 'Custom', 'Blog', 'Birthday', 'Games', 'Holidays', 'Large Fotos', 'Outdoors', 'Portfolio', 'Special Event', 'Vacation' ) default NULL ,
+  `ft_keywords` varchar( 100 ) default NULL ,
+  `ft_partner` enum( 'ClearChannel' ) default NULL ,
+  `ft_additional` varchar( 255 ) default NULL ,
+  `ft_order` tinyint( 3 ) unsigned NOT NULL default '0',
+  `ft_type` enum( 'Free', 'Premium', 'Custom' ) NOT NULL default 'Free',
+  `ft_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `ft_id` ) ,
+  KEY `ft_swf` ( `ft_swf` ) ,
+  FULLTEXT KEY `ff_keyword` ( `ft_keywords` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`forums` (
+  `f_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `f_g_id` int( 10 ) unsigned NOT NULL default '0',
+  `f_title` varchar( 100 ) NOT NULL default '',
+  `f_description` text,
+  `f_displayOrder` tinyint( 3 ) unsigned NOT NULL default '0',
+  `f_lastPostTime` datetime NOT NULL default '0000-00-00 00:00:00',
+  `f_lastPoster` varchar( 25 ) NOT NULL default '',
+  `f_lastThreadTitle` varchar( 100 ) NOT NULL default '',
+  `f_lastThreadId` int( 10 ) unsigned NOT NULL default '0',
+  `f_postCount` int( 10 ) unsigned NOT NULL default '0',
+  `f_threadCount` int( 10 ) unsigned NOT NULL default '0',
+  `f_dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  `f_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `f_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`forum_posts` (
+  `fp_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `fp_ft_id` int( 10 ) unsigned NOT NULL default '0',
+  `fp_f_id` int( 10 ) unsigned default '0',
+  `fp_parent_id` int( 10 ) NOT NULL default '0',
+  `fp_username` varchar( 30 ) NOT NULL default '',
+  `fp_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `fp_g_id` int( 10 ) unsigned NOT NULL default '0',
+  `fp_title` varchar( 100 ) NOT NULL default '',
+  `fp_post` text NOT NULL ,
+  `fp_ipAddress` varchar( 15 ) NOT NULL default '',
+  `fp_dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  `fp_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `fp_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`forum_threads` (
+  `ft_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ft_f_id` int( 10 ) unsigned default '0',
+  `ft_g_id` int( 10 ) unsigned NOT NULL default '0',
+  `ft_title` varchar( 100 ) NOT NULL default '',
+  `ft_lastPostTime` datetime NOT NULL default '0000-00-00 00:00:00',
+  `ft_lastPoster` varchar( 25 ) NOT NULL default '',
+  `ft_replyCount` int( 10 ) unsigned NOT NULL default '0',
+  `ft_viewCount` int( 10 ) unsigned NOT NULL default '0',
+  `ft_open` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `ft_sticky` enum( 'Y', 'N' ) NOT NULL default 'N',
+  `ft_visible` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `ft_dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  `ft_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `ft_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`fotos_public_select` (
+  `up_id` int( 10 ) unsigned NOT NULL ,
+  `dateCreated` datetime NOT NULL ,
+  UNIQUE KEY `up_id` ( `up_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`foto_objectionable` (
+  `fo_us_hash` char( 13 ) COLLATE utf8_general_ci NOT NULL COMMENT 'session id of the user flagging the foto',
+  `fo_up_id` int( 10 ) unsigned NOT NULL COMMENT 'id of the foto being flagged',
+  `fo_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the foto was flagged',
+  PRIMARY KEY ( `fo_us_hash` , `fo_up_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Keeps track of fotos that are flagged as objectionable';
+  
+  CREATE TABLE `photagious_v1`.`foto_quarantined` (
+  `fq_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'foto quarantined id',
+  `fq_up_id` int( 10 ) unsigned NOT NULL COMMENT 'id of the quarantined foto',
+  `fq_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the foto was quarantined',
+  PRIMARY KEY ( `fq_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Keeps track of fotos that have been quarantined';
+  
+  CREATE TABLE `photagious_v1`.`games` (
+  `gm_id` tinyint( 3 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `gm_type` enum( 'target' ) NOT NULL default 'target',
+  `gm_name` varchar( 64 ) NOT NULL default '',
+  `gm_description` varchar( 128 ) NOT NULL default '',
+  `gm_maxFotos` tinyint( 3 ) unsigned NOT NULL default '0',
+  `gm_premium` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `gm_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `gm_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`game_fotorate` (
+  `fotorate_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `share_g_id` int( 10 ) unsigned NOT NULL default '0',
+  `owner_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `photo_up_id` int( 10 ) unsigned NOT NULL default '0',
+  `photo_url` varchar( 255 ) NOT NULL default '',
+  `gender` char( 1 ) NOT NULL default 'M',
+  `age` tinyint( 3 ) unsigned NOT NULL default '0',
+  `status` tinyint( 1 ) NOT NULL default '-1',
+  `view_key` varchar( 4 ) NOT NULL default '',
+  `vote_key` varchar( 4 ) NOT NULL default '',
+  `votes` int( 10 ) unsigned NOT NULL default '0',
+  `average` double unsigned NOT NULL default '0',
+  `reports` smallint( 5 ) unsigned NOT NULL default '0',
+  `last_login` int( 10 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `fotorate_id` ) ,
+  UNIQUE KEY `id_viewkey` ( `fotorate_id` , `view_key` ) ,
+  UNIQUE KEY `user_id` ( `owner_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`game_fotorate_votes` (
+  `ip_long` int( 10 ) unsigned NOT NULL default '0',
+  `fotorate_id` int( 10 ) unsigned NOT NULL default '0',
+  `vote` tinyint( 3 ) unsigned NOT NULL default '0',
+  `vote_time` int( 10 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `ip_long` , `fotorate_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`game_target` (
+  `gto_id` smallint( 5 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `gto_gm_id` tinyint( 3 ) unsigned NOT NULL default '0',
+  `gto_name` varchar( 64 ) NOT NULL default '',
+  `gto_description` varchar( 128 ) NOT NULL default '',
+  `gto_template` enum( 'valentine_love', 'valentine_hate' ) NOT NULL default 'valentine_love',
+  `gto_premium` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `gto_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `gto_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`game_target_instances` (
+  `gmt_id` smallint( 5 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `gmt_gm_id` tinyint( 3 ) unsigned NOT NULL default '0',
+  `gmt_gto_id` smallint( 5 ) unsigned NOT NULL default '0',
+  `gmt_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `gmt_up_id` int( 10 ) NOT NULL default '0',
+  `gmt_foto_path` varchar( 75 ) NOT NULL default '',
+  `gmt_name` varchar( 64 ) NOT NULL default '',
+  `gmt_viewed` int( 10 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `gmt_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`groups` (
+  `g_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `g_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `g_name` varchar( 75 ) NOT NULL default '',
+  `g_description` text,
+  `g_listed` tinyint( 1 ) unsigned NOT NULL default '0',
+  `g_public` tinyint( 1 ) unsigned NOT NULL default '0',
+  `g_contributors` enum( 'Owner', 'Group', 'All' ) NOT NULL default 'Owner',
+  `g_delete` tinyint( 1 ) NOT NULL default '0',
+  `g_dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  `g_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  `g_status` enum( 'Active', 'Pending', 'Disabled' ) NOT NULL default 'Active',
+  PRIMARY KEY ( `g_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 PACK_KEYS =0;
+  
+  CREATE TABLE `photagious_v1`.`group_delete` (
+  `g_id` int( 10 ) NOT NULL default '0',
+  `u_id` int( 10 ) NOT NULL default '0',
+  `gd_dateToDelete` date NOT NULL default '0000-00-00',
+  UNIQUE KEY `unique` ( `g_id` , `u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`group_fotoflix_map` (
+  `g_id` int( 10 ) unsigned NOT NULL default '0',
+  `uf_id` int( 10 ) unsigned NOT NULL default '0',
+  `dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  UNIQUE KEY `UNIQUE` ( `g_id` , `uf_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`group_fotos` (
+  `gp_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `gp_g_id` int( 10 ) unsigned NOT NULL default '0',
+  `gp_up_id` int( 10 ) unsigned NOT NULL default '0',
+  `gp_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `gp_key` varchar( 32 ) NOT NULL default '',
+  `gp_name` varchar( 75 ) default NULL ,
+  `gp_size` int( 10 ) unsigned NOT NULL default '0',
+  `gp_width` smallint( 5 ) unsigned NOT NULL default '0',
+  `gp_height` smallint( 5 ) unsigned NOT NULL default '0',
+  `gp_description` text,
+  `gp_original_path` varchar( 75 ) NOT NULL default '',
+  `gp_web_path` varchar( 75 ) NOT NULL default '',
+  `gp_flix_path` varchar( 75 ) NOT NULL default '',
+  `gp_thumb_path` varchar( 75 ) NOT NULL default '',
+  `gp_l_ids` varchar( 255 ) default NULL ,
+  `gp_status` enum( 'active', 'deleted' ) NOT NULL default 'active',
+  `gp_created_at` datetime NOT NULL default '0000-00-00 00:00:00',
+  `gp_modified_at` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `gp_id` ) ,
+  UNIQUE KEY `group_photo_unique` ( `gp_g_id` , `gp_up_id` ) ,
+  KEY `gp_key` ( `gp_key` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`group_foto_map` (
+  `up_id` int( 10 ) unsigned NOT NULL default '0',
+  `g_id` int( 10 ) unsigned NOT NULL default '0',
+  `u_id` int( 10 ) unsigned NOT NULL default '0',
+  `u_orig_id` int( 10 ) unsigned NOT NULL ,
+  `dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `g_id` , `up_id` ) ,
+  KEY `u_id` ( `u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`group_invite` (
+  `gi_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `gi_g_id` int( 10 ) unsigned NOT NULL default '0',
+  `gi_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `gi_reference` varchar( 32 ) NOT NULL default '',
+  `gi_name` varchar( 50 ) default NULL ,
+  `gi_email` varchar( 75 ) NOT NULL default '',
+  `gi_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `gi_id` ) ,
+  KEY `gi_reference` ( `gi_reference` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`group_quick_sets` (
+  `gqs_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `gqs_p_id` int( 10 ) unsigned NOT NULL default '0',
+  `gqs_g_id` int( 10 ) unsigned NOT NULL default '0',
+  `gqs_name` varchar( 32 ) NOT NULL default '',
+  `gqs_tags` varchar( 255 ) default NULL ,
+  `gqs_icon` varchar( 128 ) default NULL ,
+  `gqs_public` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `gqs_order` smallint( 5 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `gqs_id` , `gqs_g_id` ) ,
+  KEY `parent_user` ( `gqs_p_id` , `gqs_g_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`group_tags` (
+  `gt_g_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `gt_tag` varchar( 32 ) NOT NULL default '',
+  `gt_count` int( 11 ) NOT NULL default '0',
+  `gt_weight` float( 3, 2 ) unsigned NOT NULL default '0.00',
+  PRIMARY KEY ( `gt_g_id` , `gt_tag` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`icons` (
+  `i_id` smallint( 5 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `i_name` varchar( 50 ) default NULL ,
+  `i_src` varchar( 30 ) default NULL ,
+  `i_keywords` varchar( 255 ) default NULL ,
+  `i_system` char( 1 ) NOT NULL default '0',
+  PRIMARY KEY ( `i_id` ) ,
+  KEY `i_keywords` ( `i_keywords` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`idat` (
+  `QualifiedKey` varchar( 128 ) NOT NULL default '',
+  `CurrentID` int( 10 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `QualifiedKey` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`labels` (
+  `l_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `l_p_id` int( 10 ) unsigned NOT NULL default '0',
+  `l_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `l_g_id` int( 10 ) unsigned NOT NULL default '0',
+  `l_name` varchar( 30 ) NOT NULL default '',
+  `l_icon` varchar( 30 ) default NULL ,
+  `l_tags` varchar( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL default '',
+  `l_system` enum( 'Y', 'N' ) NOT NULL default 'N',
+  `l_order` tinyint( 3 ) unsigned NOT NULL default '0',
+  `l_status` enum( 'Active', 'Deleted' ) NOT NULL default 'Active',
+  PRIMARY KEY ( `l_id` ) ,
+  KEY `t_g_id` ( `l_g_id` ) ,
+  KEY `l_p_id` ( `l_p_id` ) ,
+  KEY `user_parent` ( `l_u_id` , `l_p_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`log_flix_clicks` (
+  `lfc_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `lfc_us_hash` varchar( 13 ) default NULL ,
+  `lfc_ipAddress` varchar( 15 ) NOT NULL default '',
+  `lfc_fastflix` varchar( 32 ) default NULL ,
+  `lfc_urlReferrer` varchar( 75 ) default NULL ,
+  `lfc_urlDestination` varchar( 50 ) default NULL ,
+  `lfc_dateTime` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `lfc_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`log_flix_views` (
+  `lfv_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `lfv_us_hash` varchar( 13 ) NOT NULL default '',
+  `lfv_ipAddress` varchar( 15 ) NOT NULL default '',
+  `lfv_fastflix` varchar( 32 ) NOT NULL default '',
+  `lfv_type` enum( 'P', 'C' ) NOT NULL default 'P',
+  `lfv_dateTime` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `lfv_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`log_hits` (
+  `lh_id` int( 11 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `lh_referer` varchar( 75 ) default NULL ,
+  `lh_destination` varchar( 50 ) CHARACTER SET utf8 COLLATE utf8_bin default NULL ,
+  `lh_ipAddress` varchar( 15 ) NOT NULL default '',
+  `lh_timestamp` int( 11 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `lh_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`music` (
+  `m_id` smallint( 5 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `m_swf_src` varchar( 50 ) NOT NULL default '',
+  `m_genre` enum( 'My Music', 'Holiday', 'Classical', 'Country', 'Pop/Rock', 'Jazz/Blues', 'Romantic', 'Drama/Suspense', 'Children/Cartoon', 'Easy Listening', 'World', 'Solo Instrument', 'Ambience', 'Drums' ) NOT NULL default 'Holiday',
+  `m_tempo` varchar( 25 ) default NULL ,
+  `m_name` varchar( 30 ) NOT NULL default '',
+  `m_description` varchar( 100 ) default NULL ,
+  `m_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  `m_active` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  PRIMARY KEY ( `m_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`notepad` (
+  `n_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `n_u_id` int( 10 ) unsigned NOT NULL ,
+  `n_key` char( 32 ) COLLATE utf8_general_ci NOT NULL ,
+  `n_tags` varchar( 255 ) COLLATE utf8_general_ci default NULL ,
+  `n_note` text COLLATE utf8_general_ci NOT NULL ,
+  `n_dateCreated` datetime NOT NULL ,
+  `n_dateModified` datetime NOT NULL ,
+  `n_active` enum( 'Y', 'N' ) COLLATE utf8_general_ci NOT NULL default 'Y',
+  PRIMARY KEY ( `n_id` ) ,
+  KEY `n_u_id` ( `n_u_id` , `n_active` ) ,
+  FULLTEXT KEY `n_tags` ( `n_tags` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`private_message` (
+  `pm_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID of the message',
+  `pm_sender_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the sender',
+  `pm_receiver_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the receiver',
+  `pm_subject` varchar( 100 ) COLLATE utf8_general_ci NOT NULL COMMENT 'Subject of the message',
+  `pm_pmc_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the message content',
+  `pm_status` enum( 'New', 'Read', 'Deleted' ) COLLATE utf8_general_ci NOT NULL COMMENT 'If the message is new, has been read, or is deleted',
+  `pm_type` enum( 'Sent', 'Received' ) COLLATE utf8_general_ci NOT NULL COMMENT 'Type of message',
+  `pm_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date the message was created',
+  PRIMARY KEY ( `pm_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Tracks private messages';
+  
+  CREATE TABLE `photagious_v1`.`private_message_ban` (
+  `pmb_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID of the ban',
+  `pmb_u_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the person doing the banning',
+  `pmb_who` int( 10 ) unsigned NOT NULL COMMENT 'ID of the person who is being banned',
+  `pmb_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date the person was banned',
+  PRIMARY KEY ( `pmb_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Tracks those who are banned from messagine someone';
+  
+  CREATE TABLE `photagious_v1`.`private_message_content` (
+  `pmc_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID of the message content',
+  `pmc_content` text COLLATE utf8_general_ci NOT NULL COMMENT 'The message content',
+  `pmc_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date the message content was created',
+  PRIMARY KEY ( `pmc_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Content for a private message';
+  
+  CREATE TABLE `photagious_v1`.`private_message_optout` (
+  `pmo_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID of the optout',
+  `pmo_u_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the person opting out',
+  `pmo_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'Date user opted out',
+  PRIMARY KEY ( `pmo_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Tracks people who don''t want to receive private messages';
+  
+  CREATE TABLE `photagious_v1`.`report` (
+  `r_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID of the report',
+  `r_u_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the user requesting the report',
+  `r_rt_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the type of report to generate',
+  `r_frequency` enum( 'Weekly', 'Monthly' ) COLLATE utf8_general_ci NOT NULL COMMENT 'frequency to generate the report',
+  `r_email` varchar( 255 ) COLLATE utf8_general_ci default NULL COMMENT 'who to send the report to (comma separated), null to send to no one',
+  `r_active` enum( 'Y', 'N' ) COLLATE utf8_general_ci NOT NULL COMMENT 'if the report is active or not',
+  `r_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the report started',
+  PRIMARY KEY ( `r_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Reports that need to be generated and/or sent out';
+  
+  CREATE TABLE `photagious_v1`.`report_archive` (
+  `ra_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID of the archived report',
+  `ra_u_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the user the report was generated for',
+  `ra_r_id` int( 10 ) unsigned NOT NULL COMMENT 'ID of the generated report',
+  `ra_title` varchar( 255 ) COLLATE utf8_general_ci NOT NULL COMMENT 'title of the archived report',
+  `ra_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the report was generated and archived',
+  PRIMARY KEY ( `ra_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Archives all generated reports';
+  
+  CREATE TABLE `photagious_v1`.`report_data` (
+  `rd_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID for the report_data table',
+  `rd_element_key` varchar( 32 ) NOT NULL COMMENT 'Key of the element we are logging data for',
+  `rd_type` enum( 'Foto Viewed', 'Flix Viewed', 'Flix Viewed Complete' ) NOT NULL COMMENT 'Type of data we are logging',
+  `rd_ipAddress` varchar( 15 ) NOT NULL COMMENT 'IP address of person who created this record',
+  `rd_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'DateTime this record was created',
+  PRIMARY KEY ( `rd_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COMMENT = 'Tracks many different types of data for the reports';
+  
+  CREATE TABLE `photagious_v1`.`report_type` (
+  `rt_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID of the report type',
+  `rt_name` varchar( 255 ) COLLATE utf8_general_ci NOT NULL COMMENT 'name of the type of report',
+  PRIMARY KEY ( `rt_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Types of reports that can be generated';
+  
+  CREATE TABLE `photagious_v1`.`site_news` (
+  `sn_id` smallint( 5 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `sn_date` date default NULL ,
+  `sn_headline` varchar( 75 ) NOT NULL default '',
+  `sn_body` text NOT NULL ,
+  `sn_archived` enum( 'Y', 'N' ) NOT NULL default 'N',
+  PRIMARY KEY ( `sn_id` ) ,
+  KEY `archived_date` ( `sn_archived` , `sn_date` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`tokens` (
+  `t_string` varchar( 32 ) NOT NULL default '',
+  `t_dateTime` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `t_string` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`users` (
+  `u_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `u_key` varchar( 32 ) NOT NULL default '',
+  `u_username` varchar( 16 ) NOT NULL default '',
+  `u_password` varchar( 32 ) NOT NULL default '',
+  `u_email` varchar( 75 ) NOT NULL default '',
+  `u_nameFirst` varchar( 50 ) default NULL ,
+  `u_nameLast` varchar( 50 ) default NULL ,
+  `u_birthDay` tinyint( 2 ) unsigned zerofill NOT NULL default '00',
+  `u_birthMonth` tinyint( 2 ) unsigned zerofill NOT NULL default '00',
+  `u_birthYear` smallint( 4 ) unsigned zerofill NOT NULL default '0000',
+  `u_address` varchar( 200 ) default NULL ,
+  `u_city` varchar( 50 ) default NULL ,
+  `u_state` varchar( 5 ) default NULL ,
+  `u_zip` varchar( 10 ) default NULL ,
+  `u_country` varchar( 75 ) default NULL ,
+  `u_secret` varchar( 50 ) NOT NULL default '',
+  `u_accountType` tinyint( 3 ) unsigned NOT NULL default '1',
+  `u_spaceTotal` int( 10 ) unsigned NOT NULL default '0',
+  `u_spaceUsed` int( 10 ) unsigned NOT NULL default '0',
+  `u_dateExpires` date NOT NULL default '0000-00-00',
+  `u_dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  `u_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  `u_status` enum( 'Active', 'Pending', 'Disabled', 'Expired' ) NOT NULL default 'Pending',
+  PRIMARY KEY ( `u_id` ) ,
+  KEY `username_password` ( `u_username` , `u_password` ) ,
+  KEY `u_key` ( `u_key` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_activation` (
+  `ua_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `ua_key` varchar( 32 ) NOT NULL default '',
+  KEY `serial` ( `ua_key` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_audit` (
+  `ua_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID for audit table',
+  `ua_u_id` int( 10 ) unsigned NOT NULL COMMENT 'ID to users table',
+  `ua_reason` enum( 'Violation' ) COLLATE utf8_general_ci NOT NULL COMMENT 'reason the user was audited',
+  `ua_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the user was audited',
+  PRIMARY KEY ( `ua_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Keeps track of when a user is audited';
+  
+  CREATE TABLE `photagious_v1`.`user_blogs` (
+  `ub_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ub_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `ub_name` varchar( 64 ) NOT NULL default '',
+  `ub_blogId` int( 10 ) unsigned NOT NULL default '0',
+  `ub_url` varchar( 128 ) default NULL ,
+  `ub_username` varchar( 32 ) NOT NULL default '',
+  `ub_password` varchar( 128 ) NOT NULL default '',
+  `ub_endPoint` varchar( 75 ) default NULL ,
+  `ub_type` enum( 'Blogger', 'LiveJournal''MovableType', 'TypePad', 'WordPress' ) NOT NULL default 'Blogger',
+  `ub_status` enum( 'Active', 'Deleted' ) NOT NULL default 'Active',
+  PRIMARY KEY ( `ub_id` ) ,
+  KEY `ub_u_id` ( `ub_u_id` , `ub_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_cancellations` (
+  `uc_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `uc_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `uc_confirmationId` varchar( 12 ) NOT NULL default '',
+  `uc_email` varchar( 50 ) NOT NULL default '',
+  `uc_dateEffective` date NOT NULL default '0000-00-00',
+  `uc_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `uc_id` ) ,
+  KEY `uc_u_id` ( `uc_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_dvds` (
+  `ud_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ud_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `ud_eod_id` int( 10 ) unsigned NOT NULL default '0',
+  `ud_name` varchar( 50 ) default NULL ,
+  `ud_dateCreated` date NOT NULL default '0000-00-00',
+  PRIMARY KEY ( `ud_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_earn_space` (
+  `ues_id` int( 11 ) NOT NULL AUTO_INCREMENT ,
+  `ues_u_id` int( 11 ) NOT NULL default '0',
+  `ues_reference` varchar( 32 ) NOT NULL default '',
+  `ues_nameFirst` varchar( 50 ) NOT NULL default '',
+  `ues_nameLast` varchar( 50 ) NOT NULL default '',
+  `ues_email` varchar( 75 ) NOT NULL default '',
+  `ues_status` enum( 'pending', 'accepted', 'invalid' ) NOT NULL default 'pending',
+  `ues_dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  `ues_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `ues_id` ) ,
+  UNIQUE KEY `ues_reference` ( `ues_reference` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_fotoflix` (
+  `uf_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `uf_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `uf_tags` varchar( 255 ) default NULL ,
+  `uf_autoplay` enum( 'Y', 'N' ) NOT NULL default 'N',
+  `uf_fastflix` varchar( 32 ) NOT NULL default '',
+  `uf_template` varchar( 35 ) NOT NULL default 'default',
+  `uf_delay` smallint( 5 ) unsigned NOT NULL default '3000',
+  `uf_music` varchar( 50 ) default NULL ,
+  `uf_name` varchar( 75 ) NOT NULL default '',
+  `uf_createdBy` varchar( 25 ) default NULL ,
+  `uf_description` text,
+  `uf_fotoCount` tinyint( 3 ) unsigned NOT NULL default '0',
+  `uf_length` smallint( 5 ) unsigned NOT NULL default '0',
+  `uf_views` int( 10 ) unsigned NOT NULL default '0',
+  `uf_viewsComplete` int( 10 ) unsigned NOT NULL default '0',
+  `uf_public` enum( 'Y', 'N' ) NOT NULL default 'N',
+  `uf_privacy` char( 3 ) NOT NULL default '',
+  `uf_publicOrder` smallint( 5 ) unsigned NOT NULL default '0',
+  `uf_dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  `uf_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  `uf_status` enum( 'Active', 'Deleted', 'Suspended' ) NOT NULL default 'Active',
+  PRIMARY KEY ( `uf_id` ) ,
+  KEY `uf_u_id` ( `uf_u_id` , `uf_status` , `uf_privacy` ) ,
+  KEY `status_public` ( `uf_status` , `uf_privacy` ) ,
+  KEY `uf_fastflix` ( `uf_fastflix` , `uf_status` , `uf_privacy` ) ,
+  FULLTEXT KEY `uf_tags` ( `uf_tags` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_fotoflix_data` (
+  `ufd_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ufd_uf_id` int( 10 ) unsigned NOT NULL default '0',
+  `ufd_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `ufd_up_id` int( 10 ) unsigned NOT NULL default '0',
+  `ufd_delay` smallint( 5 ) unsigned NOT NULL default '3000',
+  `ufd_isTitle` enum( 'Y', 'N' ) NOT NULL default 'N',
+  `ufd_name` varchar( 50 ) default NULL ,
+  `ufd_description` varchar( 200 ) default NULL ,
+  `ufd_link` varchar( 150 ) default NULL ,
+  `ufd_linkTarget` enum( 'T', 'B' ) default NULL ,
+  `ufd_order` smallint( 6 ) NOT NULL default '0',
+  `ufd_inTimeline` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `ufd_dateModified` datetime NOT NULL default '0000-00-00 00:00:00',
+  `ufd_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  `ufd_status` enum( 'Active', 'Deleted' ) NOT NULL default 'Active',
+  PRIMARY KEY ( `ufd_id` ) ,
+  UNIQUE KEY `flix_foto_unique` ( `ufd_uf_id` , `ufd_up_id` , `ufd_status` ) ,
+  KEY `ufd_uf_id_order` ( `ufd_uf_id` , `ufd_order` , `ufd_status` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_fotos` (
+  `up_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `up_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `up_key` varchar( 32 ) NOT NULL default '',
+  `up_tags` varchar( 255 ) default NULL ,
+  `up_name` varchar( 75 ) default NULL ,
+  `up_size` int( 10 ) unsigned NOT NULL default '0',
+  `up_width` smallint( 5 ) unsigned NOT NULL default '0',
+  `up_height` smallint( 5 ) unsigned NOT NULL default '0',
+  `up_description` text,
+  `up_original_path` varchar( 75 ) NOT NULL default '',
+  `up_web_path` varchar( 75 ) NOT NULL default '',
+  `up_flix_path` varchar( 75 ) NOT NULL default '',
+  `up_thumb_path` varchar( 75 ) NOT NULL default '',
+  `up_l_ids` varchar( 255 ) default NULL ,
+  `up_rotation` char( 3 ) NOT NULL default '0',
+  `up_camera_make` varchar( 50 ) default NULL ,
+  `up_camera_model` varchar( 50 ) default NULL ,
+  `up_views` bigint( 20 ) unsigned NOT NULL default '0',
+  `up_status` enum( 'active', 'deleted', 'violation' ) NOT NULL default 'active',
+  `up_public` enum( 'Y', 'N' ) NOT NULL default 'N',
+  `up_creative_commons` tinyint( 3 ) unsigned NOT NULL default '0',
+  `up_privacy` int( 10 ) unsigned NOT NULL default '1',
+  `up_taken_at` int( 10 ) unsigned default NULL ,
+  `up_created_at` datetime NOT NULL default '0000-00-00 00:00:00',
+  `up_modified_at` datetime NOT NULL default '0000-00-00 00:00:00',
+  `up_history` text,
+  PRIMARY KEY ( `up_id` ) ,
+  UNIQUE KEY `up_key` ( `up_key` , `up_status` ) ,
+  KEY `up_u_id` ( `up_u_id` , `up_status` ) ,
+  KEY `status_public` ( `up_status` , `up_privacy` , `up_u_id` ) ,
+  FULLTEXT KEY `up_tags` ( `up_tags` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_fotos_dynamic` (
+  `ufd_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `ufd_u_id` int( 10 ) unsigned NOT NULL ,
+  `ufd_up_id` int( 10 ) unsigned NOT NULL ,
+  `ufd_source` varchar( 128 ) COLLATE utf8_general_ci NOT NULL ,
+  `ufd_width` smallint( 5 ) unsigned NOT NULL default '0',
+  `ufd_height` smallint( 5 ) unsigned NOT NULL default '0',
+  `ufd_dateCreated` date NOT NULL ,
+  `ufd_dateAccessed` date NOT NULL ,
+  PRIMARY KEY ( `ufd_id` ) ,
+  KEY `ufd_up_id` ( `ufd_up_id` ) ,
+  KEY `ufd_u_id` ( `ufd_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_group_map` (
+  `u_id` int( 10 ) unsigned NOT NULL default '0',
+  `g_id` int( 10 ) unsigned NOT NULL default '0',
+  `dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `u_id` , `g_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_mp3s` (
+  `um_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `um_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `um_name` varchar( 50 ) NOT NULL default '',
+  `um_length` smallint( 5 ) unsigned NOT NULL default '0',
+  `um_size` int( 10 ) unsigned NOT NULL default '0',
+  `um_path` varchar( 50 ) NOT NULL default '',
+  `um_status` enum( 'Active', 'Deleted' ) NOT NULL default 'Active',
+  `um_created_at` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `um_id` ) ,
+  KEY `um_u_id` ( `um_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_pages` (
+  `p_u_id` int( 11 ) NOT NULL default '0',
+  `p_password` varchar( 16 ) default NULL ,
+  `p_description` varchar( 255 ) default NULL ,
+  `p_colors` varchar( 32 ) NOT NULL default '',
+  PRIMARY KEY ( `p_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_permissions` (
+  `up_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `up_usa_id` int( 10 ) unsigned NOT NULL default '0',
+  `up_action` varchar( 64 ) COLLATE utf8_general_ci NOT NULL ,
+  `up_permission` tinyint( 3 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `up_id` ) ,
+  UNIQUE KEY `up_usa_id` ( `up_usa_id` , `up_action` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_permission_types` (
+  `upt_name` varchar( 16 ) COLLATE utf8_general_ci NOT NULL ,
+  `upt_defaultValue` tinyint( 3 ) unsigned NOT NULL default '0',
+  `upt_active` enum( 'Y', 'N' ) COLLATE utf8_general_ci NOT NULL ,
+  PRIMARY KEY ( `upt_name` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_prefs` (
+  `up_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `up_name` varchar( 16 ) NOT NULL default '',
+  `up_value` varchar( 128 ) NOT NULL ,
+  PRIMARY KEY ( `up_u_id` , `up_name` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_profiles` (
+  `p_u_id` int( 10 ) unsigned NOT NULL ,
+  `p_profile` text COLLATE utf8_general_ci,
+  PRIMARY KEY ( `p_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_quick_sets` (
+  `uqs_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `uqs_p_id` int( 10 ) unsigned NOT NULL default '0',
+  `uqs_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `uqs_name` varchar( 32 ) NOT NULL default '',
+  `uqs_tags` varchar( 255 ) default NULL ,
+  `uqs_icon` varchar( 128 ) default NULL ,
+  `uqs_public` enum( 'Y', 'N' ) NOT NULL default 'Y',
+  `uqs_order` smallint( 5 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `uqs_id` , `uqs_u_id` ) ,
+  KEY `parent_user` ( `uqs_p_id` , `uqs_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_session` (
+  `us_id` int( 10 ) unsigned NOT NULL default '0',
+  `us_hash` char( 13 ) NOT NULL default '',
+  `us_ud_id` int( 10 ) unsigned NOT NULL default '0',
+  `us_timeAccessed` datetime NOT NULL default '0000-00-00 00:00:00',
+  `us_timeCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  UNIQUE KEY `us_hash` ( `us_hash` ) ,
+  KEY `us_id` ( `us_id` )
+  ) ENGINE = MEMORY DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_session_data` (
+  `us_id` int( 10 ) unsigned NOT NULL default '0',
+  `usd_name` varchar( 25 ) NOT NULL default '',
+  `usd_value` varchar( 50 ) default NULL ,
+  UNIQUE KEY `id_name` ( `us_id` , `usd_name` )
+  ) ENGINE = MEMORY DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_slideshows` (
+  `us_id` int( 11 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `us_u_id` int( 10 ) unsigned NOT NULL ,
+  `us_key` char( 32 ) COLLATE utf8_general_ci NOT NULL ,
+  `us_name` varchar( 128 ) COLLATE utf8_general_ci NOT NULL ,
+  `us_tags` varchar( 255 ) COLLATE utf8_general_ci default NULL ,
+  `us_elements` text COLLATE utf8_general_ci NOT NULL ,
+  `us_settings` text COLLATE utf8_general_ci NOT NULL ,
+  `us_order` smallint( 6 ) unsigned NOT NULL default '0',
+  `us_fotoCount` smallint( 6 ) unsigned NOT NULL default '0',
+  `us_length` smallint( 6 ) unsigned NOT NULL default '0',
+  `us_views` int( 11 ) unsigned NOT NULL default '0',
+  `us_viewsComplete` int( 11 ) unsigned NOT NULL default '0',
+  `us_privacy` int( 10 ) unsigned NOT NULL default '1',
+  `us_dateModified` datetime NOT NULL ,
+  `us_dateCreated` datetime NOT NULL ,
+  `us_status` enum( 'Active', 'Deleted' ) COLLATE utf8_general_ci NOT NULL default 'Active',
+  PRIMARY KEY ( `us_id` ) ,
+  KEY `us_key` ( `us_key` ) ,
+  KEY `us_u_id` ( `us_u_id` ) ,
+  FULLTEXT KEY `us_tags` ( `us_tags` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_slideshow_elements` (
+  `use_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `use_us_id` int( 10 ) unsigned NOT NULL ,
+  `use_group_id` int( 10 ) unsigned NOT NULL default '0',
+  `use_name` varchar( 32 ) COLLATE utf8_general_ci NOT NULL ,
+  `use_value` varchar( 255 ) COLLATE utf8_general_ci default NULL ,
+  `use_order` smallint( 5 ) unsigned NOT NULL default '0',
+  `use_status` enum( 'active', 'deleted' ) COLLATE utf8_general_ci NOT NULL default 'active',
+  PRIMARY KEY ( `use_id` ) ,
+  KEY `use_us_id` ( `use_us_id` , `use_group_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_slideshow_schedule` (
+  `uss_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `uss_us_id` int( 10 ) unsigned NOT NULL ,
+  `uss_startDate` datetime NOT NULL ,
+  `uss_endDate` datetime NOT NULL ,
+  `uss_dateCreated` datetime NOT NULL ,
+  PRIMARY KEY ( `uss_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_slideshow_settings` (
+  `uss_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `uss_us_id` int( 10 ) unsigned NOT NULL ,
+  `uss_group_id` smallint( 5 ) unsigned NOT NULL default '0',
+  `uss_name` varchar( 32 ) COLLATE utf8_general_ci NOT NULL ,
+  `uss_value` varchar( 64 ) COLLATE utf8_general_ci default NULL ,
+  `uss_order` smallint( 5 ) unsigned NOT NULL default '0',
+  `uss_status` enum( 'active', 'deleted' ) COLLATE utf8_general_ci NOT NULL default 'active',
+  PRIMARY KEY ( `uss_id` ) ,
+  KEY `uss_us_id` ( `uss_us_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_status` (
+  `us_id` int( 10 ) unsigned NOT NULL ,
+  `us_u_id` int( 10 ) unsigned NOT NULL ,
+  `us_message` varchar( 100 ) NOT NULL ,
+  `us_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+  PRIMARY KEY ( `us_id` ) ,
+  KEY `us_u_id` ( `us_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COMMENT = 'Logs each action of a user';
+  
+  CREATE TABLE `photagious_v1`.`user_sub_accounts` (
+  `usa_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `usa_u_id` int( 10 ) unsigned NOT NULL ,
+  `usa_username` varchar( 16 ) COLLATE utf8_general_ci NOT NULL ,
+  `usa_password` varchar( 16 ) COLLATE utf8_general_ci NOT NULL ,
+  `usa_email` varchar( 128 ) COLLATE utf8_general_ci default NULL ,
+  `usa_dateLastLogin` datetime NOT NULL ,
+  `usa_dateCreated` datetime NOT NULL ,
+  `usa_status` enum( 'active', 'deleted' ) COLLATE utf8_general_ci NOT NULL ,
+  PRIMARY KEY ( `usa_id` ) ,
+  KEY `usa_u_id` ( `usa_u_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_tags` (
+  `ut_u_id` int( 10 ) unsigned NOT NULL default '0',
+  `ut_tag` varchar( 32 ) NOT NULL default '',
+  `ut_count` int( 11 ) NOT NULL default '0',
+  `ut_weight` float( 3, 2 ) unsigned NOT NULL default '0.00',
+  PRIMARY KEY ( `ut_u_id` , `ut_tag` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_template_map` (
+  `u_id` int( 11 ) NOT NULL default '0',
+  `ft_id` smallint( 6 ) NOT NULL default '0',
+  UNIQUE KEY `UNIQUE` ( `u_id` , `ft_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+  CREATE TABLE `photagious_v1`.`user_tokens` (
+  `ut_token` varchar( 32 ) COLLATE utf8_general_ci NOT NULL ,
+  `ut_u_id` int( 10 ) unsigned NOT NULL ,
+  `ut_expires` int( 10 ) unsigned NOT NULL default '0',
+  PRIMARY KEY ( `ut_token` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_toolbox` (
+  `t_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+  `t_u_id` int( 10 ) unsigned NOT NULL ,
+  `t_itemId` int( 10 ) unsigned NOT NULL ,
+  `t_itemType` enum( 'foto', 'flix' ) COLLATE utf8_general_ci NOT NULL default 'foto',
+  `t_itemOrder` smallint( 5 ) unsigned NOT NULL ,
+  PRIMARY KEY ( `t_id` ) ,
+  KEY `t_u_id` ( `t_u_id` , `t_itemType` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci;
+  
+  CREATE TABLE `photagious_v1`.`user_violations` (
+  `uv_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT COMMENT 'user violations id',
+  `uv_u_id` int( 10 ) unsigned NOT NULL COMMENT 'id of user who commited the violation',
+  `uv_up_id` int( 10 ) unsigned NOT NULL COMMENT 'id of the photo in violation',
+  `uv_dateCreated` datetime NOT NULL COMMENT 'date the violation occurred',
+  PRIMARY KEY ( `uv_id` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8 COLLATE = utf8_general_ci COMMENT = 'Keeps track of the violations for a user';
+  
+  -- 
+  -- Dumping data for table `board_category`
+  -- 
+  
+  INSERT INTO `board_category` VALUES (1, 'Support', 10, '2006-01-21 23:03:10', 'Y', 'Y');
+  INSERT INTO `board_category` VALUES (2, 'FAQ', 0, '2006-01-21 23:03:37', 'Y', 'Y');
+  INSERT INTO `board_category` VALUES (3, 'API Info', 0, '2006-01-24 13:07:55', 'Y', 'Y');
+  INSERT INTO `board_category` VALUES (4, 'Share Your Thoughts', 0, '2006-01-24 13:08:10', 'Y', 'Y');
+  
+  -- 
+  -- Dumping data for table `ecom_catalog`
+  -- 
+  
+  INSERT INTO `ecom_catalog` VALUES (1, 'Personal', 'account', 'Basic plan', NULL, 5.00, NULL, NULL, NULL, NULL, 'all', 'in stock', 0, 'Y', 1, 1, 4, '0-Monthly', NULL, 1);
+  INSERT INTO `ecom_catalog` VALUES (2, 'Personal', 'account', 'Basic plan', NULL, 48.00, NULL, NULL, NULL, NULL, 'all', 'in stock', 0, 'Y', 1, 1, 4, '0-Yearly', NULL, 1);
+  INSERT INTO `ecom_catalog` VALUES (3, 'Professional', 'account', 'Pro plan', NULL, 10.00, NULL, NULL, NULL, NULL, 'all', 'in stock', 0, 'Y', 1, 1, 4, '1-Monthly', NULL, 1);
+  INSERT INTO `ecom_catalog` VALUES (4, 'Professional', 'account', 'Pro plan', NULL, 96.00, NULL, NULL, NULL, NULL, 'all', 'in stock', 0, 'Y', 1, 1, 4, '1-Yearly', NULL, 1);
+  
+  -- 
+  -- Dumping data for table `faqs`
+  -- 
+  
+  INSERT INTO `faqs` VALUES (1, 'Photos', 'How do I upload my photos?', 'We recommend using the desktop uploader.  It is the fastest way to upload multiple photos add tags and set permissions. (link)\r\nIf you''re unable to use the desktop uplaoder we have other web based options including a simple uploader and a bulk uploader. (link)', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (2, 'Photos', 'Is there a limit to the number of photos I can have?', 'No.  You can upload as many photos as you like.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (3, 'Photos', 'Are the limits on file sizes or file types for uploads?', 'Ther are no limits on the allowable size of files you upload.  However, all of your photos need to be in JPEG format.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (4, 'Photos', 'Can I access my original images?', 'Yes.  You can always access the original versions of your photos.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (5, 'Photos', 'How do I share my photos with people?', 'You can share your photos by using your personal website on Photagious.com (link)', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (6, 'Photos', 'How do I share my photos with my friends and family only?', 'You can limit access to your personal website on Photagious.com by adding a password to protect your photos.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (7, 'Photos', 'Can anybody comment on my photo?', 'You can specify whether or not others can comment on any photo you share on your personal website at Photagious.com', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (8, 'Photos', 'What does the �may offend� link do on a photo page?', 'In an effort to keep Photagious family friendly we allow the community to alert us of any content which may be innapropriate.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (9, 'Photos', 'How do I make my photo page look the way I want?', 'You can personalize your website on Photagious.com by clicking the �my website� link on the navigation bar.  From there you can change the colors, title, avatar and more.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (10, 'Photos', 'How do I set privacy levels on my photos?', 'When you upload your photos you will have the option of specifying the privacy level of the photos you are uploading.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (11, 'Photos', 'How do I make a slideshow?', 'Creating a slideshow is as simple as choosing your photos and clicking �create a new slideshow�. Once you do that, you can immediately share it or begin customizing it. ', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (12, 'Photos', 'Can I put my photos on my website or blog?', 'Yes.  We provide code which you can copy or paste into your website or blog.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (13, 'Photos', 'I don''t want anyone to download my photos.  How do I stop that?', 'You can specify whether or not others can download any photo you share on your website.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (14, 'Photos', 'How do I download a photo?', 'If the owner of the photo allows others to download it, there will be a �download original� link next to the photo.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (15, 'Photos', 'Can Photagious rotate my photos automatically?', 'Yes. We automatically rotate any photo which contains information on the orientation of the camera when the photo was taken.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (16, 'Photos', 'How do I get the URL of a photo?', 'To get the URL of a photo you need to first select the photo ou want to use.  You will see a link called "all sizes" above your photo.  Select the "all sizes" link and then find the size of the photo you want to use.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (17, 'Photos', 'Where can I see other people''s photos?', 'Other user''s public photos will show up on various different places on Photagious including the community, in their slideshows, and on their website.  You can access any user''s web site by using the URL http://www.photagious.com/users/username   Replace username with the user''s Photagious username.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (18, 'Photos', 'How do I change the privacy setting on a photo I''ve already uploaded?', 'Select the photo you want to change privacy settings on from the photo section of your Photagious website and choose "edit this photo''s settings" at the top of the page.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (19, 'Photos', 'What if I don''t want everyone to see my photos?', 'You can set or change your privacy settings so that no one else can see your photos.  You can also password protect our website so only people you want to se your photos can see them.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (20, 'Photos', 'Can anyone leave a comment for my photo?', 'You can specify whether or not others can comment on any photo you share on your personal website at Photagious.com', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (21, 'Photos', 'I''ve uploaded some of my photos and made them public.  Where do they show up?', 'They will show up on your website.  The URL of your site is http://www.photagious.com/users/username but username is your Photagious username.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (22, 'Account', 'How do I cancel my account?', 'You can cancel your account by clicking on the "your account" link and then going to the "Update Billing Information" page.  You will see a link to cancel your account.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  INSERT INTO `faqs` VALUES (23, 'Account', 'If I cancel my account within the trial period will I be billed?', 'No.  Your credit card will not be billed during your trial period.', NULL, NULL, NULL, 0, '0000-00-00', '0000-00-00', 'Y');
+  
+  -- 
+  -- Dumping data for table `idat`
+  -- 
+  
+  INSERT INTO `idat` VALUES ('fotoflix.user_session', 0);
+  INSERT INTO `idat` VALUES ('fotobox.image_id', 0);
+  INSERT INTO `idat` VALUES ('fotoflix.ecom_session', 0);
+  INSERT INTO `idat` VALUES ('group_invite', 0);
+  INSERT INTO `idat` VALUES ('fotoflix.preview', 0);
+  INSERT INTO `idat` VALUES ('fotobox.image_key', 0);
+  INSERT INTO `idat` VALUES ('fotoflix.user_id', 0);
+  
+  -- 
+  -- Dumping data for table `music`
+  -- 
+  
+  INSERT INTO `music` VALUES (1, '/holiday_1.swf', 'Holiday', 'Medium Slow Tempo', 'Auld Lang Syne', 'Traditional New Year''s Eve Song', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (2, '/holiday_2.swf', 'Holiday', 'Medium Slow Tempo', 'Day of the Wedding', 'Traditional Wedding March', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (3, '/holiday_3.swf', 'Holiday', 'Medium Slow Tempo', 'O Christmas Tree', 'Christmas Theme', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (4, '/holiday_4.swf', 'Holiday', 'Medium Tempo', 'It Came Upon a Midnight CLear', 'Chirstmas Theme in a Pop Arrangment', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (5, '/classical_1.swf', 'Classical', 'Medium Tempo', 'Mozart', 'Eine Kleine Nachtmusik Allegro', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (6, '/classical_2.swf', 'Classical', 'Medium Slow Tempo', 'Tchaikovsky', 'Dance of the Sugar Plum Fairy From the Nutcracker', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (7, '/classical_3.swf', 'Classical', 'Fast', 'Rossini', 'William Tell Overture Finale', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (8, '/classical_4.swf', 'Classical', 'Medium', 'Beethoven', 'Symphony #5 First Movement', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (10, '/country_1.swf', 'Country', 'Medium Fast Tempo', 'Dancing Boots', 'Upbeat Popular Country', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (11, '/country_2.swf', 'Country', 'Fast Tempo', 'Fiddlers', 'Lively, Energetic, Up Beat', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (12, '/children_cartoon_1.swf', 'Children/Cartoon', 'Medium Tempo', 'Playground Pals', 'Carefree, Innocent, Playful', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (13, '/children_cartoon_2.swf', 'Children/Cartoon', 'Medium Fast Tempo', 'Cartoon City', 'Comical, Zany, Cartoon Music', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (14, '/children_cartoon_3.swf', 'Children/Cartoon', 'Medium Fast Tempo', 'Toy Factory', 'Quaint, Active, Pleasant', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (15, '/children_cartoon_4.swf', 'Children/Cartoon', 'Medium Fast Tempo', 'Turkey Two Step', 'Down Home, Toe Tappin'' Good Time', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (16, '/jazz_blues_4.swf', 'Jazz/Blues', 'Medium Fast Tempo', 'Steppin'' Out', 'Happy, Bright, Dixieland Band', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (17, '/jazz_blues_1.swf', 'Jazz/Blues', 'Medium Tempo', 'Dinner and Dance', 'Dance, Carefree, 1930''s Style', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (18, '/jazz_blues_2.swf', 'Jazz/Blues', 'Medium Slow Tempo', 'Jean''s Blues', 'MLaid Back, Casual Blues, Jazz Quartet', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (19, '/jazz_blues_3.swf', 'Jazz/Blues', 'Medium Tempo', 'Aristocrats', 'Formal, Sweeping Minut, Ballroom Dance', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (20, '/country_3.swf', 'Country', 'Medium Fast Tempo', 'Ladies Night', 'Driving New Country', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (21, '/easy_listening_1.swf', 'Easy Listening', 'Medium tempo', 'Back where we Belong', 'Fresh, Happy, Friendly', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (22, '/easy_listening_2.swf', 'Easy Listening', 'Medium Tempo', 'Helping Dad', 'Bouncy, Happy, Country Beat', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (23, '/easy_listening_3.swf', 'Easy Listening', 'Medium Tempo', 'Lazy Susan', 'Casual, Swinging, Fresh', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (24, '/easy_listening_4.swf', 'Easy Listening', 'Medium Tempo', 'Revolving Door', 'Cool, lively, Flirtatious', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (25, '/pop_rock_1.swf', 'Pop/Rock', 'Medium Tempo', 'Rim Shot', 'Rhythmic, Dynamic, Hip', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (26, '/pop_rock_2.swf', 'Pop/Rock', 'Fast Tempo', 'Road Harzard', 'Heavy, Driving, Powerful', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (27, '/pop_rock_3.swf', 'Pop/Rock', 'Medium Fast Tempo', 'Moving Violation', 'Bold, Gutsy, Tough', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (28, '/world_1.swf', 'World', 'Medium Fast Tempo', 'Steel Away', 'Rythmatic, Island Dance, Carribean Style', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (29, '/world_2.swf', 'World', 'Medium Slow Tempo', 'A Street in France', 'Quaint, Picturesque, Romantic', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (30, '/world_3.swf', 'World', 'Medium Tempo', 'Matador''s Entry', 'Proud, Ceremonial, Dramatic, Mexican Style', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (31, '/drama_suspense_2.swf', 'Drama/Suspense', 'Medium Tempo', 'The High Seas', 'Bold, Confident', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (32, '/solo_instrument_1.swf', 'Solo Instrument', 'Slow Tempo', 'City Street Blues', 'Soulful City Blues Solo', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (33, '/solo_instrument_2.swf', 'Solo Instrument', 'Slow Tempo', 'Solo Piano', 'Mellow Dinner Muisc', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (34, '/solo_instrument_3.swf', 'Solo Instrument', 'Slow Tempo', 'Warm Guitar', 'Rustic Country Solo', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (35, '/romantic_1.swf', 'Romantic', 'Slow', 'Fond Farewell', 'Gentle, Sincere, Warm', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (36, '/romantic_2.swf', 'Romantic', 'Slow Tempo', 'Golden Fields', 'Quiet, Intimate, Tender', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (37, '/classical_5.swf', 'Classical', 'Medium Slow', 'J.Strauss Jr.', 'By the Beautiful Blue Danube', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (38, '/drums_1.swf', 'Drums', 'Medium Tempo', 'Jazz Rhythm 1', 'Jazz rhythm drums solo', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (39, '/drums_2.swf', 'Drums', 'Slow Tempo', 'Jazz Rhythm 2', 'Jazz rhythm drums solo', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (40, '/drums_3.swf', 'Drums', 'Medium Fast Tempo', 'Swing Drums', 'Solo Jungle Beat', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (41, '/drums_4.swf', 'Drums', 'Medium', 'Marching Snare', 'Snare drum from a marching band', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (42, '/ambience_1.swf', 'Ambience', 'Ambient Sound', 'Country Day', 'Ambient sounds from a country day.', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (43, '/ambience_2.swf', 'Ambience', 'Ambient Sounds', 'Ocean', 'Ambient sounds from the ocean.', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (44, '/ambience_3.swf', 'Ambience', 'Ambient Sounds', 'Marching Band', 'Sounds from a parade marching band', '0000-00-00 00:00:00', 'Y');
+  INSERT INTO `music` VALUES (45, '/noMusic.swf', '', NULL, 'No Music', NULL, '2004-04-15 11:19:09', 'Y');
+
+-- 08/14/06 - KH -
+  ALTER TABLE `users` CHANGE `u_spaceTotal` `u_spaceTotal` INT( 10 ) UNSIGNED NULL DEFAULT NULL;
+  ALTER TABLE `users` CHANGE `u_spaceUsed` `u_spaceUsed` INT( 10 ) UNSIGNED NULL DEFAULT NULL;
+  
+-- 08/14/06 - JM --
+  ALTER TABLE `user_pages` CHANGE `p_colors` `p_colors` VARCHAR( 32 ) CHARACTER SET utf8 COLLATE utf8_general_ci NULL ;
+  
+-- 08/15/06 - KH -
+  CREATE TABLE `beta_email` (
+    `be_email` VARCHAR( 255 ) NOT NULL ,
+    `be_status` ENUM( 'requested', 'invited' ) NOT NULL ,
+    PRIMARY KEY ( `be_email` )
+  ) TYPE = MYISAM ;
+  
+-- 08/16/06 - JM --
+  CREATE TABLE `beta_invites` (
+    `bi_key` VARCHAR( 32 ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ,
+    PRIMARY KEY ( `bi_key` )
+    ) TYPE = MYISAM CHARACTER SET utf8 COLLATE utf8_general_ci;
+    
+  INSERT INTO beta_invites( bi_key )
+  VALUES (  MD5( 'ptg_1' )),(MD5('ptg_2')),(MD5('ptg_3')),(MD5('ptg_4')),(MD5('ptg_5')),(MD5('ptg_6')),(MD5('ptg_7')),(MD5('ptg_8')),(MD5('ptg_9')),(MD5('ptg_10')),(MD5('ptg_11')),(MD5('ptg_12')),(MD5('ptg_13')),(MD5('ptg_14')),(MD5('ptg_15')),(MD5('ptg_16')),(MD5('ptg_17')),(MD5('ptg_18')),(MD5('ptg_19')),(MD5('ptg_20'));
+  
+-- 08/16/06 - KH --
+  UPDATE `faqs` SET `f_answer` = 'You can cancel your account by clicking on the "my account" link and then going to the "Update Billing Information" page. You will see a link to cancel your account.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =22 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'We recommend using the desktop uploader. It is the fastest way to upload multiple photos, add tags, and set permissions (<a href="/?action=fotobox.upload_installer">install uploader</a>). If you''re unable to use the desktop uploader we have other web-based options including a simple uploader and a bulk uploader (<a href="/?action=fotobox.upload_form_compat">web-based uploader</a>).',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =1 LIMIT 1 ;
+      
+  UPDATE `faqs` SET `f_question` = 'Are there limits on file sizes or file types for uploads?',
+    `f_answer` = 'There are no limits on the allowable size of files you upload. However, all of your photos need to be in JPEG format.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =3 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_question` = 'Can I access my original photos?',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =4 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'You can share your photos by using your personal page. To get to your personal page click the link in the navigation bar.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =5 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'You can limit access to your personal page by adding a password to protect your photos.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =6 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_question` = 'Can anybody comment on my photos?',
+    `f_answer` = 'You can specify whether or not others can comment on any photo you share on your personal page.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =7 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_question` = 'What does the �may offend� link do on a photo?',
+    `f_answer` = 'In an effort to keep Photagious family-friendly we allow the community to alert us of any content which may be inappropriate.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =8 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_question` = 'How do I make my personal page look the way I want?',
+    `f_answer` = 'You can personalize your personal page by clicking the �personal page� link in the navigation bar. From there you can change the colors, title, avatar, and more.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =9 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'When you upload your photos you will have the option of specifying the privacy level of the photos.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =10 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'Creating a slideshow is as simple as choosing your photos and clicking �create a new slideshow�. Once you do that you can immediately share it or begin customizing it. ',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =11 LIMIT 1 ;
+
+  UPDATE `faqs` SET `f_answer` = 'You can specify whether or not others can download any photo you share on your personal page.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =13 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'To get the URL of a photo you need to first select the photo you want to use. You will see a link called "all sizes" above your photo. Select the "all sizes" link and then find the size of the photo you want to use.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =16 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_question` = 'Where can I see other user''s photos?',
+    `f_answer` = 'Other user''s public photos will show up on various different places on Photagious including the community, in their slideshows, and on their personal page. You can access any user''s personal page by using the URL http://www.photagious.com/users/username and replacing username with the user''s Photagious username.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =17 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'Select the photo you want to change the privacy settings on from the photo section of your personal page and choose "edit this photo''s settings" at the top of the page.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =18 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'You can set or change your privacy settings so that no one else can see your photos. You can also password protect your personal page so only people you want to see your photos can see them.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =19 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_question` = 'Can anyone leave a comment on my photos?',
+    `f_answer` = 'You can specify whether or not others can comment on any photo you share on your personal page.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =20 LIMIT 1 ;
+    
+  UPDATE `faqs` SET `f_answer` = 'They will show up on your personal page. The URL of your personal page is http://www.photagious.com/users/username and replacing username with your Photagious username.',
+    `f_notes` = NULL ,
+    `f_keywords` = NULL ,
+    `f_link` = NULL WHERE `f_id` =21 LIMIT 1 ;
+
+-- 08/18/2006 - JM --
+  ALTER TABLE `user_fotos_dynamic` ADD `ufd_ipAddress` VARCHAR( 15 ) NULL AFTER `ufd_height` ;
+
+-- 08/21/2006 - JM --
+  ALTER TABLE `beta_invites` ADD `bi_email` VARCHAR( 64 ) ;
+  
+-- 08/28/2006 - KH --
+  ALTER TABLE `group_fotoflix_map` ADD `u_id` INT( 10 ) UNSIGNED NOT NULL AFTER `uf_id` ,
+    ADD `u_orig_id` INT( 10 ) UNSIGNED NOT NULL AFTER `u_id` ,
+    ADD `uf_orig_id` INT( 10 ) UNSIGNED NOT NULL AFTER `u_orig_id` ;
+  ALTER TABLE `group_foto_map` ADD `up_orig_id` INT( 10 ) UNSIGNED NOT NULL AFTER `u_orig_id` ;
+  
+-- 08/29/2006 - KH --
+  ALTER TABLE `users` ADD `u_businessName` VARCHAR( 200 ) NULL AFTER `u_accountType` ;
+  
+  CREATE TABLE `pool_users` (
+    `pu_id` int(10) unsigned NOT NULL auto_increment COMMENT 'pool id',
+    `pu_name` varchar(255) collate latin1_general_ci NOT NULL COMMENT 'name for the pool',
+    `pu_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the pool was created',
+    PRIMARY KEY  (`pu_id`)
+  ) COMMENT='Tracks users in a pool';
+  
+  CREATE TABLE `pool_users_map` (
+    `pum_pu_id` int(10) unsigned NOT NULL COMMENT 'pool id',
+    `pum_u_id` int(10) unsigned NOT NULL COMMENT 'user id',
+    PRIMARY KEY  (`pum_pu_id`,`pum_u_id`)
+  ) COMMENT='Maps users to pools';
+
+  
+-- 08/30/2006 - JM --
+  ALTER TABLE `ecom_recur` ADD `er_ccBusiness` VARCHAR( 128 ) NULL AFTER `er_ccNameLast` ;
+  ALTER TABLE `ecom_recur` CHANGE `er_ccBusiness` `er_ccCompany` VARCHAR( 128 ) NULL DEFAULT NULL;
+  ALTER TABLE `ecom_orders` ADD `eo_cc_company` VARCHAR( 128 ) NULL AFTER `eo_cc_lname` ;
+
+-- 09/05/2006 - JM --
+  ALTER TABLE `user_tokens` CHANGE `ut_token` `ut_token` VARCHAR( 64 ) NOT NULL;
+  
+-- 09/06/2006 - KH --
+  DROP TABLE `report_archive`; 
+  
+  CREATE TABLE `report_archive` (
+    `ra_id` int(10) unsigned NOT NULL auto_increment COMMENT 'ID of the archived report',
+    `ra_u_id` int(10) unsigned NOT NULL COMMENT 'ID of the user the report was generated for',
+    `ra_r_id` int(10) unsigned NOT NULL COMMENT 'ID of the generated report',
+    `ra_title` varchar(255) collate latin1_general_ci NOT NULL COMMENT 'title of the archived report',
+    `ra_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00' COMMENT 'date the report was generated and archived',
+    `ra_filename` varchar(41) collate latin1_general_ci NOT NULL COMMENT 'Contains the hashed filename',
+    PRIMARY KEY  (`ra_id`)
+  ) ENGINE=MyISAM COMMENT='Archives all generated reports';
+
+  INSERT INTO `report_type` VALUES (1, 'Slideshow Report');
+  INSERT INTO `report_type` VALUES (2, 'Photos Report');
+  
+-- 09/07/2006 - KH --
+  CREATE TABLE `group_prefs` (
+    `gp_g_id` int( 10 ) unsigned NOT NULL default '0',
+    `gp_name` varchar( 16 ) NOT NULL default '',
+    `gp_value` varchar( 128 ) NOT NULL ,
+    PRIMARY KEY ( `gp_g_id` , `gp_name` )
+  ) ENGINE = MYISAM DEFAULT CHARSET = utf8;
+  
+-- 09/12/2006 - JM --
+  CREATE TABLE `user_videos` (
+    `v_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `v_u_id` INT UNSIGNED NOT NULL ,
+    `v_key` VARCHAR( 32 ) NOT NULL ,
+    `v_name` VARCHAR( 64 ) NOT NULL ,
+    `v_description` VARCHAR( 255 ) NULL ,
+    `v_tags` VARCHAR( 255 ) NULL ,
+    `v_path` VARCHAR( 64 ) NOT NULL ,
+    `v_length` INT UNSIGNED NOT NULL DEFAULT '0',
+    `v_views` INT UNSIGNED NOT NULL DEFAULT '0',
+    `v_dateCreated` DATETIME NOT NULL ,
+    INDEX ( `v_u_id` ) ,
+    UNIQUE (
+    `v_key`
+    ),
+    FULLTEXT (
+    `v_tags`
+    )
+  ) TYPE = MYISAM ;
+  
+-- 09/14/2006 - JM --
+  ALTER TABLE `user_videos` ADD `v_screen75x75` VARCHAR( 64 ) NOT NULL AFTER `v_path` ,
+    ADD `v_screen150x100` VARCHAR( 64 ) NOT NULL AFTER `v_screen75x75` ,
+    ADD `v_screen400x300` VARCHAR( 64 ) NOT NULL AFTER `v_screen150x100` ;
+
+-- 09/15/2006 - KH --
+  ALTER TABLE `group_foto_map` ADD `gfm_status` ENUM( 'Active', 'Pending', 'Rejected' ) NOT NULL DEFAULT 'Pending' AFTER `up_orig_id` ;
+  ALTER TABLE `group_fotoflix_map` ADD `gfm_status` ENUM( 'Active', 'Pending', 'Rejected' ) NOT NULL DEFAULT 'Pending' AFTER `uf_orig_id` ;
+  
+  CREATE TABLE `group_feed` (
+    `gf_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `gf_u_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `gf_type` ENUM( 'Photo_add', 'Photo_remove', 'Slideshow_add', 'Slideshow_remove', 'Group_join', 'Forum_post', 'Forum_reply', 'Group_message', 'Group_settings' ) NOT NULL ,
+    `gf_type_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `gf_dateCreated` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00'
+    ) TYPE = MYISAM ;
+    
+  ALTER TABLE `group_feed` ADD `gf_g_id` INT( 10 ) UNSIGNED NOT NULL AFTER `gf_id` ;
+  ALTER TABLE `user_fotos` CHANGE `up_status` `up_status` ENUM( 'active', 'pending', 'deleted', 'violation' ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT 'active';
+  
+-- 09/18/2006 - KH --
+  ALTER TABLE `user_slideshows` CHANGE `us_status` `us_status` ENUM( 'Active', 'Pending', 'Deleted' ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT 'Active';
+  
+-- 09/20/2006 - KH --
+  CREATE TABLE `fotoflix_slideshow_map` (
+    `fotoflix_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `slideshow_id` INT( 10 ) UNSIGNED NOT NULL ,
+    PRIMARY KEY ( `fotoflix_id` , `slideshow_id` )
+    ) TYPE = MYISAM ;
+    
+-- 09/27/2006 - JM --
+  ALTER TABLE `fotoflix_slideshow_map` CHANGE `slideshow_id` `slideshow_key` VARCHAR( 32 ) NOT NULL DEFAULT '0;
+
+-- 09/28/2006 - KH --  
+CREATE TABLE `foto_slideshow_map` (
+  `up_id` INT( 10 ) UNSIGNED NOT NULL ,
+  `us_id` INT( 10 ) UNSIGNED NOT NULL ,
+  PRIMARY KEY ( `up_id` , `us_id` )
+  ) TYPE = MYISAM ;
+  
+-- 10/05/2006 - JM --
+  ALTER TABLE `user_tags` ADD `ut_random` SMALLINT NOT NULL ;
+  ALTER TABLE `user_videos` ADD `v_privacy` SMALLINT UNSIGNED NOT NULL DEFAULT '0' AFTER `v_views` ;
+
+-- 10/27/2006 - KH -
+  ALTER TABLE `user_tags` ADD `ut_status` ENUM( 'public', 'private' ) NOT NULL DEFAULT 'private' AFTER `ut_random` ;
+
+-- 11/1/2006 - KH --
+  ALTER TABLE `users` CHANGE `u_status` `u_status` ENUM( 'Active', 'Pending', 'Pending_FotoFlix', 'Disabled', 'Expired' ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT 'Pending';
+
+-- 11/16/2006 - JM --
+  CREATE TABLE `promotions` (
+      `p_id` int(10) unsigned NOT NULL auto_increment,
+      `p_u_id` int(10) unsigned NOT NULL,
+      `p_name` varchar(32) NOT NULL,
+      PRIMARY KEY  (`p_id`)
+    ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+    
+-- 12/4/2006 - JM --
+  ALTER TABLE `user_slideshow_schedule` ADD `uss_u_id` INT UNSIGNED NOT NULL AFTER `uss_us_id` ;
+  
+-- 12/15/2006 - JM --
+  ALTER TABLE `user_slideshows` CHANGE `us_elements` `us_elements` LONGTEXT NOT NULL ;
+  
+-- 12/5/2006 - KH --
+  ALTER TABLE `comments` ADD `c_status` ENUM( 'Active', 'Deleted' ) NOT NULL DEFAULT 'Active';
+
+
+
+-- 12/21/2006 - JM --
+  CREATE TABLE `subscriptions` (
+    `s_u_id` INT( 10 ) UNSIGNED NOT NULL ,
+    `s_email` VARCHAR( 255 ) NOT NULL ,
+    `s_status` ENUM( 'active', 'deleted', 'blacklist' ) NOT NULL ,
+    PRIMARY KEY ( `s_u_id` , `s_email` )
+    ) TYPE = MYISAM ;
+  
+  CREATE TABLE `subscription_data` (
+    `sd_id` int( 10 ) unsigned NOT NULL AUTO_INCREMENT ,
+    `sd_u_id` int( 10 ) unsigned NOT NULL ,
+    `sd_element_type` enum( 'Photo_Public', 'Slideshow_Public' ) COLLATE latin1_general_ci NOT NULL ,
+    `sd_element_id` int( 10 ) unsigned NOT NULL ,
+    `sd_dateCreated` datetime NOT NULL default '0000-00-00 00:00:00',
+    `sd_date_id` mediumint( 8 ) unsigned NOT NULL ,
+    PRIMARY KEY ( `sd_id` )
+    ) ENGINE = MYISAM ;
+    
+  ALTER TABLE `subscription_data` CHANGE `sd_element_type` `sd_elementType` ENUM( 'Photo_Public', 'Slideshow_Public' ) NOT NULL ,
+    CHANGE `sd_date_id` `sd_dateId` MEDIUMINT( 8 ) UNSIGNED NOT NULL ;
+  ALTER TABLE `group_feed` CHANGE `gf_date_id` `gf_dateId` MEDIUMINT( 8 ) UNSIGNED NOT NULL ;
+  ALTER TABLE `subscriptions` CHANGE `s_status` `s_status` ENUM( 'active', 'deleted', 'blacklist' ) NOT NULL DEFAULT 'active';
+  
+-- 12/21/2006 - KH --
+  ALTER TABLE `subscription_data` ADD `sd_status` ENUM( 'active', 'deleted' ) NOT NULL ;
+  ALTER TABLE `subscription_data` ADD `sd_thumbnail` VARCHAR( 64 ) NULL AFTER `sd_element_id` ;
+  
+-- 12/21/2006 - JM --
+  ALTER TABLE `subscription_data` CHANGE `sd_status` `sd_status` ENUM( 'active', 'deleted' ) NOT NULL DEFAULT 'active';
+  ALTER TABLE `subscription_data` ADD INDEX ( `sd_u_id` , `sd_elementType` , `sd_element_id` ) ;
+  
+-- 01/11/2007 - JM --
+  ALTER TABLE `user_videos` CHANGE `v_path` `v_path` VARCHAR( 128 ) NOT NULL ,
+    CHANGE `v_screen75x75` `v_screen75x75` VARCHAR( 128 ) NOT NULL ,
+    CHANGE `v_screen115x50` `v_screen115x50` VARCHAR( 128 ) NOT NULL ,
+    CHANGE `v_screen150x100` `v_screen150x100` VARCHAR( 128 ) NOT NULL ,
+    CHANGE `v_screen400x300` `v_screen400x300` VARCHAR( 128 ) NOT NULL;
+    
+  ALTER TABLE `user_fotos` CHANGE `up_original_path` `up_original_path` VARCHAR( 128 ) NOT NULL ,
+    CHANGE `up_web_path` `up_web_path` VARCHAR( 128 ) NOT NULL ,
+    CHANGE `up_flix_path` `up_flix_path` VARCHAR( 128 ) NOT NULL ,
+    CHANGE `up_thumb_path` `up_thumb_path` VARCHAR( 128 ) NOT NULL ;
+
+-- 01/19/2007 - JM --
+  ALTER TABLE `subscriptions` ADD `s_userId` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `s_u_id` ,
+    ADD `s_username` VARCHAR( 16 ) NULL AFTER `s_userId` ;
+  CREATE TABLE `user_friends` (
+    `uf_u_id` INT UNSIGNED NOT NULL ,
+    `uf_friendId` INT UNSIGNED NOT NULL ,
+    PRIMARY KEY ( `uf_u_id` , `uf_friendId` )
+    ) TYPE = MYISAM ;
+    
+-- 01/22/2007 - JM --
+  ALTER TABLE `subscription_data` CHANGE `sd_dateId` `sd_dateId` CHAR( 8 ) NOT NULL; 
+  ALTER TABLE `subscriptions` RENAME `user_subscriptions` ;
+  ALTER TABLE `subscription_data` RENAME `user_subscription_data` ;
+  ALTER TABLE `user_subscriptions` CHANGE `s_method` `s_method` ENUM( 'push', 'pull' ) NOT NULL DEFAULT 'pull';
+  ALTER TABLE `user_subscriptions` CHANGE `s_method` `s_method` ENUM( 'push', 'pull' ) NOT NULL DEFAULT 'push';
+  ALTER TABLE `user_subscriptions` ADD `s_key` CHAR( 32 ) NOT NULL FIRST ;
+  ALTER TABLE `user_subscriptions` DROP PRIMARY KEY ,
+  ADD UNIQUE (
+    `s_u_id` ,
+    `s_email`
+    );
+  ALTER TABLE `user_subscriptions` ADD PRIMARY KEY ( `s_key` );
+  
+-- KH - 1/23/2007 --
+  CREATE TABLE `users_temp` (
+    `ut_username` VARCHAR( 16 ) NOT NULL ,
+    `ut_password` VARCHAR( 32 ) NOT NULL ,
+    `ut_email` VARCHAR( 75 ) NOT NULL ,
+    `ut_birthDay` TINYINT( 2 ) UNSIGNED ZEROFILL NOT NULL ,
+    `ut_birthMonth` TINYINT( 2 ) UNSIGNED ZEROFILL NOT NULL ,
+    `ut_birthYear` SMALLINT( 4 ) UNSIGNED ZEROFILL NOT NULL ,
+    `ut_secret` VARCHAR( 50 ) NOT NULL ,
+    PRIMARY KEY ( `ut_username` )
+    ) TYPE = MYISAM ;
+  ALTER TABLE `users_temp` CHANGE `ut_username` `u_username` VARCHAR( 16 ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL ,
+    CHANGE `ut_password` `u_password` VARCHAR( 32 ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL ,
+    CHANGE `ut_email` `u_email` VARCHAR( 75 ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL ,
+    CHANGE `ut_birthDay` `u_birthDay` TINYINT( 2 ) UNSIGNED ZEROFILL NOT NULL ,
+    CHANGE `ut_birthMonth` `u_birthMonth` TINYINT( 2 ) UNSIGNED ZEROFILL NOT NULL ,
+    CHANGE `ut_birthYear` `u_birthYear` SMALLINT( 4 ) UNSIGNED ZEROFILL NOT NULL ,
+    CHANGE `ut_secret` `u_secret` VARCHAR( 50 ) CHARACTER SET latin1 COLLATE latin1_general_ci NOT NULL;
+  ALTER TABLE `users_temp` ADD `u_dateCreated` DATETIME NOT NULL ;
+  ALTER TABLE `users_temp` DROP PRIMARY KEY ;
+  ALTER TABLE `users_temp` ADD `u_id` INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST ;
+  ALTER TABLE `users_temp` ADD `u_key` VARCHAR( 32 ) NOT NULL AFTER `u_id` ;
+  
+-- JM - 01/24/2007 --
+  ALTER TABLE `users_temp` RENAME `users_incomplete` ;
+  ALTER TABLE `users_incomplete` RENAME `user_incompletes` ;
+  CREATE TABLE `user_incomplete_reasons` (
+    `uir_u_id` INT UNSIGNED NOT NULL ,
+    `uir_reason` VARCHAR( 255 ) NOT NULL ,
+    `uir_customReason` TEXT NULL ,
+    `uir_dateCreated` DATETIME NOT NULL ,
+    PRIMARY KEY ( `uir_u_id` )
+    ) TYPE = MYISAM ;
+  ALTER TABLE `user_incomplete_reasons` RENAME `user_incomplete_responses` ;
+  ALTER TABLE `user_incomplete_responses` CHANGE `uir_reason` `uir_response` VARCHAR( 255 ) NOT NULL ,
+    CHANGE `uir_customReason` `uir_customResponse` TEXT NULL;
+    
+-- 02/02/2007 - JM --
+  ALTER TABLE `report` ADD INDEX ( `r_u_id` , `r_rt_id` );
+  ALTER TABLE `report` DROP INDEX `r_u_id` ,
+    ADD UNIQUE `r_u_id` ( `r_u_id` , `r_rt_id` );
+    
+-- 02/05/2007 - JM --
+  ALTER TABLE `report_data` ADD INDEX ( `rd_element_key` );
+  ALTER TABLE `user_session` TYPE = MYISAM ;
+  ALTER TABLE `user_session_data` TYPE = MYISAM ;
+  
+-- 02/21/2007 - JM (Kevin originally created these but somehow we lost the original create script) --
+  CREATE TABLE user_ci_credentials (
+    ucc_u_id int(10) unsigned NOT NULL,
+    ucc_username varchar(32) NOT NULL,
+    ucc_password varchar(32) NOT NULL,
+    PRIMARY KEY  (ucc_u_id,ucc_username)
+    ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+    
+  CREATE TABLE user_ci_photos (
+    ucp_id int(10) unsigned NOT NULL auto_increment,
+    ucp_u_id int(10) unsigned NOT NULL,
+    ucp_up_id int(10) unsigned NOT NULL,
+    ucp_title varchar(128) NOT NULL,
+    ucp_description varchar(255) NOT NULL,
+    ucp_category varchar(128) NOT NULL,
+    ucp_subCategory varchar(128) default NULL,
+    ucp_release varchar(32) default NULL,
+    ucp_timestamp bigint(20) default NULL,
+    ucp_timezone varchar(128) default NULL,
+    ucp_country varchar(128) default NULL,
+    ucp_state varchar(128) default NULL,
+    ucp_city varchar(128) default NULL,
+    ucp_keywords varchar(255) NOT NULL,
+    ucp_dateCreated datetime NOT NULL,
+    ucp_status enum('deleted','error','pending','processed') NOT NULL default 'pending',
+    PRIMARY KEY  (ucp_id),
+    UNIQUE KEY uci_u_id (ucp_u_id,ucp_up_id)
+    ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- 02/22/2007 - JM --
+  ALTER TABLE `faqs` CHANGE `f_category` `f_category` ENUM( 'Account', 'General', 'Photos', 'Slideshows', 'Videos' ) NOT NULL DEFAULT 'Account';
+
+-- KH - 02/27/2007 --
+  ALTER TABLE `users` ADD `u_interest` ENUM( 'slideshows', 'prints', 'selling', 'sharing', 'organizing', 'archiving', 'undecided' ) NOT NULL DEFAULT 'undecided' AFTER `u_businessName` ;
+
+-- 02/28/2007 - JM --
+  ALTER TABLE `users` ADD `u_isTrial` BOOL NOT NULL DEFAULT '1' AFTER `u_spaceUsed` ;
+  ALTER TABLE `users` CHANGE `u_status` `u_status` ENUM( 'Active', 'Cancelled', 'Pending', 'Disabled', 'Expired', 'FotoFlix_Pending' ) NOT NULL DEFAULT 'Pending';
+
+-- 03/12/2007 - JM --
+  ALTER TABLE `ecom_recur_results` CHANGE `err_result` `err_result` ENUM( 'Success', 'Expired', 'Failure' ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT 'Success';
+  
+-- 04/13/2007 - JM --
+  CREATE TABLE `tips` (
+    `t_id` SMALLINT UNSIGNED NOT NULL ,
+    `t_title` VARCHAR( 128 ) NOT NULL ,
+    `t_body` TEXT NOT NULL ,
+    `t_status` ENUM( 'active', 'deleted' ) NOT NULL DEFAULT 'active',
+    PRIMARY KEY ( `t_id` )
+  ) ENGINE = MYISAM ;
+  ALTER TABLE `tips` CHANGE `t_id` `t_id` SMALLINT( 5 ) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+-- 05/04/2007 - JM --
+  ALTER TABLE `tips` ADD `t_group` VARCHAR( 100 ) NOT NULL AFTER `t_body` ;
+  ALTER TABLE `tips` ADD INDEX ( `t_group` ) ;
+  ALTER TABLE `tips` CHANGE `t_group` `t_keyword` VARCHAR( 100 ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+  ALTER TABLE `tips` CHANGE `t_keyword` `t_key` VARCHAR( 100 ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+  
+-- 06/18/2007 - JM --
+  CREATE TABLE `user_blog_entries` (
+    `ube_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `ube_u_id` INT UNSIGNED NOT NULL ,
+    `ube_permalink` VARCHAR( 255 ) NOT NULL ,
+    `ube_subject` VARCHAR( 255 ) NOT NULL ,
+    `ube_body` TEXT NOT NULL ,
+    `ube_comments` SMALLINT UNSIGNED NOT NULL ,
+    `ube_datePosted` DATETIME NOT NULL ,
+    `ube_dateCreated` DATETIME NOT NULL ,
+    `ube_status` ENUM( 'Active', 'Deleted' ) NOT NULL DEFAULT 'Active',
+    INDEX ( `ube_u_id` )
+    ) TYPE = MYISAM ;
+    
+  ALTER TABLE `user_blog_entries` ADD `ube_dateModified` DATETIME NOT NULL AFTER `ube_datePosted` ;
+  ALTER TABLE `user_blog_entries` CHANGE `ube_permalink` `ube_permaLink` VARCHAR( 255 ) NOT NULL ;
+  ALTER TABLE `comments` CHANGE `c_type` `c_type` ENUM( 'blog', 'foto', 'flix' ) NOT NULL DEFAULT 'foto';
+  
+-- 06/22/2007 - JM --
+  ALTER TABLE `user_blog_entries` CHANGE `ube_body` `ube_body` TEXT NULL;
+  
+-- 07/05/2007 - JM --
+  ALTER TABLE `user_slideshows` ADD `us_type` ENUM( 'site', 'slideshow' ) NOT NULL DEFAULT 'slideshow' AFTER `us_settings` ;
+  
+-- 07/11/2007 - JM --
+  ALTER TABLE `user_friends` ADD `uf_status` ENUM( 'Requested', 'Confirmed', 'Declined' ) NOT NULL DEFAULT 'Requested';
+  ALTER TABLE `user_friends` ADD INDEX ( `uf_u_id` , `uf_status` );
+  CREATE TABLE `user_activities` (
+    `ua_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `ua_u_id` INT UNSIGNED NOT NULL ,
+    `ua_type` ENUM( 'newPhoto', 'newSlideshow', 'newVideo', 'newComment' ) NOT NULL ,
+    `ua_dateCreated` DATETIME NOT NULL ,
+    INDEX ( `ua_u_id` )
+    ) TYPE = MYISAM ;
+  CREATE TABLE `user_inbox` (
+    `ui_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    `ui_u_id` INT UNSIGNED NOT NULL ,
+    `ui_subject` VARCHAR( 100 ) NOT NULL ,
+    `ui_message` TINYINT NOT NULL ,
+    `ui_dateCreated` DATETIME NOT NULL ,
+    `ui_dateModified` DATETIME NOT NULL ,
+    `ui_status` ENUM( 'Unread', 'Read', 'Deleted' ) NOT NULL ,
+    INDEX ( `ui_u_id` )
+    ) TYPE = MYISAM ;
+  ALTER TABLE `user_inbox` CHANGE `ui_message` `ui_message` TEXT NULL;
+  ALTER TABLE `user_inbox` ADD `ui_senderId` INT UNSIGNED NOT NULL AFTER `ui_u_id` ;
+  ALTER TABLE `user_inbox` CHANGE `ui_status` `ui_status` ENUM( 'Unread', 'Read', 'Deleted' ) NOT NULL DEFAULT 'Unread';
+  ALTER TABLE `user_activities` ADD `ua_element_id` INT UNSIGNED NOT NULL AFTER `ua_u_id` ;
+  ALTER TABLE `user_activities` DROP INDEX `ua_u_id` , ADD INDEX `ua_u_id` ( `ua_u_id` , `ua_type` );
+  ALTER TABLE `user_activities` DROP INDEX `ua_u_id` , ADD INDEX `ua_u_id` ( `ua_u_id` , `ua_type` , `ua_element_id` ) ;
+  ALTER TABLE `user_activities` DROP INDEX `ua_u_id` , ADD INDEX `ua_u_id` ( `ua_u_id` , `ua_type` , `ua_element_id` , `ua_dateCreated` ) ;
+  ALTER TABLE `user_activities` CHANGE `ua_type` `ua_type` ENUM( 'newPhoto', 'newSlideshow', 'newVideo', 'newComment', 'newMessage' ) NOT NULL ;
+  
+-- 07/12/2007 - JM --
+  ALTER TABLE `user_inbox` ADD `ui_replyTo` INT UNSIGNED NOT NULL AFTER `ui_id` ;
+  ALTER TABLE `user_inbox` CHANGE `ui_replyTo` `ui_replyTo` INT( 10 ) UNSIGNED NOT NULL DEFAULT '0';
+
+-- 2007/17/17 - JM --
+  ALTER TABLE `user_activities` ADD `ua_extra_1` VARCHAR( 100 ) NULL AFTER `ua_type` ,
+    ADD `ua_extra_2` VARCHAR( 100 ) NULL AFTER `ua_extra_1` ,
+    ADD `ua_extra_3` VARCHAR( 100 ) NULL AFTER `ua_extra_2` ;
+
+-- 2007/18/17 - JM --
+  ALTER TABLE `user_activities` ADD `ua_extra_4` VARCHAR( 100 ) NULL AFTER `ua_extra_3` ;
+  
+-- 2007/08/06 - JM --
+  ALTER TABLE `users` ADD `u_parentId` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `u_id` ;
+  ALTER TABLE `users` ADD INDEX ( `u_parentId` ) ;
+
+-- 2007/08/14 - JM --
+  ALTER TABLE `user_activities` ADD UNIQUE (`ua_u_id` ,`ua_element_id` ,`ua_type`);
+  ALTER TABLE `user_activities` CHANGE `ua_type` `ua_type` ENUM( 'newPhoto', 'newSlideshow', 'newVideo', 'newComment', 'newMessage', 'newBlogPost', 'newFriend' );
+  ALTER TABLE `user_friends` DROP INDEX `uf_u_id`;
+
+-- 10/1/2007 - JM --
+  CREATE TABLE `email_addresses` (
+    `email` VARCHAR( 255 ) NOT NULL ,
+    PRIMARY KEY ( `email` )
+    ) ENGINE = MYISAM ;

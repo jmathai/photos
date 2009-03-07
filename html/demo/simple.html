@@ -1,0 +1,41 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+
+<head>
+  <script type="text/javascript" src="http://jaisen.photagious.com/js/pmb.js"></script>
+  <script type="text/javascript" src="http://jaisen.photagious.com/api/json?action=authenticate.login&username=jmathai&password=jmathai&callback=var pmb = new PMB"></script>
+  
+  <script type="text/javascript">
+    function loadPhotos(term)
+    {
+      pmb.photo.search({'TAGS':term,'LIMIT':10,'callback':'loadPhotosRsp'});
+    }
+    
+    function loadPhotosRsp(data)
+    {
+      var _html = '';
+      alert(data.length);
+      for(i=0; i<data.length; i++)
+      {
+        photo = data[i];
+        _html += '<a href="javascript:void(document.getElementById(\'photoLarge\').src = \'http://jaisen.photagious.com/fotos'+photo.P_WEB_PATH+'\');"><img src="http://jaisen.photagious.com/fotos' + photo.P_THUMB_PATH + '" width="75" height="75" vspace="5" hspace="5" border="0" /></a>';
+      }
+      document.getElementById('photos').innerHTML = _html;
+      document.getElementById('button').value = 'search';
+    }
+  </script>
+</head>
+
+<body>
+
+<div id="photoToolbar">
+  <form onsubmit="loadPhotos(document.getElementById('search').value); return false;">
+    <input type="text" style="width:100px;" id="search" />&nbsp;<input type="submit" id="button" value="search" onclick="this.value='Please wait...';"/>
+  </form>
+</div>
+
+<div id="photos" style="width:500px;"></div>
+<img id="photoLarge" src="/images/spacer.gif" />
+</body>
+
+</html>

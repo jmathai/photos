@@ -1,0 +1,285 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  include_once PATH_HOMEROOT . '/init.php';
+  
+  include_once PATH_CLASS . '/CUser.php';
+  include_once PATH_CLASS . '/CVideo.php';
+  include_once PATH_CLASS . '/CFotobox.php';
+  include_once PATH_CLASS . '/CFlix.php';
+  include_once PATH_CLASS . '/CComment.php';
+  include_once PATH_CLASS . '/CTag.php';
+  
+  $key = substr($_SERVER['QUERY_STRING'], 0, 32);
+  
+  $us  =& CUser::getInstance();
+  $vd  =& CVideo::getInstance();
+  $fb =& CFotobox::getInstance();
+  $cm  =& CComment::getInstance();
+  $tg  =& CTag::getInstance();
+  
+  if(strlen($key) == 32)
+  {
+    $fl =& CFlix::getInstance();
+    
+    $flixData = $fl->flashOutput($key);
+    $userData = $us->find($flixData['US_U_ID']);
+    
+    $extra = '';
+    if(strlen($_SERVER['QUERY_STRING']) > 32)
+    {
+      $tmpVars = (array)explode('/', $_SERVER['QUERY_STRING']);
+      $cntVars = count($tmpVars);
+      $vars = array();
+      for($i=1; $i<$cntVars; $i++)
+      {
+        $tmpParts = (array)explode('-', $tmpVars[$i]);
+        $vars[$tmpParts[0]] = $tmpParts[1];
+        $extra .= '&' . $tmpParts[0] . '=' . $tmpParts[1];
+      }
+    }
+    
+    $settings = jsonDecode($flixData['US_SETTINGS']);
+    $width    = $settings[0]['width_int'];
+    $height   = $settings[0]['height_int'];
+    $swfSrc = '/swf/container/dynamic/container_' . $width . '_' . $height . '.swf?slideshowKey_str=' . $flixData['US_KEY'] . '&version=' . FF_VERSION_TEMPLATE . '&timestamp=' . NOW . $extra; // extra is key value pairs starting with &
+  }
+  else
+  {
+    header('Location: /?action=confirm.main&type=fastflix_dne');
+    die();
+  }
+  
+  if(!empty($flixData['A_BACKGROUND']))
+  {
+    $background = '/swf/flix_theme/bg/' . $flixData['A_BACKGROUND'];
+  }
+  else
+  {
+    $bgcolor = '#000000';
+    // leave this unset $background = '';
+  }
+  
+  $title = $flixData['US_NAME'] . ' by ' . $userData['U_USERNAME'] . ' - Photagious - Online Photo Slideshow Software - Create Flash Slideshows';
+  
+  include_once PATH_DOCROOT . '/header_basic.dsp.php';
+  
+  /*echo '<!--';
+  print_r(jsonDecode($flixData['US_SETTINGS']));
+  print_r(jsonDecode($flixData['US_ELEMENTS']));
+  echo '-->';*/
+?>
+
+    <div style="background-color:#000000; border-bottom:solid 1px #404040; height:30px; width:100%;">
+      <div style="width:865px; margin:auto;">
+        <div style="float:left; height:30px;">
+          <div style="float:left;"><a href="/"><img src="images/photagious_black_small.gif" width="94" height="21" hspace="25" vspace="5" border="0" /></a></div>
+        </div>
+        <div style="float:right; margin-top:7px; margin-right:5px;" class="f_white">
+          <?php
+            if($logged_in === false)
+            {
+              echo '<div><a href="https://' . FF_SERVER_NAME . '/?action=home.registration_form_b" class="f_white plain">sign up for a free trial</a>&nbsp;|&nbsp;<a href="/?action=home.login_form&redirect=' . urlencode($_SERVER['REQUEST_URI']) . '" class="f_white plain">login</a></div>';
+            }
+            else
+            {
+              echo '<div>logged in as <span class="f_red">' . $_FF_SESSION->value('username') . '</span> | <a href="/?action=member.logout.act&redirect=' . urlencode($_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING']) . '" class="plain f_white">logout</a></div>';
+            }
+          ?>
+        </div>
+        <br clear="all" />
+      </div>
+    </div>
+    
+    <div style="width:<?php echo $width; ?>px; margin:auto;">
+      <script language="javascript">
+        <?php echo 'embedSwf({SRC:"' . $swfSrc . '", WIDTH:"' . $width . '", HEIGHT:"' . $height . '", BGCOLOR:"#000000", VERSION:8});'; ?>
+      </script>
+    </div>
+    <?php
+      if($flixData['US_U_ID'] != '5836')
+      {
+    ?>    
+      <div style="padding:50px 0px 25px 0px; width:700px; margin:auto;">
+        <div style="float:left; width:325px; margin-right:20px;">
+          <?php
+            if(permission($flixData['US_PRIVACY'], PERM_SLIDESHOW_COMMENT))
+            {
+
+              $comments = $cm->comments($flixData['US_ID'], 'flix');  
+              $commentCnt = count($comments);
+              
+              echo '<div class="bold f_10" style="margin-bottom:5px;">Comments</div>';
+              
+              foreach($comments as $v)
+              {
+                $avatarSrc = $v['C_AVATAR'] != '' ? PATH_FOTO . $v['C_AVATAR'] : 'images/avatar.jpg';
+                $userString = $v['C_USERNAME'] != '' ? '<a href="/users/' . $v['C_USERNAME'] . '/">' . $v['C_USERNAME'] . '</a>' : 'anonymous';
+                echo '<div id="_comment_' . $v['C_ID'] . '">
+                        <div style="margin-bottom:15px; float:left;">
+                          <a name="comment' . $v['C_ID'] . '"></a>
+                          <div style="float:left; margin-right:5px;"><img src="' . $avatarSrc . '" width="40" height="40" border="0" class="border_dark" /></div>
+                          <div style="width:275px;">
+                            <a name="' . $v['C_ID'] . '"></a>
+                            <div style="padding-bottom:4px;">' . $userString . ' said:</div>
+                            <div style="padding-bottom:4px;">' . nl2br($v['C_COMMENT']) . '</div>
+                            <div class="italic">' . date(FF_FORMAT_DATE_LONG, $v['C_TIME']) . '</div>
+                          </div>
+                        </div>';
+                if($flixData['US_U_ID'] == $_USER_ID)
+                {
+                  echo '<div style="float:left;"><a href="javascript:void(0);" onclick="deleteComment(' . $v['C_ID'] . ');" title="delete comment"><img src="images/icons/close_16x16.png" border="0" widht="16" height="16" /></a></div>';
+                }
+
+                echo '</div><br clear="all" />';
+              } 
+            
+              echo '<a name="leaveComment"></a>';
+              if($logged_in === true)
+              {
+                echo '<form method="post" action="/?action=flix.comment.act">
+                        <div><textarea class="formfield" name="c_comment" style="width:320px; height:75px; font-family:verdana,helvetica,arial; font-size:10pt;"></textarea></div>
+                        <div align="right"><input type="submit" value="Leave Comment" style="border:solid 1px #000000; background-color:#eeeeee;" /></div>
+                        <input type="hidden" name="c_element_id" value="' . $flixData['US_ID'] . '" />
+                        <input type="hidden" name="c_type" value="flix" />
+                        <input type="hidden" name="c_for_u_id" value="' . $flixData['US_U_ID'] . '" />
+                        <input type="hidden" name="redirect" value="' . $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'] . '" />
+                      </form>
+                      ';
+              }
+              else
+              {
+                echo '
+                      <a name="leaveComment"></a>
+                      <div style="padding:3px; width:315px;">
+                        <div id="_commentLogIn" style="display:block;">
+                          <div class="bold f_10">Log in to comment</div>
+                          <div>
+                            <div style="padding-top:5px;">
+                              <form id="flixCommentLogin" action="/?action=member.login_form.act" method="post" style="display:inline">
+                                <div>Username</div>
+                                <div style="padding-bottom:5px;"><input type="text" name="u_username" value="" class="formfield" style="width:90px;" /></div>
+                                <div>Password</div>
+                                <div style="padding-bottom:3px;"><input type="password" name="u_password" value="" class="formfield" style="width:90px;" /></div>
+                                <div style="padding-top:3px;">
+                                  <div style="padding-right:3px; float:left;"><a href="javascript:document.getElementById(\'flixCommentLogin\').submit();" style="text-decoration:none;" title="log in to leave a comment"><img src="images/login2.gif" width="16" height="16" border="0" alt="leave comment" /></a></div>
+                                  <div style="padding-top:1px;"><a href="javascript:document.getElementById(\'flixCommentLogin\').submit();" style="text-decoration:none;" title="log in to leave a comment">Log in to comment</a></div>
+                                </div>
+                                <input type="hidden" name="redirect" value="' . $_SERVER['REQUEST_URI'] . '#leaveComment" />
+                              </form>
+                            </div>
+                          </div>
+                          <div>
+                            <br/>
+                            -- OR --
+                            <br/>
+                            <div style="padding-top:10px;"><a href="javascript:commentAnonSlideshow();" style="text-decoration:none;">Comment anonymously</a></div>
+                          </div>
+                        </div>
+                        <div id="_commentForm" style="display:none;">
+                          <form method="post" id="flixCommentForm" action="">
+                            <div><textarea class="formfield" name="c_comment" style="width:320px; height:75px; font-family:verdana,helvetica,arial; font-size:10pt;"></textarea></div>
+                            <div align="right">
+                              <input type="submit" value="Leave Comment" style="border:solid 1px #000000; background-color:#eeeeee;" />
+                            </div>
+                            <input type="hidden" name="c_element_id" value="' . $flixData['US_ID'] . '" />
+                            <input type="hidden" name="c_type" value="flix" />
+                            <input type="hidden" name="c_for_u_id" value="' . $flixData['US_U_ID'] . '" />
+                            <input type="hidden" name="redirect" value="' . $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'] . '" />
+                          </form>
+                        </div>
+                        <!--
+                        <div style="float:left; padding-top:30px; padding-left:25px;" class="bold">
+                          <div style="padding-bottom:3px;">Don\'t have an account?</div>
+                          <div><a href="https://' . FF_SERVER_NAME . '/?action=home.registration_form">Sign up for free!</a></div>
+                        </div>
+                        -->
+                      </div>
+                    ';
+              }
+            }
+          ?>
+        </div>
+        <div style="width:350px; float:left;">
+          <?php
+            if(permission($flixData['US_PRIVACY'], PERM_SLIDESHOW_RELATED))
+            {
+              $videoData = $vd->find($key);
+              
+              $paramsFb = array('USER_ID' => $flixData['US_U_ID'], 'PERMISSION' => PERM_PHOTO_PUBLIC, 'LIMIT' => 4);
+              $paramsV  = array('USER_ID' => $flixData['US_U_ID'], 'PERMISSION' => PERM_VIDEO_PUBLIC, 'LIMIT' => 2);
+              
+              $tagsAr = $tg->tags($userData['U_ID'], 'RANDOM', 30); // name Ar to not conflict if copied into personal page where tags is passed through url
+              $photos = $fb->fotosSearch($paramsFb);
+              $videos = $vd->search($paramsV);
+              
+              $tagCnt   = count($tagsAr);
+              $photoCnt = count($photos);
+              $videoCnt = count($videos);
+              
+              if($tagCnt > 0)
+              {
+                echo '<div style="margin-bottom:20px;">
+                        <div class="bold f_10" style="margin-bottom:5px;">' . $userData['U_USERNAME'] . '\'s Tags</div>';
+    
+                $min = $tagsAr[0]['MIN'];
+                $max = $tagsAr[0]['MAX'];
+                $step= ($max - $min) / 5;
+                $sizes = array(10, 12, 14, 16, 18);
+                echo '<div style="text-align:justify;">';
+                foreach($tagsAr as $v)
+                {
+                  $fontSize = tagsize(intval($v['WEIGHT']), $step, $sizes);
+                  echo '&nbsp;<a href="/users/' . $userData['U_USERNAME'] . '/tags/' . $v['TAG'] . '/" style="font-size:' . $fontSize . 'px;" class="plain headerTag" title="' . $v['TAG_COUNT'] . ' photos and slideshows tagged with ' . htmlspecialchars($v['TAG']) . '">' . $v['TAG'] . '</a> ';
+                }
+                echo '  </div> <!-- div to justify text -->
+                      </div>';
+              }
+              
+              if($photoCnt > 0)
+              {
+                echo '<div style="margin-bottom:20px;">
+                        <div class="bold f_10" style="margin-bottom:5px;">' . $userData['U_USERNAME'] . '\'s Photos</div>';
+                foreach($photos as $v)
+                {
+                  echo '<a href="/users/' . $userData['U_USERNAME'] . '/photo/' . $v['P_ID'] . '/"><img src="' . PATH_FOTO . $v['P_THUMB_PATH'] . '" width="75" height="75" border="0" hspace="5" class="border_dark" /></a>';
+                }
+                echo '</div>';
+              }
+              
+              if($videoCnt > 0)
+              {
+                echo '<div style="margin-bottom:20px;">
+                        <div class="bold f_10" style="margin-top:25px; margin-bottom:5px;">' . $userData['U_USERNAME'] . '\'s Videos</div>';
+                foreach($videos as $v)
+                {
+                  echo '<a href="/video?' . $v['V_KEY'] . '"><img src="' . PATH_FOTO . $v['V_SCREEN_150x100'] . '" width="150" height="100" border="0" hspace="5" class="border_dark" />';
+                }
+                echo '</div>';
+              }
+            }
+          ?>
+        </div>
+        <br clear="all" />
+      </div>
+    <?php
+      }
+    ?>
+<script>
+  function commentAnonSlideshow()
+  {
+    $('_commentLogIn').style.display = 'none';
+    $('_commentForm').style.display = 'block';
+    $('flixCommentForm').action = '/?action=flix.comment.act';
+  }
+</script>
+<?php
+  echo footer();
+  
+  include_once PATH_DOCROOT . '/footer_basic.dsp.php';
+  
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

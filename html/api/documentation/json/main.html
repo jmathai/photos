@@ -1,0 +1,788 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en">
+
+<head>
+
+<meta HTTP.EQUIV="Content.Type" CONTENT="text/html; charset=iso.8859.1">
+
+<link rel="icon" href="/favicon.ico" type="image/x.icon">
+<link rel="stylesheet" type="text/css" href="css/styles.css">
+<script type="text/javascript" src="js/prototype.js"></script>
+
+<script type="text/javascript">
+  function link(element)
+  {
+    if($(element) != undefined)
+    {
+      new Element.scrollTo(element);
+    }
+  }
+</script>
+
+<title>The Photagious Media Server</title>
+
+</head>
+
+<body>
+  <div class="objects">
+    <!-- html -->
+    <a name="authenticate"></a>
+    <div class="object" id="authenticate">
+      <div class="objectName">authenticate</div>
+      <div class="methods">
+        <!-- html.customImageSrc -->
+        <a name="authenticate.deleteToken"></a>
+        <div class="method" id="authenticate.deleteToken">
+          <div class="methodName">deleteToken</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+              <div class="parameterName"></div>
+              <div class="parameterDescription"></div>
+              
+              <div class="returns">
+                <div class="returnName">Returns</div>
+                <div class="returnDescription"></div>
+              </div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- html.customImageTag -->
+        <a name="authenticate.getToken"></a>
+        <div class="method" id="authenticate.getToken">
+          <div class="methodName">getToken</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+              <div class="parameterName">token</div>
+              <div class="parameterDescription">(String) The token.</div>
+              
+              <div class="returns">
+                <div class="returnName">Returns</div>
+                <div class="returnDescription">(String) The token.</div>
+              </div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              var token = ptg.authenticate.getToken('');
+            </div>
+          </div>
+        </div>
+        
+        <!-- html.customImageLockSrc -->
+        <a name="authenticate.login"></a>
+        <div class="method" id="authenticate.login">
+          <div class="methodName">login</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+              <div class="parameterName">username</div>
+              <div class="parameterDescription">(String) The username to log in.</div>
+              
+              <div class="parameterName">password</div>
+              <div class="parameterDescription">(String) The password for this user.</div>
+              
+              <div class="returns">
+                <div class="returnName">Returns</div>
+                <div class="returnDescription">(String) A token.</div>
+              </div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              var token = ptg.authenticate.login('username', 'password');
+            </div>
+          </div>
+        </div>
+    
+    <!-- image -->
+    <a name="image"></a>
+    <div class="object" id="image">
+      <div class="objectName">image</div>
+      <div class="methods">
+      	<a name="image.addTags"></a>
+        <!-- image.addTags -->
+        <div class="method" id="image.addTags">
+          <div class="methodName">addTags</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Adds tags to the image specified and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+            <div class="parameters">
+              <div class="parameterName">id</div>
+              <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+              
+              <div class="parameterName">tags</div>
+              <div class="parameterDescription">(String) The tags to be added to this image.  Separate multiple tags with a comma.  Duplicate tags are automatically resolved.</div>
+              
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              ptg.image.addTags(image.id, 'vacation,florida');
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.getHash -->
+        <div class="method" id="image.getHash">
+          <div class="methodName">getHash</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Gets the hash for the image specified and executes an optional callback function.  The callback function gets passed back an image hash.</div>
+            <div class="parameters">
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an image hash.</div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              ptg.image.getHash();
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.getComments -->
+        <div class="method" id="image.getComments">
+          <div class="methodName">getComments</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Gets the comments for the image specified and executes an optional callback function.  The callback function gets passed back.</div>
+            <div class="parameters">
+              <div class="parameterName">identifier</div>
+              <div class="parameterDescription">(Mixed) The id or key of the image.  Generally <a href="main.html#object.image">imageObject</a>.id or <a href="main.html#object.image">imageObject</a>.key.</div>
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an.</div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              ptg.image.getComments(image.id);
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.getImage -->
+        <a name="image.getImage"></a>
+        <div class="method" id="image.getImage">
+          <div class="methodName">getImage</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Requests a specified image and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+            <div class="parameters">
+              <div class="parameterName">identifier</div>
+              <div class="parameterDescription">(Mixed) The id or key of the image.  Generally <a href="main.html#object.image">imageObject</a>.id or <a href="main.html#object.image">imageObject</a>.key.</div>
+              
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+              
+              <div class="returns">
+                <div class="returnName">Returns</div>
+                <div class="returnDescription">(String) A relative path to the image.</div>
+              </div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              var imageSource = ptg.image.getImage(image.id);
+              <br/>
+               - or - 
+              <br/>
+              var imageSource = ptg.image.getImage(image.key);
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.getUntagged -->
+        <div class="method" id="image.getUntagged">
+          <div class="methodName">getUntagged</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Gets the tags for the image specified and executes an optional callback function.  The callback function gets passed back.</div>
+            <div class="parameters">
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an.</div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              ptg.image.getUntagged();
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.edit -->
+        <a name="image.edit"></a>
+        <div class="method" id="image.edit">
+          <div class="methodName">edit</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Edits the name and description of an image.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+            <div class="parameters">
+              <div class="parameterName">id</div>
+              <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+              
+              <div class="parameterName">name</div>
+              <div class="parameterDescription">(String) The name of the image.</div>
+              
+              <div class="parameterName">description</div>
+              <div class="parameterDescription">(String) The description of the image.</div>
+              
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              ptg.image.edit(image.id, 'name', 'description');
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.leaveComment -->
+        <a name="image.leaveComment"></a>
+        <div class="method" id="image.leaveComment">
+          <div class="methodName">leaveComment</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.removeTags -->
+        <a name="image.removeTags"></a>
+        <div class="method" id="image.removeTags">
+          <div class="methodName">removeTags</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Removes tags from the image specified and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+            <div class="parameters">
+              <div class="parameterName">id</div>
+              <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+              
+              <div class="parameterName">tags</div>
+              <div class="parameterDescription">(String) The tags to be removed from this image.  Separate multiple tags with a comma.</div>
+              
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              ptg.image.removeTags(image.id, 'hawaii,beach');
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.search -->
+        <a name="image.search"></a>
+        <div class="method" id="image.search">
+          <div class="methodName">search</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Executes a search on various criteria and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.images">images</a> object.</div>
+            <div class="parameters">
+              <div class="parameterName"></div>
+              <div class="parameterDescription">(Object) An object of search parameters.  The property represents the search field and the value represents the criteria.  The object can be passed inline.  For example ptg.image.search({"tags":"vacation"}).  Optional search fields are dateCreatedBegin, dateCreatedEnd, dateTaken, dateTakenBegin, dateTakenEnd and tags.  Additional fields can be passed which include limit, offset and order.</div>
+              
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              ptg.image.search({'tags':'vacation'}, 'alert');
+            </div>
+          </div>
+        </div>
+        
+        <!-- image.transform -->
+        <a name="image.transform"></a>
+        <div class="object" id="image.transform">
+          <div class="objectName">transform</div>
+          <div class="methods">
+            <!-- image.transform.crop -->
+            <a name="image.transform.crop"></a>
+            <div class="method" id="image.transform.crop">
+              <div class="methodName">crop</div>
+              <div class="methodDetails">
+                <div class="methodDescription">Crops a specified image and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+                <div class="parameters">
+                  <div class="parameterName">id</div>
+                  <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+                  
+                  <div class="parameterName">x1</div>
+                  <div class="parameterDescription">(Int) The top left x-coordinate to start the crop from.</div>
+                  
+                  <div class="parameterName">y1</div>
+                  <div class="parameterDescription">(Int) The top left y-coordinate to start the crop from.</div>
+                  
+                  <div class="parameterName">x2</div>
+                  <div class="parameterDescription">(Int) The bottom right x-coordinate to start the crop from.</div>
+                  
+                  <div class="parameterName">y2</div>
+                  <div class="parameterDescription">(Int) The bottom right y-coordinate to start the crop from.</div>
+                  
+                  <div class="parameterName">callback</div>
+                  <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+                </div>
+                <div class="samples">
+                  <div class="sampleName">Usage</div>
+                  ptg.image.transform.crop(image.id, 10, 10, 500, 600);
+                </div>
+              </div>
+            </div>
+            
+            <!-- image.transform.greyscale -->
+            <a name="image.transform.greyscale"></a>
+            <div class="method" id="image.transform.greyscale">
+              <div class="methodName">greyscale</div>
+              <div class="methodDetails">
+                <div class="methodDescription">Greyscales a specified image and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+                <div class="parameters">
+                  <div class="parameterName">id</div>
+                  <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+                  
+                  <div class="parameterName">callback</div>
+                  <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+                </div>
+                <div class="samples">
+                  <div class="sampleName">Usage</div>
+                  ptg.image.transform.greyscale(image.id);
+                </div>
+              </div>
+            </div>
+            
+            <!-- image.transform.restore -->
+            <a name="image.transform.restore"></a>
+            <div class="method" id="image.transform.restore">
+              <div class="methodName">restore</div>
+              <div class="methodDetails">
+                <div class="methodDescription">Restores a specified image back to it's original state and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+                <div class="parameters">
+                  <div class="parameterName">id</div>
+                  <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+                  
+                  <div class="parameterName">callback</div>
+                  <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+                </div>
+                <div class="samples">
+                  <div class="sampleName">Usage</div>
+                  ptg.image.transform.restore(image.id);
+                </div>
+              </div>
+            </div>
+            
+            <!-- image.transform.rotate -->
+            <a name="image.transform.rotate"></a>
+            <div class="method" id="image.transform.rotate">
+              <div class="methodName">rotate</div>
+              <div class="methodDetails">
+                <div class="methodDescription">Rotates a specified image and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+                <div class="parameters">
+                  <div class="parameterName">id</div>
+                  <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+                  
+                  <div class="parameterName">degrees</div>
+                  <div class="parameterDescription">(Int) The amount to rotate the image clockwise in degrees.  Accepted values for degrees are 90, 180 and 270.</div>
+                  
+                  <div class="parameterName">callback</div>
+                  <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+                </div>
+                <div class="samples">
+                  <div class="sampleName">Usage</div>
+                  ptg.image.transform.rotate(image.id, 90);
+                </div>
+              </div>
+            </div>
+            
+            <!-- image.transform.sepia -->
+            <a name="image.transform.sepia"></a>
+            <div class="method" id="image.transform.sepia">
+              <div class="methodName">sepia</div>
+              <div class="methodDetails">
+                <div class="methodDescription">Applies a sepia effect to a specified image and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+                <div class="parameters">
+                  <div class="parameterName">id</div>
+                  <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+                  
+                  <div class="parameterName">callback</div>
+                  <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+                </div>
+                <div class="samples">
+                  <div class="sampleName">Usage</div>
+                  ptg.image.transform.sepia(image.id);
+                </div>
+              </div>
+            </div>
+            
+            <!-- image.transform.zoom -->
+            <a name="image.transform.zoom"></a>
+            <div class="method" id="image.transform.zoom">
+              <div class="methodName">zoom (EXPERIMENTAL)</div>
+              <div class="methodDetails">
+                <div class="methodDescription">Zooms in on a specified image and executes an optional callback function.  The callback function gets passed back an <a href="main.html#object.image">image</a> object.</div>
+                <div class="parameters">
+                  <div class="parameterName">id</div>
+                  <div class="parameterDescription">(Int) The id of the image.  Generally <a href="main.html#object.image">imageObject</a>.id.</div>
+                  
+                  <div class="parameterName">step</div>
+                  <div class="parameterDescription">(Int) The amount to zoom.  Possible values are between 1 and 5.</div>
+                  
+                  <div class="parameterName">callback</div>
+                  <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an <a href="main.html#object.image">image</a> object.</div>
+                </div>
+                <div class="samples">
+                  <div class="sampleName">Usage</div>
+                  ptg.image.transform.zoom(image.id, 3);
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    </div> <!-- object -->
+    
+    <!-- slideshow -->
+    <a name="slideshow"></a>
+    <div class="object" id="slideshow">
+      <div class="objectName">slideshow</div>
+      <div class="methods">
+      	<a name="slideshow.addTags"></a>
+        <!-- slideshow.addTags -->
+        <div class="method" id="slideshow.addTags">
+          <div class="methodName">addTags</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- slideshow.edit -->
+        <a name="slideshow.edit"></a>
+        <div class="method" id="slideshow.edit">
+          <div class="methodName">edit</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- slideshow.getComment -->
+        <div class="method" id="slideshow.getComment">
+          <div class="methodName">getComment</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- slideshow.getUntagged -->
+        <div class="method" id="slideshow.getUntagged">
+          <div class="methodName">getUntagged</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- slideshow.leaveComment -->
+        <a name="slideshow.leaveComment"></a>
+        <div class="method" id="slideshow.leaveComment">
+          <div class="methodName">leaveComment</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- slideshow.removeTags -->
+        <a name="slideshow.removeTags"></a>
+        <div class="method" id="slideshow.removeTags">
+          <div class="methodName">removeTags</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- slideshow.search -->
+        <a name="slideshow.search"></a>
+        <div class="method" id="slideshow.search">
+          <div class="methodName">search</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <!-- slideshow.load -->
+        <a name="slideshow.load"></a>
+        <div class="method" id="slideshow.load">
+          <div class="methodName">load</div>
+          <div class="methodDetails">
+            <div class="methodDescription"></div>
+            <div class="parameters">
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+        
+    <!-- upload -->
+    <a name="upload"></a>
+    <div class="object" id="upload">
+      <div class="objectName">upload</div>
+      <div class="methods">
+        <!-- upload.getKey -->
+        <a name="upload.getKey"></a>
+        <div class="method" id="upload.getKey">
+          <div class="methodName">getKey</div>
+          <div class="methodDescription">Returns the</div>
+          <div class="samples">
+            <div class="sampleName">Usage</div>
+            ptg.upload.getKey();
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- user -->
+    <a name="user"></a>
+    <div class="object" id="user">
+      <div class="objectName">user</div>
+      <div class="methods">
+        <!-- user.getInfo -->
+        <a name="user.getInfo"></a>
+        <div class="method" id="user.getInfo">
+        <div class="methodName">getInfo</div>
+          <div class="methodDescription"></div>
+          <div class="parameters">
+          </div>
+          <div class="samples">
+            <div class="sampleName">Usage</div>
+            
+          </div>
+        </div>
+        
+        <!-- user.getTags -->
+        <div class="method" id="user.getTags">
+          <div class="methodName">getTags</div>
+          <div class="methodDetails">
+            <div class="methodDescription">Returns the users tags.  The callback function gets passed back a <a href="main.html#object.tags">tags</a> object.</div>
+            <div class="parameters">
+              <div class="parameterName">callback</div>
+              <div class="parameterDescription">(String) An optional string which represents the name of a function to be executed. The function will be passed in an.</div>
+            </div>
+            <div class="samples">
+              <div class="sampleName">Usage</div>
+              ptg.user.getTags();
+            </div>
+          </div>
+        </div>
+        
+        <!-- user.search -->
+        <a name="user.search"></a>
+        <div class="method" id="user.search">
+        <div class="methodName">search</div>
+          <div class="methodDescription"></div>
+          <div class="parameters">
+          </div>
+          <div class="samples">
+            <div class="sampleName">Usage</div>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- video -->
+    <a name="video"></a>
+    <div class="object" id="video">
+      <div class="objectName">video</div>
+      <div class="methods">
+        <!-- video.getVideo -->
+        <a name="video.getInfo"></a>
+        <div class="method" id="video.getVideo">
+        <div class="methodName">getVideo</div>
+          <div class="methodDescription"></div>
+          <div class="parameters">
+          </div>
+          <div class="samples">
+            <div class="sampleName">Usage</div>
+            
+          </div>
+        </div>
+        
+        <!-- video.search -->
+        <a name="video.search"></a>
+        <div class="method" id="video.search">
+        <div class="methodName">search</div>
+          <div class="methodDescription"></div>
+          <div class="parameters">
+          </div>
+          <div class="samples">
+            <div class="sampleName">Usage</div>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- object.image -->
+    <a name="object.image"></a>
+    <div class="object" id="object.image">
+      <div class="objectName">image</div>
+      <div class="methods">
+        <div class="method">
+          <div class="methodDescription">The image object contains the following properties.</div>
+					<ul class="properties">
+						<li>id</li>
+						<li>userId</li>
+						<li>key</li>
+						<li>tags </li>
+						<li>name</li>
+						<li>description</li>
+						<li>size</li>
+						<li>width</li>
+						<li>height</li>
+						<li>rotation</li>
+						<li>views</li>
+						<li>cameraMake</li>
+						<li>cameraModel</li>
+						<li>originalPath</li>
+						<li>thumbnailPath</li>
+						<li>dateCreated</li>
+						<li>dateModified</li>
+						<li>dateTaken</li>
+					</ul>
+        </div>
+      </div>
+		</div>
+		
+		<!-- object.images -->
+    <a name="object.images"></a>
+    <div class="object" id="object.image">
+      <div class="objectName">images</div>
+      <div class="methods">
+        <div class="method">
+					<div class="methodDescription">images is an array of <a href="main.html#object.image">image</a> objects.</div>
+          <div class="samples">
+            <div class="sampleName">Example</div>
+          </div>
+        </div>
+      </div>
+		</div>
+		
+		<!-- object.slideshow -->
+    <a name="object.slideshow"></a>
+    <div class="object" id="object.slideshow">
+      <div class="objectName">slideshow</div>
+      <div class="methods">
+        <div class="method">
+          <div class="methodDescription">The slideshow object contains the following properties.</div>
+					<ul class="properties">
+						<li>id</li>
+						<li>userId</li>
+						<li>key</li>
+						<li>tags </li>
+						<li>name</li>
+						<li>frames</li>
+						<li>views</li>
+						<li>
+							thumbnail (object)
+							<ul>
+								<li>path</li>
+								<li>key</li>
+							</ul>
+						</li>
+						<li>viewsComplete</li>
+						<li>dateCreated</li>
+						<li>dateModified</li>
+					</ul>
+        </div>
+      </div>
+		</div>
+		
+    <!-- object.slideshows -->
+    <a name="object.slideshows"></a>
+    <div class="object" id="object.slideshows">
+      <div class="objectName">slideshows</div>
+      <div class="methods">
+        <div class="method">
+					<div class="methodDescription">slideshows is an array of <a href="main.html#object.slideshow">slideshow</a> objects.</div>
+          <div class="samples">
+            <div class="sampleName">Example</div>
+          </div>
+        </div>
+      </div>
+		</div>
+		
+    <!-- object.tag -->
+    <a name="object.tag"></a>
+    <div class="object" id="object.tag">
+      <div class="objectName">tag</div>
+      <div class="methods">
+        <div class="method">
+          <div class="methodDescription">The tag object contains the following properties.</div>
+					<ul class="properties">
+						<li>tag</li>
+						<li>tagCount</li>
+					</ul>
+        </div>
+      </div>
+		</div>
+		
+    <!-- object.tags -->
+    <a name="object.tags"></a>
+    <div class="object" id="object.tags">
+      <div class="objectName">tags</div>
+      <div class="methods">
+        <div class="method">
+					<div class="methodDescription">tags is an array of <a href="main.html#object.tag">tag</a> objects.</div>
+          <div class="samples">
+            <div class="sampleName">Example</div>
+          </div>
+        </div>
+      </div>
+		</div>
+  </div> <!-- objects -->
+  <script type="text/javascript"> self.focus(); </script>
+</body>
+
+</html>

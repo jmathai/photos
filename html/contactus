@@ -1,0 +1,5 @@
+<?php
+  $_GET['action'] = 'home.contactus';
+  
+  include_once './index.php';
+?>

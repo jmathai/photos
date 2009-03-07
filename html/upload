@@ -1,0 +1,224 @@
+<?php
+  set_time_limit(0); // sets no time limit since this script is called via java uploader
+
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CIdat.php';
+  include_once PATH_CLASS . '/CUser.php';
+  include_once PATH_CLASS . '/CTag.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_CLASS . '/CFotobox.php';
+  include_once PATH_CLASS . '/CUserManage.php';
+  include_once PATH_CLASS . '/CFotoboxManage.php';
+  include_once PATH_CLASS . '/CImageMagick.php';
+
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+
+  $id =& CIdat::getInstance();
+  $u  =& CUser::getInstance();
+  $f  =& CFotobox::getInstance();
+  $t  =& CTag::getInstance();
+  $um =& CUserManage::getInstance();
+  $fb =& CFotoboxManage::getInstance();
+  $im =& CImageMagick::getInstance();
+  $stamp = FF_YM_STAMP;
+
+  if(isset($_REQUEST['user_enc']))
+  {
+    $enc = $u->userIdDec($_REQUEST['user_enc']);
+    $_USER_ID = $enc['id'];
+    
+    if($enc['match'] === false)
+    {
+      die();
+    }
+
+  }
+
+  if(isset($enc) && isset($_REQUEST['sid']))
+  {
+    $sid = $_REQUEST['sid'];
+    $qstr = file_get_contents($qstringFile = '/tmp/' . $sid . '_qstring');
+
+    unlink($qstringFile);
+
+    parse_str($qstr);
+
+    $_REQUEST['privacySettingComputed'] = intval($privacySettingComputed);
+    $_REQUEST['tagsToAdd'] = $tagsToAdd;
+
+    if(isset($redirect))
+    {
+      $_REQUEST['redirect'] = $redirect;
+    }
+
+    $uploadedFiles = array();
+    $cntFiles = count($file['name']);
+    for($i=0; $i<$cntFiles; $i++)
+    {
+      if(is_file($file['tmp_name'][$i]))
+      {
+        $uploadedFiles[] = array('name' => $file['name'][$i], 'size' => $file['size'][$i], 'tmp_name' => $file['tmp_name'][$i]);
+      }
+    }
+  }
+  else
+  {
+    $uploadedFiles = $_FILES;
+  }
+
+  $user_data = $u->find($_USER_ID);
+
+  $available  = intval($user_data['U_SPACETOTAL'] - $user_data['U_SPACEUSED']);
+
+  $fotoIds  = array();
+  $failed   = 0;
+
+  $privacy = $_REQUEST['privacySettingComputed'];
+  $um->setPrefs($_USER_ID, array('FOTO_PRIVACY' => $privacy));
+  
+  foreach($uploadedFiles as $k => $v)
+  {
+    if(is_file($v['tmp_name']))
+    {
+      $image_key  = substr($id->nextID(FF_IMAGE_KEY) . randomString(), 0, 32);
+      $image_size = intval($v['size'] / KB);
+      $new_filename = NOW . '_' . $f->safename($v['name']);
+
+      $proceed    = true; //$available > $image_size ? true : false;
+    	if ($image_size > 0 && $proceed === true)
+      {
+        $original_src = $fb->uploadOriginal($v['tmp_name'], $new_filename);
+        
+        $im->exiftran(PATH_FOTOROOT . $original_src); // lossless transformation based on exif
+        
+        $thumb_src = $fb->uploadThumbnail(PATH_FOTOROOT . $original_src, $new_filename);
+        $fb->uploadBase(PATH_FOTOROOT . $original_src, $new_filename);
+
+        $image_info = @getimagesize(PATH_FOTOROOT . $original_src);
+        $exif_data = @exif_read_data(PATH_FOTOROOT . $original_src);
+
+    		$name        = $v['name'];
+    		$width       = intval($image_info[0]);
+    		$height      = intval($image_info[1]);
+    		$description = '';
+
+    		$available  -= $image_size;
+        
+        if(array_key_exists('DateTime', $exif_data))
+        {
+          $date_time = explode(' ', $exif_data['DateTime']);
+          $date = explode(':', $date_time[0]);
+          $time = explode(':', $date_time[1]);
+          $taken_at = mktime($time[0], $time[1], $time[2], $date[1], $date[2], $date[0]);
+        }
+        else
+        {
+          $taken_at = $exif_data['FileDateTime'];
+        }
+
+
+        // verify that exif data is legitimate
+        if($taken_at > (NOW + 172800) || $taken_at == 0)
+        {
+          $taken_at = NOW;
+        }
+
+        $db_data  = array(
+                      'up_u_id'   => $_USER_ID,
+                      'up_key'    => $image_key,
+                      'up_name'   => $description,
+                      'up_size'   => $image_size,
+                      'up_width'  => $width,
+                      'up_height' => $height,
+                      'up_description'  =>  '',
+                      'up_original_path'=>  $original_src,
+                      'up_thumb_path'   =>  $thumb_src,
+                      'up_camera_make'  =>  $exif_data['Make'],
+                      'up_camera_model' =>  $exif_data['Model'],
+                      'up_taken_at'     =>  $taken_at,
+                      'up_privacy'      =>  $privacy
+                    );
+
+        $fotoId = $fb->add($db_data);
+        $fotoIds[] = $fotoId;
+        $available -= $image_size;
+        unlink($v['tmp_name']);
+        
+        // add to subscription data if public
+        if(($privacy & PERM_PHOTO_PUBLIC) == PERM_PHOTO_PUBLIC)
+        {
+          include_once PATH_CLASS . '/CSubscriptionManage.php';
+          $sm = &CSubscriptionManage::getInstance();
+
+          $fotoData = $f->fotoData($fotoId);
+
+          $sm->addData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Photo_Public', 'sd_element_id' => $fotoId, 'sd_thumbnail' => $fotoData['P_THUMB_PATH']));
+          
+          // add activity
+          $um->addActivity($_USER_ID, $fotoId, 'newPhoto', $user_data['U_USERNAME'], $thumb_src, $image_key);
+        }
+    	}
+    	else
+    	{
+    	  $failed++;
+    	}
+    }
+  }
+  
+  if(count($fotoIds) > 0)
+  {
+    if($_REQUEST['tagsToAdd'] != '')
+    {
+      $tags = (array)explode(',', $_REQUEST['tagsToAdd']);
+      $fb->addTags($fotoIds, $tags, $_USER_ID);
+    }
+    
+    $um->setPrefs($_USER_ID, array('HAS_UPLOADED' => 1));
+
+    if(isset($_REQUEST['redirect'])) // check if browser should be redirected via JS
+    {
+      if(isset($_REQUEST['output_ids'])) // check if fotoIds should be sent back vis JSON
+      {
+        if(strstr($_REQUEST['redirect'], '&') || strstr($_REQUEST['redirect'], '?')) // see if redirect url has a query string
+        {
+          $redirect_url = $_REQUEST['redirect'] . '&ids=' . jsonEncode($fotoIds); // append using & if query string exists
+        }
+        else
+        {
+          $redirect_url = $_REQUEST['redirect'] . '?ids=' . jsonEncode($fotoIds); // append using ? if query string DNE
+        }
+
+        echo '<script type="text/javascript"> location.href="' . $redirect_url . '"; </script>'; // redirect with fotoIds
+      }
+      else
+      {
+        echo '<script type="text/javascript"> location.href="' . $_REQUEST['redirect'] . '"; </script>'; // redirect without fotoIds
+      }
+    }
+    else
+    if(isset($_REQUEST['callback']))
+    {
+      echo '<script type="text/javascript"> ' . $_REQUEST['callback'] . '; </script>';
+    }
+    else
+    if(!isset($_REQUEST['no_redirect'])) // if no_redirect is NOT specified then do a normal redirect
+    {
+      if(count($fotoIds) < 50)
+      {
+        echo '<script type="text/javascript"> location.href="/?action=fotobox.upload_preference_set.act&uploader_preference=0&redirect=' . urlencode('/?action=fotobox.upload_successful&foto_ids=' . implode(',', $fotoIds) . '&failed=' . $failed) . '"; </script>';
+      }
+      else
+      {
+        echo '<script type="text/javascript"> location.href="/?action=fotobox.upload_preference_set.act&uploader_preference=0&redirect=' . urlencode('/?action=fotobox.fotobox_myfotos') . '"; </script>';
+      }
+    }
+  }
+  else
+  {
+    //echo '<script type="text/javascript"> location.href="/?action=fotobox.no_space_left"; </script>';
+  }
+
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

@@ -1,0 +1,196 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  $args = (array)explode('/', str_replace('/popup/', '', $_SERVER['REQUEST_URI']));
+  
+  $action = $args[0];
+  
+  include_once PATH_DOCROOT . '/header_basic.dsp.php';
+  
+  switch($action)
+  {
+    case 'auto_renew':
+      echo '<div class="bold">Should I have my account automatically renew?</div>
+            Of course.  
+            By choosing to automatically renew your membership you can enjoy using FotoFlix without any interruptions.  
+            Save yourself the hassle of extending your membership yourself and let us take care of it.<br/><br/>
+            If you choose not to automatically renew your membership, then as the expiration approaches, a friendly reminder will be sent to your registered email address.';
+      break;
+    case 'avatar_change':
+      echo '<div class="bold">How do I change my avatar?</div><br />
+            It\'s easy to change your avatar.  Just follow these instructions:
+            <ol>
+              <li>Go to your FotoBox</li>
+              <li>Click on My Fotos</li>
+              <li>Find the foto you are looking for</li>
+              <li>Click the FotoEdit link underneath the foto</li>
+              <li>At the top of this page you will see a link to make that foto your avatar</li>
+            </ol>';
+      break;
+    case 'blog_id':
+      echo '<div class="bold">What is a Blog ID and how do I find mine?</div><br />
+            Finding your Blogger/Blogspot or Typepad ID is a cinch:
+            <ol>
+              <li>Log into your blog</li>
+              <li>Click on the link to edit your blog</li>
+              <li>In the URL you should see "blogID=xxxxxx" or "blog_id=xxxxxx"</li>
+              <li>The xxxxxx is your Blog ID</li>
+            </ol>';
+      break;
+    case 'contributors':
+      echo '<div class="bold">What are group contributors?</div><br />
+            <div class="bold">Owner</div>Select this option if you want to be the only member that is able to invite others to the group and share fotos with the group.<br /><br />
+            <div class="bold">Group</div>Select this option if you want everyone in the group to be able to share fotos with the group but want only yourself to be able to invite others to join the group.<br /><br />
+            <div class="bold">All</div>Select this option if you want everyone in the group to be able to share fotos with the group and also to invite others to join the group.';
+      break;
+    case 'crop_mode':
+      echo '<div class="bold">What is crop mode?</div><br />
+            <span class="italic">Crop mode</span> let\'s you crop your photos according to your needs.
+            <br /><br />
+            If you want to crop the photo to a specific size then you will want to select <span class="italic">free</span>.  
+            If you want to crop the photo so it fits perfectly inside of the slideshow then you will want to select <span class="italic">slideshow</span>.
+            <br /><br />
+            It\'s that easy!';
+      break;
+    case 'cvv':
+      echo '<div class="bold">What is a CVV number?</div><br />
+            Card Verification Value is an anti-fraud feature used on modern credit cards.  
+            This helps ensure that you are in posession of the card being used.<br /><br />
+            <img src="images/visacvv.gif" width="215" height="103" border="0" />';
+      break;
+    case 'earn_free_space_faq':
+      include_once PATH_CLASS . '/CFaq.php';
+      include_once PATH_DOCROOT . '/earn_free_space_faq.dsp.php';
+      break;
+    case 'firsttime':
+      echo '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=7,0,0,0"  width="500" height="600">
+              <param name="movie" value="/swf/first_time.swf?whichContent=' . $args[1] . '&popup=1" />
+              <param name="menu" value="false" />
+              <param name="quality" value="high" />
+              <param name="bgcolor" value="#ffffff" />
+              <embed src="/swf/template_top.swf?ff_label=' . $args[1] . '&popup=1" menu="false" quality="high" bgcolor="#ffffff" width="500" height="600" name="nav_top" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer"></embed>
+            </object>';
+      break;
+    case 'flix_manage_private':
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_DOCROOT . '/flix_manage_private.dsp.php';
+      break;
+    case 'flix_manage_public':
+      /*include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_DOCROOT . '/flix_manage_public.dsp.php';*/
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_DOCROOT . '/mypage_flix_config_public.dsp.php';
+      break;
+    case 'foto_progress':
+      include_once PATH_DOCROOT . '/progress.dsp.php';
+      break;
+    case 'fotoviewer':
+      include_once PATH_CLASS . '/CFotobox.php';
+      include_once PATH_DOCROOT . '/foto_viewer.dsp.php';
+      break;
+    case 'gallery_of_slideshows':
+      include_once PATH_CLASS . '/CUser.php';
+      $us =& CUser::getInstance();
+      $userData = $us->find($_USER_ID);
+      $tpl = file_get_contents(PATH_DOCROOT . '/flix_gallery_generator.tpl.php');
+      echo str_replace(array('{SERVER_NAME}', '{USER_KEY}', '{PAGE_SIZE}', '{DATE}'), array(FF_SERVER_NAME, $userData['U_KEY'], 6, date(RFC850, NOW)), $tpl);
+      break;
+    case 'media_page':
+      include_once PATH_CLASS . '/CUser.php';
+      $us =& CUser::getInstance();
+      $userData = $us->find($_USER_ID);
+      $tpl = file_get_contents(PATH_DOCROOT . '/flix_media_generator.tpl.php');
+      echo str_replace(array('{SERVER_NAME}', '{USER_KEY}', '{PAGE_SIZE}', '{DATE}'), array(FF_SERVER_NAME, $userData['U_KEY'], 6, date(RFC850, NOW)), $tpl);
+      break;
+    case 'mp3_delete_confirm':
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_CLASS . '/CFotobox.php';
+      include_once PATH_DOCROOT . '/mp3_delete_confirm.dsp.php';
+      break;
+    case 'mp3_manage':
+      include_once PATH_CLASS . '/CFotobox.php';
+      include_once PATH_DOCROOT . '/mp3_header.dsp.php';
+      include_once PATH_DOCROOT . '/mp3_manage.dsp.php';
+      break;
+    case 'mp3_update_form':
+      include_once PATH_CLASS . '/CFotobox.php';
+      include_once PATH_CLASS . '/CUser.php';
+      include_once PATH_CLASS . '/CFormValidator.php';
+      include_once PATH_DOCROOT . '/mp3_header.dsp.php';
+      include_once PATH_DOCROOT . '/mp3_upload.frm.php';
+      break;
+    case 'mp3_upload_form':
+      include_once PATH_CLASS . '/CUser.php';
+      include_once PATH_CLASS . '/CFormValidator.php';
+      include_once PATH_DOCROOT . '/mp3_header.dsp.php';
+      include_once PATH_DOCROOT . '/mp3_upload.frm.php';
+      break;
+    case 'mp3_progress':
+      include_once PATH_DOCROOT . '/progress.dsp.php';
+      break;
+    case 'mypage_flix_config_private':
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_DOCROOT . '/mypage_flix_config_private.dsp.php';
+      break;
+    case 'mypage_flix_config_public':
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_DOCROOT . '/mypage_flix_config_public.dsp.php';
+      break;
+    case 'public_flix':
+      echo '<div class="bold">What does it mean to make my Flix Public?</div>
+            Making your Flix public adds it to your FotoPage.  
+            In addition, public Flix may be used in various public sections of FotoFlix such as "Most Popular Flix".
+            <br /><br />
+            If you do not want your Flix to be viewed by people you don\'t know then you should use the Private setting.';
+      break;
+    case 'public_foto':
+      echo '<div class="bold">What does it mean to make my foto Public?</div>
+            Making your foto(s) public adds it to your FotoPage.  
+            In addition, public foto(s) may be used in various public sections of FotoFlix such as "Most Popular Fotos".
+            <br /><br />
+            If you do not want your foto to be viewed by people you don\'t know then you should use the Private setting.';
+      break;
+    case 'space_prorate':
+      $year = date('Y', NOW);
+      echo '<div class="bold">How does prorating work?</div>
+            Let\'s say, for example, that Joe User signs up on January 1, ' . $year . ' for a one year membership and runs out of space on June 1, ' . $year . '.<br /><br />Joe just took some really great pictures and chooses to buy 100MB of space for $1/month.  Joe will only pay $6 for the remainder of his membership (6 months).<br /><br />On January 1, ' . ($year + 1) . ' his account will be automatically renewed and the full year\'s price of $12 will be added to his membership renewal.<br /><br />It\'s that easy!!';
+      break;
+    case 'slideshow':
+      $key = $args[1];
+      if(strlen($key) == 32)
+      {
+        include_once PATH_CLASS . '/CFlix.php';
+        $fl =& CFlix::getInstance();
+        
+        $flixData = $fl->flashOutput($key);
+        $settings = jsonDecode($flixData['US_SETTINGS']);
+        $width    = intval($settings[0]['width_int']);
+        $height   = intval($settings[0]['height_int']);
+        $swfSrc = '/swf/container/dynamic/container_' . $width . '_' . $height . '.swf?slideshowKey_str=' . $flixData['US_KEY'] . '&version=' . FF_VERSION_TEMPLATE . '&timestamp=' . NOW;
+        
+        echo '<script type="text/javascript"> embedSwf({SRC:"' . $swfSrc . '", WIDTH:"' . $width . '", HEIGHT:"' . $height . '", BGCOLOR:"#000000"}); </script>';
+      }
+      break;
+    case 'terms':
+      include_once PATH_DOCROOT . '/terms.dsp.php';
+      break;
+    case 'terms_sale':
+      include_once PATH_DOCROOT . '/terms_sale.dsp.php';
+      break;
+    case 'upgrade_credit':
+      echo '<div class="bold">What is an upgrade credit?</div>
+            At FotoFlix we want to making sharing your memories with friends and family both affordable and convenient.  When you decide that it\'s time to upgrade your account we will subtract services you haven\'t used (i.e. remaining account period and additional space purchased).<br /><br />
+            You can deduct that amount from your purchase when you choose to upgrade.  You can pick an account at any time to adjust to your growing needs without wasting your money.<br /><br />So go ahead and upgrade!!';
+      break;
+  }
+  
+  echo '<script language="javascript"> self.focus(); </script>';
+  
+  include_once PATH_DOCROOT . '/footer_basic.dsp.php';
+  
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

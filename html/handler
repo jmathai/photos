@@ -1,0 +1,58 @@
+<?php
+  include_once './init_constants.php';
+  $urlParts = explode('/', $_SERVER['REQUEST_URI']);
+  $type= $urlParts[2];
+  $key = $urlParts[3];
+  
+  if(strlen($key) == 32)
+  {
+    include_once PATH_INCLUDE . '/functions.php';
+    include_once PATH_HOMEROOT . '/init.php';
+    
+    include_once PATH_DOCROOT . '/init_database.php';
+    
+    include_once PATH_CLASS . '/CUser.php';
+    $us =& CUser::getInstance();
+        
+    if($type == 'photo')
+    {
+      include_once PATH_CLASS . '/CFotobox.php';
+      $fb =& CFotobox::getInstance();
+      $fotoData = $fb->fotoData($key);
+      
+      $privacy = $fotoData['P_PRIVACY'];
+      if(permission($privacy, PERM_PHOTO_PUBLIC))
+      {
+        $userData = $us->find($fotoData['P_U_ID']);
+        $url = 'http://' . FF_SERVER_NAME . '/users/' . $userData['U_USERNAME'] . '/photo/' . $fotoData['P_ID'] . '/';
+      }
+      else 
+      {
+        $url = 'http://' . FF_SERVER_NAME . '/?action=public.foto_show&key=' . $fotoData['P_KEY'];
+      }
+    }
+    else 
+    {
+      /*include_once PATH_CLASS . '/CFlix.php';
+      $fl =& CFlix::getInstance();
+      $flixData = $fl->fastflix($key);
+      $privacy = $flixData['A_PRIVACY'];
+      if($privacy{0} == 3)
+      {
+        $userData = $us->find($flixData['A_U_ID']);
+        $url = 'http://' . FF_SERVER_NAME . '/users/' . $userData['U_USERNAME'] . '/flixview/' . $key . '/';
+      }
+      else 
+      {
+        $url = 'http://' . FF_SERVER_NAME . '/fastflix?' . $key;
+      }*/
+      $url = 'http://' . FF_SERVER_NAME . '/slideshow?' . $key;
+    }
+  }
+  else
+  {
+    $url = 'http://' . FF_SERVER_NAME . '/?action=error.404';
+  }
+  
+  header('Location: ' . $url);
+?>

@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+
+<head>
+  <script type="text/javascript" src="./jscripts/fckeditor/fckeditor.js"></script>
+  <script type="text/javascript" src="./jscripts/prototype.js"></script>
+  <script type="text/javascript" src="./jscripts/moo.fx.js"></script>
+  <script type="text/javascript" src="./jscripts/pmb.js"></script>
+  
+  <script type="text/javascript">
+    var pmb = new PMB();  
+    
+    function photos()
+    {
+      if($('photoToolbar'))
+      {
+        var effect = new fx.Height('photoToolbar', {onComplete:function(){ new Element.remove('photoToolbar'); } });
+        effect.toggle();
+      }
+      else
+      {
+        new Insertion.Before('FCKeditor1', '<div id="photoToolbar"><input type="text" style="width:100px;" id="search" />&nbsp;<input type="button" value="search" onclick="loadPhotos($(\'search\').value);" /></div><div id="searchLine"></div>');
+        var effect = new fx.Height('photoToolbar');
+        effect.hide();
+        effect.toggle();
+      }
+    }
+    
+    function loadPhotos(term)
+    {
+      pmb.load('http://jaisen.photagious.com/api/json?action=photo.search&TAGS='+term+'&LIMIT=10', 'loadPhotosRsp');
+    }
+    
+    function loadPhotosRsp(data)
+    {
+      var loader = function(data)
+      {
+        var _html = '<div id="photoDiv">';
+        
+        for(i=0; i<data.length; i++)
+        {
+          photo = data[i];
+          _html += '<a href="javascript:FCKInsertImg(\'http://jaisen.photagious.com/fotos'+photo.P_THUMB_PATH+'\');"><img src="http://jaisen.photagious.com/fotos' + photo.P_THUMB_PATH + '" width="75" height="75" vspace="5" hspace="5" border="0" /></a>';
+        }
+        
+        _html += '</div>';
+        
+        return _html;
+      }
+      
+      var _html = loader(data);
+    
+      if($('photoDiv'))
+      {
+        var effectHide = new fx.Opacity('photoDiv', {duration:200, onComplete:function(){ new Element.remove('photoDiv');  new Insertion.After('searchLine', _html); } });
+        effectHide.toggle();
+      }
+      else
+      {
+        new Insertion.After('searchLine', _html);
+        var effectShow = new fx.Opacity('photoDiv', {duration:200});
+        effectShow.hide();
+        effectShow.toggle();
+      }
+    }
+    
+    function FCKInsertImg(src)
+    {
+      var oEditor = FCKeditorAPI.GetInstance('FCKeditor1') ;
+      var _html = '<img src="' + src + '" width="75" height="75" hspace="5" vspace="5" border="0" />';
+      oEditor.InsertHtml(_html);
+    }
+  </script>
+</head>
+
+<body>
+<script type="text/javascript">
+<!--
+var oFCKeditor = new FCKeditor( 'FCKeditor1' ) ;
+oFCKeditor.BasePath = '/demo/jscripts/fckeditor/' ;
+oFCKeditor.Value = 'This is some <strong>sample text</strong>. You are using <a href="http://www.fckeditor.net/">FCKeditor</a>.' ;
+//-->
+</script>
+
+<a href="javascript:photos();">select a photo</a>
+
+<script type="text/javascript">
+oFCKeditor.Create();
+</script>
+</body>
+
+</html>

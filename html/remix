@@ -1,0 +1,69 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  include_once PATH_HOMEROOT . '/init.php';
+
+  if(!empty($flixData['A_BACKGROUND']))
+  {
+    $background = '/swf/flix_theme/bg/' . $flixData['A_BACKGROUND'];
+  }
+  else
+  {
+    $bgcolor = '#000000';
+    // leave this unset $background = '';
+  }
+  
+  $title = 'Photagious - Online Photo Slideshow Software - Create Flash Slideshows';
+  
+  include_once PATH_DOCROOT . '/header_basic.dsp.php';
+  
+  /*echo '<!--';
+  print_r(jsonDecode($flixData['US_SETTINGS']));
+  print_r(jsonDecode($flixData['US_ELEMENTS']));
+  echo '-->';*/
+  $swfSrc = '/swf/slideshow/test_halloween.swf';
+  if(strlen($_GET['photoKey']) == 32)
+  {
+    $swfSrc .= '?photoKey=' . $_GET['photoKey'];
+  }
+  $width  = '980';
+  $height = '650';
+?>
+
+    <div style="background-color:#000000; border-bottom:solid 1px #404040; height:30px; width:100%;">
+      <div style="width:865px; margin:auto;">
+        <div style="float:left; height:30px;">
+          <div style="float:left;"><a href="/"><img src="images/photagious_black_small.gif" width="94" height="21" hspace="25" vspace="5" border="0" /></a></div>
+        </div>
+        <div style="float:right; margin-top:7px; margin-right:5px;" class="f_white">
+          <?php
+            if($logged_in === false)
+            {
+              //echo '<div><a href="https://' . FF_SERVER_NAME . '/?action=home.registration_form_b" class="f_white plain">sign up for a free trial</a>&nbsp;|&nbsp;<a href="/?action=home.login_form&redirect=' . urlencode($_SERVER['REQUEST_URI']) . '" class="f_white plain">login</a></div>';
+            }
+            else
+            {
+              //echo '<div>logged in as <span class="f_red">' . $_FF_SESSION->value('username') . '</span> | <a href="/?action=member.logout.act&redirect=' . urlencode($_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING']) . '" class="plain f_white">logout</a></div>';
+            }
+          ?>
+        </div>
+        <br clear="all" />
+      </div>
+    </div>
+    
+    <div style="width:<?php echo $width; ?>px; margin:auto;">
+      <script language="javascript">
+        <?php echo 'embedSwf({SRC:"' . $swfSrc . '", WIDTH:"' . $width . '", HEIGHT:"' . $height . '", BGCOLOR:"#000000", VERSION:8});'; ?>
+      </script>
+    </div>
+
+<?php
+  echo footer();
+  
+  include_once PATH_DOCROOT . '/footer_basic.dsp.php';
+  
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

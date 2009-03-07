@@ -1,0 +1,51 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  
+  include_once PATH_CLASS . '/CFotobox.php';
+  include_once PATH_CLASS . '/CFotoboxManage.php';
+  
+  $fb =& CFotobox::getInstance();
+  $fbm=& CFotoboxManage::getInstance();
+  
+  $key = $_GET['key'];
+  
+  switch($_GET['size'])
+  {
+    case '75x75':
+      $field = 'P_THUMB_PATH';
+      $errorDoc = PATH_HOMEROOT . '/images/404_thumbnail.gif';
+      break;
+    case '400x300':
+      $field = 'P_FLIX_PATH';
+      $errorDoc = PATH_HOMEROOT . '/images/404_flix.gif';
+      break;
+    case '500x375':
+      $field = 'P_WEB_PATH';
+      $errorDoc = PATH_HOMEROOT . '/images/404_web.gif';
+      break;
+    /*case 'original':
+      $field = 'P_ORIG_PATH';
+      break;*/
+    default:
+      $field = 'P_FLIX_PATH';
+      $errorDoc = PATH_HOMEROOT . '/images/404_flix.gif';
+      break;
+  }
+  
+  $fotoData = $fb->fotoData($key);
+  $fileName = PATH_FOTOROOT . $fotoData[$field];
+  
+  if(is_file($fileName))
+  {
+    $fbm->viewed($fotoData['P_ID']);
+  }
+  else
+  {
+    $fileName = $errorDoc;
+  }
+  
+  header('Content-Type: image/jpeg');
+  header('Content-Length: ' . filesize($fileName));
+  readfile($fileName);
+?>

@@ -1,0 +1,41 @@
+body{
+  font-family:verdana,helvetica;
+  font-size:10px;
+}
+
+#container{
+  width:870px;
+  margin:auto;
+  padding:15px;
+  border:solid 1px #dddddd;
+}
+
+.search-field{
+  font-family:verdana,helvetica;
+  font-size:10px;
+  border:solid 1px #404040;
+}
+
+.loader{
+  background:url("ajax_loader_snake.gif") no-repeat;
+  padding:2px 0px 0px 20px;
+  height:16px;
+}
+
+.toolbar-element{
+  margin-left:20px;
+  float:left;
+}
+
+.plain{ text-decoration:none; }
+.bold{ font-weight:bold; }
+.f_12{ font-size:12px; }
+
+.left{ text-align:left; }
+.right{ text-align:right; }
+
+.photo-loader{
+  position:absolute;
+  margin:10px 0px 0px 10px;
+  background-color:#fff;
+}

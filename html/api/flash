@@ -1,0 +1,419 @@
+<?php
+  include_once '../init_constants.php';
+  
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  $action = isset($_GET['action']) ? $_GET['action'] : null;
+  $params = $_REQUEST;
+  
+  switch($action)
+  {
+    case 'addEmail':
+      include_once PATH_CLASS . '/CUserManage.php';
+      $um =& CUserManage::getInstance();
+      $output = $um->addEmail($_REQUEST['email']);
+      break;
+    case 'createSlideshow':
+      include_once PATH_CLASS . '/CFlixManage.php';
+      //ob_start();
+      $flm =& CFlixManage::getInstance();
+      
+      $main = jsonDecode($_POST['main']);
+      $elementsDecoded = jsonDecode($_POST['elements']);
+      
+      $main['MODE'] = 'INSERT';
+      /*if(isset($main['TAGS']))
+      {
+        $main['TAGS'] = (array)explode(',', $main['TAGS']);
+      }*/
+      
+      $main['USER_ID']  = $_USER_ID;
+      $main['FOTOCOUNT']= count($elementsDecoded);
+      $main['PRIVACY']  = PERM_SLIDESHOW_DEFUALT;
+      
+      $settings = $_POST['settings'];
+      $elements = $_POST['elements'];
+      
+      $output = $flm->createSlideshow($main, $settings, $elements);
+      //mail('jaisen@jmathai.com', 'create', $output . "\n" . ob_get_contents());
+      //ob_end_clean();
+      break;
+    case 'getHash':
+      $output = md5('ff_' . $_SERVER['REMOTE_ADDR'] . '_ip');
+      break;
+    case 'getMusic':
+      include_once PATH_CLASS . '/CMusic.php';
+      $m =& CMusic::getInstance();
+      $output = array();
+      
+      if(isset($_GET['GENRE']))
+      {
+        if($_GET['GENRE'] == 'My Music')
+        {
+          $arr = $m->myMusic($_USER_ID);
+        }
+        else
+        {
+          $arr = $m->music($_GET['GENRE']);
+        }
+      }
+      else
+      if(isset($_GET['TEMPLATE']))
+      {
+        $arr = $m->templatePlaylist($_GET['TEMPLATE'], $_USER_ID);
+      }
+      
+      if(is_array($arr))
+      {
+        foreach($arr as $v)
+        {
+          $output[] = $v;
+        }
+      }
+      break;
+    case 'getPermissions':
+      $output = array(  'PERM_USER_0' => PERM_USER_0,
+                        'PERM_USER_1' => PERM_USER_1,
+                        'PERM_PHOTO_PRIVATE' => PERM_PHOTO_PRIVATE,
+                        'PERM_PHOTO_PUBLIC' => PERM_PHOTO_PUBLIC,
+                        'PERM_PHOTO_COMMENT' => PERM_PHOTO_COMMENT,
+                        'PERM_PHOTO_DOWNLOAD' => PERM_PHOTO_DOWNLOAD,
+                        'PERM_PHOTO_PRINT' => PERM_PHOTO_PRINT,
+                        'PERM_SLIDESHOW_PRIVATE' => PERM_SLIDESHOW_PRIVATE,
+                        'PERM_SLIDESHOW_PUBLIC' => PERM_SLIDESHOW_PUBLIC
+                      );
+      break;
+    case 'getPhoto':
+      include_once PATH_CLASS . '/CFotobox.php';
+      $fb =& CFotobox::getInstance();
+      
+      if(isset($_GET['PHOTO_ID']))
+      {
+        $param1 = intval($_GET['PHOTO_ID']);
+      }
+      else
+      {
+        $param1 = $_GET['PHOTO_KEY'];
+      }
+      
+      $output = $fb->fotoData($param1); // get the photo
+      
+      // if the user is not logged in make sure it's public
+      if($output['P_U_ID'] != $_USER_ID && $output['P_PRIVACY'] == PERM_PHOTO_PRIVATE)
+      {
+        $output = false;
+      }
+      
+      break;
+    case 'getSlideshow':
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_CLASS . '/CUser.php'; // this is so that flash can get the userkey
+      $fl =& CFlix::getInstance();
+      $u  =& CUser::getInstance();
+      
+      $data = $fl->flashOutput($params['SLIDESHOW_KEY']);
+      $output = array();
+      foreach($data as $k => $v)
+      {
+        if($k != 'US_SETTINGS' && $k != 'US_ELEMENTS')
+        {
+          $output[$k] = $v;
+        }
+      }
+      
+      $userData = $u->find($data['US_U_ID']);
+      
+      $output['US_U_KEY'] = $userData['U_KEY'];
+      $output['SETTINGS'] = jsonDecode($data['US_SETTINGS']);
+      $output['ELEMENTS'] = jsonDecode($data['US_ELEMENTS']);
+      break;
+    case 'getSlideshows':
+      include_once PATH_CLASS . '/CFlix.php';
+      include_once PATH_CLASS . '/CUser.php';
+      $fl =& CFlix::getInstance();
+      $u  =& CUser::getInstance();
+      
+      $params = array('USER_ID' => $_USER_ID); // default to the logged in user.  this can be overridden for public slideshows
+      
+      if($_GET['TAGS'] != '')
+      {
+        $params['TAGS'] = $_GET['TAGS'];
+      }
+      
+      if($_GET['TYPE'] != '')
+      {
+        $params['TYPE'] = $_GET['TYPE'];
+      }
+      
+      switch($_GET['PRIVACY'])
+      {
+        case 'public':
+          $params['PERMISSION'] = PERM_SLIDESHOW_PUBLIC;
+          if(strlen($_GET['USERKEY']) == 32)
+          {
+            $userData = $u->find($_GET['USERKEY']);
+            $params['USER_ID'] = $userData['U_ID']; // override default userId
+          }
+          break;
+      }
+      
+      $data = $fl->search($params);
+      $output = array();
+      foreach($data as $k => $v)
+      {
+        unset($v['US_SETTINGS'], $v['US_ELEMENTS']);
+        $output[$k] = $v;
+      }
+      break;
+    case 'getTags':
+      include_once PATH_CLASS . '/CTag.php';
+      $t =& CTag::getInstance();
+      $output = $t->tags($_USER_ID, 'TAG');
+      break;
+    case 'getThemes':
+      include_once PATH_CLASS . '/CFlix.php';
+      $fl =& CFlix::getInstance();
+      $output = $fl->themes($_USER_ID);
+      foreach($output as $k => $v)
+      {
+        $output[$k]['T_SETTINGS'] = jsonDecode($v['T_SETTINGS']);
+      }
+      break;
+    case 'getToolbox':
+      include_once PATH_CLASS . '/CToolbox.php';
+      $tb =& CToolbox::getInstance();
+      $output = $tb->get($_USER_ID); //);
+      break;
+    case 'getUserByKey':
+      include_once PATH_CLASS . '/CUser.php';
+      $us =& CUser::getInstance();
+      $output = $us->find($_GET['userKey']);
+      break;
+    case 'getUserPermission':
+      include_once PATH_CLASS . '/CUser.php';
+      $us =& CUser::getInstance();
+      $userData = $us->find($_USER_ID);
+      
+      $output = $userData['U_ACCOUNTTYPE'];
+      break;
+    case 'getVideo':
+      include_once PATH_CLASS . '/CVideo.php';
+      $v =& CVideo::getInstance();
+      
+      $identifier = isset($_REQUEST['videoId']) ? $_REQUEST['videoId'] : $_REQUEST['videoKey'];
+      
+      $output = $v->find($identifier); // does not require user_id (public video)
+      break;
+    case 'initializeUploader':
+      include_once PATH_CLASS . '/CUser.php';
+      $u =& CUser::getInstance();
+      $uploadKey = $u->userIdEnc($_USER_ID);
+      
+      $output = array(
+                  'USER_ID' => intval($_USER_ID), 
+                  'UPLOAD_KEY' => $uploadKey, 
+                  'PHOTO_PRIVATE'  => PERM_PHOTO_PRIVATE,
+                  'PHOTO_PUBLIC'   => PERM_PHOTO_PUBLIC,
+                  'PHOTO_COMMENT'  => PERM_PHOTO_COMMENT,
+                  'PHOTO_TAG'      => PERM_PHOTO_TAG,
+                  'PHOTO_DOWNLOAD' => PERM_PHOTO_DOWNLOAD,
+                  'PHOTO_COPY'     => PERM_PHOTO_COPY,
+                  'PHOTO_PRINT'    => PERM_PHOTO_PRINT,
+                  'PHOTO_DEFAULT'  => $u->pref($_USER_ID, 'FOTO_PRIVACY'),
+                  'DATE'           => date('Y-m-d H:i:s', NOW)
+                );
+      if($output['PHOTO_DEFAULT'] === false)
+      {
+        $output['PHOTO_DEFAULT'] = PERM_PHOTO_DEFUALT;
+      }
+      break;
+    case 'isAuthenticated':
+      include_once PATH_CLASS . '/CUser.php';
+      $u =& CUser::getInstance();
+      $output = array('USER_ID' => intval($_USER_ID), 'TYPE' => $_FF_SESSION->value('account_perm'), 'USERNAME' => $_FF_SESSION->value('username'));
+      break;
+    case 'login':
+      include_once PATH_CLASS . '/CUser.php';
+      $us =& CUser::getInstance();
+      
+      $userData = $us->find($_GET['USERNAME'], $_GET['PASSWORD']);
+      
+      if($userData !== false)
+      {
+        $doLogin = false;
+        if($logged_in === true)
+        {
+          if($_USER_ID == $userData['U_ID'])
+          {
+            $output = intval($_USER_ID);
+          }
+          else
+          {
+            $doLogin = true;
+          }
+        }
+        else
+        {
+          $doLogin = true;
+        }
+        
+        if($doLogin === true)
+        {
+          $user_id = $userData['U_ID'];
+          $email = $userData['U_EMAIL'];
+          $username = $userData['U_USERNAME'];
+          $account_perm     = $userData['U_ACCOUNTTYPE'];
+          $is_trial = $userData['U_ISTRIAL'];
+          
+          include_once PATH_DOCROOT . '/login_manual.act.php';
+          
+          $output = intval($userData['U_ID']);
+        }
+      }
+      else
+      {
+        $output = 0;
+      }
+      break;
+    case 'logout':
+      include_once PATH_DOCROOT . '/logout.act.php';
+      $output = true;
+      break;
+    case 'orderDvd':
+      include_once PATH_CLASS . '/CUser.php';
+      include_once PATH_CLASS . '/CEcom.php';
+      include_once PATH_CLASS . '/CMail.php';
+      $u =& CUser::getInstance();
+      $ecom   =& new CEcom($_USER_ID, $_SESSION_HASH);
+      $m =& CMail::getInstance();
+      $userData = $u->find($_USER_ID);
+      $payment_info = array(
+        'order_num' => 0,
+        'invoice_num' => 0,
+        'amount'    => $_REQUEST['price_int'],
+        'tax'       => '0',
+        'shipping'  => $_REQUEST['shipPrice_int'],
+        
+        'cc_num'    => $_REQUEST['cc_int'],
+        'cc_exp'    => substr('0' . $_REQUEST['ccMonth_int'] . $_REQUEST['ccYear_int'], -6),
+        'cc_code'   => $_REQUEST['cvv_int'],
+        'cc_type'   => '',
+        'recurring' => 'NO',
+        
+        'first_name'=> $_REQUEST['firstName_str'],
+        'last_name' => $_REQUEST['lastName_str'],
+        'company'   => '',
+        'address'   => $_REQUEST['ccAddress1_str'],
+        'city'      => $_REQUEST['ccCity_str'],
+        'state'     => $_REQUEST['ccState_str'],
+        'zip'       => $_REQUEST['ccZip_str'],
+        'country'   => 'US',
+        'phone'     => '',
+        'fax'       => '',
+        'email'     => $userData['U_EMAIL'],
+        
+        'customer_id'     => $userData['U_ID'],
+        'customer_ip'     => '',
+        'description'     => ''
+      );
+      
+      $response = $ecom->checkout($payment_info);
+      if ($response != ECOM_APPROVED)
+      {
+        $output = false;
+      }
+      else
+      {
+        $from = FF_EMAIL_FROM_FORMATTED;
+        $headers = "MIME-Version: 1.0\n"
+                 . "Content-type: text/plain; charset=iso-8859-1\n"
+                 . 'Return-Path: ' . $from . "\n"
+                 . 'From: ' . $from;
+        $body = "DVD Order Details:\n\nUserId - {$userData['U_ID']}\nUsername - {$userData['U_USERNAME']}\n";
+        foreach($_POST as $k => $v)
+        {
+          $body .= "{$k} - {$v}\n";
+        }
+        $m->send($from, 'New DVD Order', $body, $headers, $from);
+        
+        $output = true;
+      }
+      break;
+    case 'searchPhotos':
+      include_once PATH_CLASS . '/CFotobox.php';
+      $fb =& CFotobox::getInstance();
+      
+      $params = $_GET;
+      $params['USER_ID'] = $_USER_ID;
+      $output = $fb->fotosSearch($params);
+      break;
+    case 'searchVideos':
+      include_once PATH_CLASS . '/CVideo.php';
+      $v =& CVideo::getInstance();
+      
+      $params = $_POST;
+      $params['USER_ID'] = $_USER_ID;
+      $output = $v->search($params);
+      break;
+    case 'sendEmail':
+      if(stristr($_SERVER['HTTP_REFERER'], FF_SERVER_NAME))
+      {
+        include_once PATH_CLASS . '/CMail.php';
+        $m = &CMail::getInstance();
+        $to = $_POST['to'];
+        $from = $_POST['from'];
+        $subject = $_POST['subject'];
+        $message = $_POST['message'];
+        
+        $headers = "MIME-Version: 1.0\n"
+                 . "Content-type: text/plain; charset=iso-8859-1\n"
+                 . 'Return-Path: ' . $from . "\n"
+                 . 'From: ' . $from;
+        
+        $m->send($to, $subject, $message, $headers, $from);
+        $output = true;
+      }
+      else
+      {
+        $output = false;
+      }
+      break;
+    case 'shareSlideshow':
+      include_once PATH_CLASS . '/CMail.php';
+      include_once PATH_DOCROOT . '/home_slideshow_share.act.php';
+      break;
+    case 'updateSlideshow':
+      include_once PATH_CLASS . '/CFlixManage.php';
+      $flm =& CFlixManage::getInstance();
+      
+      $main = jsonDecode($_POST['main']);
+      $elementsDecoded = jsonDecode($_POST['elements']);
+      
+      /*if(isset($main['TAGS']))
+      {
+        $main['TAGS'] = (array)explode(',', $main['TAGS']);
+      }*/
+      
+      $main['USER_ID'] = $_USER_ID;
+      $main['FOTOCOUNT'] = count($elementsDecoded);      
+      
+      $settings = $_POST['settings'];
+      $elements = $_POST['elements'];
+      $output = $flm->updateSlideshow($main, $settings, $elements);
+      break;
+  }
+  
+  if(isset($output))
+  {
+    $output = jsonEncode($output);
+    echo 'json=' . urlencode($output);
+  }
+  else
+  {
+    header('HTTP/1.0 404 Not Found');
+  }
+?>

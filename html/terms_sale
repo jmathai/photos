@@ -1,0 +1,4 @@
+<?php
+  $_GET['action'] = 'home.terms_sale';
+  include_once './index.php';
+?>

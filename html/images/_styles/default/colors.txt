@@ -1,0 +1,185 @@
+//-----------------------
+
+style_path = "_styles/default/bold_blue/";
+
+c_dark = #0E2F88
+c_medium = #3766BB
+c_light = #CAD7EC
+
+bgColor = #0B0D69
+
+
+//-----------------------
+
+style_path = "_styles/default/bold_green_yellow/";
+
+
+
+c_dark = #656F0B
+c_medium = #9BAB41
+c_light = #E7EBC4
+
+bgColor = #5D6B08
+
+
+//-----------------------
+
+
+style_path = "_styles/default/bold_violet/";
+
+c_dark = #662655
+c_medium = #8C4E7C
+c_light = #EACEE3
+
+bgColor = #61194F
+
+
+//-----------------------
+
+
+style_path = "_styles/default/bold_red/";
+
+c_dark = #801E1E
+c_medium = #B92E2E
+c_light = #F0F0F0
+
+bgColor = #87F1411
+
+
+//-----------------------
+
+
+style_path = "_styles/default/bold_green/";
+
+c_dark = #3F693B
+c_medium = #639163
+c_light = #D1F7CD
+
+bgColor = #3E633D
+
+//-----------------------
+
+
+style_path = "_styles/default/bold_grey/";
+
+c_dark = #4F4F4F
+c_medium = #737373
+c_light = #E3E3E3
+
+bgColor = #4B4B4B
+
+
+//-----------------------
+
+
+style_path = "_styles/default/bold_brown/";
+
+c_dark = #3B3817
+c_medium = #767856
+c_light = #D8D9CC
+
+bgCOlor = #675706
+
+
+
+//-----------------------
+
+style_path = "_styles/default/bold_gold/";
+
+c_dark = #675706
+c_medium = #9C9940
+c_light = #E6E5C4
+
+bgCOlor = #675706
+
+
+//-----------------------
+
+style_path = "_styles/default/light_green/";
+
+c_dark = #598664
+c_medium = #7C9D84
+c_light = #CDDDD1
+
+bgCOlor = #DCE8E0
+
+
+//-----------------------
+
+
+style_path = "_styles/default/light_grey/";
+
+c_dark = #717171
+c_medium = #8C8C8C
+c_light = #D4D4D4
+
+bgCOlor = #E2E2E2
+
+
+
+//-----------------------
+
+style_path = "_styles/default/light_slate/";
+
+c_dark = #5C7684
+c_medium = #7D909B
+c_light = #CDD6DB
+
+bgCOlor = #DCE2E6
+
+
+
+//-----------------------
+
+style_path = "_styles/default/light_peach/";
+
+c_dark = #906845
+c_medium = #A7885F
+c_light = #E1D5C3
+
+bgCOlor = #EBE3D3
+
+
+//-----------------------
+
+style_path = "_styles/default/light_blue/";
+
+c_dark = #4E6593
+c_medium = #6D89B5
+c_light = #CAD9FE
+
+bgCOlor = #D8E8FF
+
+
+//---------------------------------------
+
+style_path = "_styles/default/light_tan/";
+
+c_dark = #797B54
+c_medium = #97977A
+c_light = #E4E4DB
+
+bgCOlor = #ECEBE5
+
+
+//----------------------------------------
+7
+style_path = "_styles/default/light_pink/";
+
+c_dark = #93325B
+c_medium = #B25885
+c_light = #F5D3E0
+
+bgCOlor = #FCE0E9
+
+//-----------------------------------------
+
+style_path = "_styles/default/light_purple/";
+
+c_dark = #60477E
+c_medium = #876799
+c_light = #DFD4E5
+
+bgCOlor = #E8E0ED
+
+

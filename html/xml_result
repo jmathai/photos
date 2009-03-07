@@ -1,0 +1,3642 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  header('Cache-Control: max-age=3, must-revalidate'); // cache for 3 seconds
+  
+  if(isset($_REQUEST['action']))
+  {
+    switch($_REQUEST['action'])
+    {
+      case 'approve_photo':
+        include PATH_CLASS . '/CGroupManage.php';
+        $gm = &CGroupManage::getInstance();
+        
+        $group_id = $_GET['group_id'];
+        $photo_id = $_GET['photo_id'];
+        $photo_orig_id = $_GET['photo_orig_id'];
+        $u_orig_id = $_GET['u_orig_id'];
+        
+        $gm->approvePhoto($group_id, $photo_id, $photo_orig_id, $u_orig_id);
+        break;
+      case 'approve_slideshow':
+        include PATH_CLASS . '/CGroupManage.php';
+        $gm = &CGroupManage::getInstance();
+        
+        $group_id = $_GET['group_id'];
+        $slideshow_id = $_GET['slideshow_id'];
+        $slideshow_orig_id = $_GET['slideshow_orig_id'];
+        $u_orig_id = $_GET['u_orig_id'];
+        
+        $gm->approveSlideshow($group_id, $slideshow_id, $slideshow_orig_id, $u_orig_id);
+        break;
+      case 'avatar_update':
+        include_once PATH_CLASS . '/CUserManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        
+        $um =& CUserManage::getInstance();
+        $fb =& CFotobox::getInstance();
+        
+        $retval = '';
+        
+        if($_GET['id'] == 0)
+        {
+          $um->removePrefs($_USER_ID, array('AVATAR', 'AVATAR_KEY'));
+          $retval = 'images/avatar.jpg';
+        }
+        else
+        {
+          $fotoData = $fb->fotoData($_GET['id'], $_USER_ID);
+          
+          if(isset($fotoData['P_THUMB_PATH']))
+          {
+            $um->setPrefs($_USER_ID, array('AVATAR' => $fotoData['P_THUMB_PATH'], 'AVATAR_KEY' => $fotoData['P_KEY']));
+            $src = $fotoData['P_THUMB_PATH'];
+            $retval = dynamicImage($src, $fotoData['P_KEY'], PAGE_AVATAR_WIDTH, PAGE_AVATAR_HEIGHT);
+          }
+          else
+          {
+            $retval = 'null';
+          }
+        }
+        
+        echo 'true,' . $retval;
+        break;
+      case 'beta_email':
+        include_once PATH_CLASS . '/CUser.php';
+        $u = &CUser::getInstance();
+        
+        $be_email = $_GET['be_email'];
+        $u->beta($be_email);
+        
+        break;
+      case 'blog_entry_delete':
+        include_once PATH_CLASS . '/CBlog.php';
+        $b =& CBlog::getInstance();
+        
+        $entryId = $_POST['entryId'];
+        $b->delete($_USER_ID, $entryId);
+        echo jsonEncode($entryId);
+        break;
+      case 'blog_retrieve_id':
+        include_once PATH_CLASS . '/CApiClient.php';
+        include_once PATH_CLASS . '/CXml.php';
+        
+        $api =& CApiClient::getInstance();
+        $xml =& CXml::getInstance();
+        
+        switch($_GET['blog'])
+        {
+          case 'Blogger':
+            $rsp = $api->atom(array('HOST' => 'www.blogger.com', 'PATH' => '/atom', 'USERNAME' => $_GET['username'], 'PASSWORD' => $_GET['password'], 'METHOD' => 'GET', 'AUTHENTICATION' => 'BASIC', 'PROTOCOL' => 'SSL', 'CONTENT' => ''));
+            break;
+          case 'MovableType':
+            $urlParts = parse_url($_GET['endpoint']);
+            $entry = $api->atomRequestContent(array('METHOD' => 'blogger.getUsersBlogs', 'BLOG_ID' => '', 'USERNAME' => $_GET['username'], 'PASSWORD' => $_GET['password'], 'ISSUED' => NOW));
+            $rsp = $api->atom(array('HOST' => $urlParts['host'], 'PATH' => $urlParts['path'], 'METHOD' => 'POST', 'AUTHENTICATION' => 'BASIC-RPC', 'PROTOCOL' => 'HTTP', 'CONTENT' => $entry, 'ISSUED' => NOW));
+            break;
+          case 'TypePad':
+            $rsp = $api->atom(array('HOST' => 'www.typepad.com', 'PATH' => '/t/atom/weblog', 'USERNAME' => $_GET['username'], 'PASSWORD' => $_GET['password'], 'METHOD' => 'GET', 'AUTHENTICATION' => 'SECURE', 'PROTOCOL' => 'SSL', 'CONTENT' => ''));
+            break;
+          case 'WordPress':
+            $urlParts = parse_url($_GET['endpoint']);
+            $entry = $api->atomRequestContent(array('METHOD' => 'blogger.getUsersBlogs', 'BLOG_ID' => '', 'USERNAME' => $_GET['username'], 'PASSWORD' => $_GET['password'], 'ISSUED' => NOW));
+            $rsp = $api->atom(array('HOST' => $urlParts['host'], 'PATH' => $urlParts['path'], 'METHOD' => 'POST', 'AUTHENTICATION' => 'BASIC-RPC', 'PROTOCOL' => 'HTTP', 'CONTENT' => $entry, 'ISSUED' => NOW));
+            break;
+        }
+        //echo $rsp;
+        // Get XML from HTTP response
+        preg_match('/\<\?xml.*\>/ms', $rsp, $matches);
+        $rsp_xml = $matches[0];
+        
+        // Get first line from HTTP response
+        preg_match('/.*/', $rsp, $matches);
+        $rsp_line_1 = $matches[0];
+        
+        $rsp_code = $api->getHttpStatus($rsp);
+        
+        if($rsp_line_1 != 'H' && $rsp_code == 200 && $_GET['blog'] != 'MovableType' && $_GET['blog'] != 'WordPress')
+        {
+          $xml->loadXml($rsp_xml);
+          $data = $xml->toArray();
+        }
+        else 
+        if($rsp_code == 200 && $_GET['blog'] == 'MovableType' || $_GET['blog'] == 'WordPress')
+        {
+          preg_match('/<struct>(.*)<\/struct>/sm', $rsp, $xmlNeeded);
+          $legend = array('blogid' => 0, 'url' => 1, 'blogName' => 2);
+          
+          preg_match_all('/<member>(.*)<\/member>/Ums', $xmlNeeded[1], $members);
+          $metaBlogs = array('blogids' => array(), 'urls' => array(), 'blogNames' => array());
+          
+          foreach((array)$members[1] as $v)
+          {
+            preg_match('/<name>(.*)<\/name>.*<string>(.*)<\/string>/ums', $v, $values);
+            $found = preg_match('/<string>(.*)<\/string>/u', $v, $value);
+            if($found > 0)
+            {
+              switch($values[1])
+              {
+                case 'url':
+                  $metaBlogs['urls'][] = $values[2];
+                  break;
+                case 'blogid':
+                  $metaBlogs['blogids'][] = $values[2];
+                  break;
+                case 'blogName':
+                  $metaBlogs['blogNames'][] = $values[2];
+                  break;
+                case 'faultString':
+                case 'faultCode':
+                  $do_error = $values[2];
+                  break;
+              }
+            }
+          }
+          
+          if(!isset($do_error))
+          {
+            $data = array();
+            foreach($metaBlogs['blogids'] as $k => $v)
+            {
+              $data[] = array('blogid' => $metaBlogs['blogids'][$k], 'url' => $metaBlogs['urls'][$k], 'blogName' => $metaBlogs['blogNames'][$k]);
+            }
+          }
+        }
+        
+        if($rsp_line_1 == 'H')
+        {
+          $return = 'failure~invalid_credentials';
+        }
+        else
+        if(isset($data['error']) || $data[0] == 'Invalid login' || $rsp_code == '404' || isset($do_error))
+        {
+          if($data['error']['#'][0] == 'Invalid login' || $data[0] == 'Invalid login' || $rsp_line_1 == 'H')
+          {
+            $return = 'failure~invalid_login';
+          }
+          else
+          if($data['error']['#'][0] == 'X-WSSE PasswordDigest is incorrect')
+          {
+            $return = 'failure~invalid_password';
+          }
+          else
+          if($rsp_code == '404')
+          {
+            $return = 'failure~file_not_found';
+          }
+          else 
+          if(isset($do_error))
+          {
+            $return = 'failure_custom~' . $do_error;
+          }
+        }
+        else
+        if(isset($data))
+        {
+          $return = 'success';
+          switch($_GET['blog'])
+          {
+            case 'Blogger':
+            case 'TypePad':
+              foreach($data['feed']['#']['link'] as $v)
+              {
+                if($v['@']['rel'] == 'service.post')
+                {
+                  $url = $v['@']['href'];
+                  preg_match('/\d+$/', $url, $matches);
+                  $return .= '~' . $matches[0];
+                  
+                  if($_GET['blog'] == 'Blogger')
+                  {
+                    $return .= '``' . str_replace('~', ' ' , $v['@']['title']);
+                  }
+                }
+                else
+                if($v['@']['rel'] == 'alternate' && $_GET['blog'] == 'TypePad')
+                {
+                  $return .= '`' . $v['@']['href'] . '`' . str_replace('~', ' ' , $v['@']['title']);
+                }
+              }
+              break;
+            case 'MovableType':
+            case 'WordPress':
+              foreach($data as $v)
+              {
+                $return .= '~' . $v['blogid'] . '`' . $v['url'] . '`' . $v['blogName'];
+              }
+              break;
+          }
+        }
+        
+        echo $return;
+        break;
+      case 'billing_update':
+        ob_start();
+        include_once PATH_CLASS . '/CEcom.php';
+        include_once PATH_CLASS . '/CEcomGateway.php';
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        include_once PATH_CLASS . '/CToken.php';
+        
+        /*
+        * the post array is a mess since it was once a get request and did a poor job at obfustication :)
+        * 1 - credit card #
+        * 2 - expiration month
+        * 3 - expiration year
+        * 4 - cvv code
+        * 5 - first name
+        * 6 - last name
+        * 7 - address
+        * 8 - city
+        * 9 - state
+        * 10- zip
+        * 11- amount
+        * 12- payment id
+        * 13- user id
+        */
+        
+        $paymentId = $_POST['12'];
+        $userId    = $_POST['13'];
+        
+        $_SESSION_HASH = $_FF_SESSION->value('sess_hash');
+        $us   =& CUser::getInstance();
+        $usm  =& CUserManage::getInstance();
+        $tok  =& CToken::getInstance();
+        $ecom =& new CEcom($userId, $_SESSION_HASH);
+        $validate = $tok->getToken($_POST['token']);
+        
+        if($validate !== false)
+        {
+          $gateway =& CEcomGateway::init(ECOMGATEWAY_AUTHORIZE);
+          
+          $opts    = array(
+                      'cc_num'    => $_POST['1'],
+                      'cc_exp'    => $_POST['2'] . $_POST['3'],
+                      'cc_code'   => $_POST['4'],
+                      'first_name'=> $_POST['5'],
+                      'last_name' => $_POST['6'],
+                      'company'   => '',
+                      'address'   => $_POST['7'],
+                      'city'      => $_POST['8'],
+                      'state'     => $_POST['9'],
+                      'zip'       => $_POST['10'],
+                      'amount'    => $_POST['11']
+          );
+          
+          $status  =  $gateway->send($opts);
+          switch($status)
+          {
+            case ECOM_APPROVED:
+              $tok->clearToken($_POST['token']); // delete the token so it can't be used again
+              
+              $recurDetail = $ecom->getRecurringPayment($paymentId, $userId); // get payment to calculate new initial date
+              
+              // adjust initial date to run on current day
+              // keep month/year in tact
+              $initialDate = (array)explode('-', $recurDetail['R_INITIALDATE']);
+              $initialDate[2] = min(27, date('d', NOW));
+              $initialDate = implode('-', $initialDate);
+              
+              // get active user record
+              $userData = $us->find($userId);
+              // if user is expired or inactive then try again
+              if($userData === false)
+              {
+                $userData = $us->inactive($userId);
+              }
+              
+              switch($recurDetail['R_PERIOD'])
+              {
+                case 'Monthly':
+                  $expirationDate = date('Y-m-d', strtotime('+1 month', $userData['U_DATEEXPIRES']));
+                  break;
+                case 'Yearly':
+                  $expirationDate = date('Y-m-d', strtotime('+1 year', $userData['U_DATEEXPIRES']));
+                  break;
+              }
+              
+              // update expiration for user
+              $usm->update(
+                      array(
+                        'u_id' => $userId, 'u_dateExpires' => $expirationDate, 'u_isTrial' => 0, 'u_status' => 'active'
+                      )
+                    );
+              
+              // update the recurring payment record
+              $ecom->updateRecurringPayment(
+                  array('er_id' => $paymentId, 'er_u_id' => $userId, 'er_initialDate' => $initialDate, 'er_status' => 'Active')
+                );
+              
+              $user_id      = $userId;
+              $username     = $userData['U_USERNAME'];
+              $email        = $userData['U_EMAIL'];
+              $account_perm = $userData['U_ACCOUNTTYPE'];
+              $is_trial     = $userData['U_ISTRIAL'];
+              include_once PATH_DOCROOT . '/login_manual.act.php';
+              
+              $paymentStatus = 'Success';
+              echo 'ok';
+              break;
+            case ECOM_DECLINED:
+              $paymentStatus = 'Failure';
+              echo 'declined';
+              break;
+            case ECOM_ERROR:
+            default:
+              $paymentStatus = 'Failure';
+              echo 'error';
+              break;
+          }
+          
+          // add the result to the database
+          if($paymentId > 0) // id of recurring payment
+          {
+            $ecom->addRecurringResult($paymentId, $paymentStatus);
+          }
+        }
+        else 
+        {
+          echo 'invalid_token~';
+        }
+        break;
+        
+      case 'calendar_fotos':
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CGroup.php';
+        $fb = &CFotobox::getInstance();
+        $g = &CGroup::getInstance();
+        
+        $month = $_GET['month'];
+        $day = $_GET['day'];
+        $year = $_GET['year'];
+        $group_id = isset($_GET['group_id']) ? $_GET['group_id'] : '';
+        $orderBy = isset($_GET['orderBy']) ? $_GET['orderBy'] : '';
+        
+        $currTimestamp = mktime(0, 0, 0, $month, $day, $year);
+        $currTime = getdate($currTimestamp);
+        $first = getdate(mktime(0, 0, 0, $currTime['mon'], 1, $currTime['year']));
+        $end = getdate(mktime(0, 0, 0, $currTime['mon']+1, 1, $currTime['year']));
+        $numDays = date('t', $currTimestamp);
+        
+        if($group_id != '')
+        {
+          if($orderBy != '')
+          {
+            if($orderBy == 'dateTaken')
+            {
+              $order = 'P_TAKEN';
+              $fotos = $g->fotosSearch(array('GROUP_ID' => $group_id, 'DATE_TAKEN_START' => $first[0], 'DATE_TAKEN_END' => $end[0], 'ORDER' => $order));
+            }
+            else 
+            {
+              $order = 'P_CREATED';
+              $fotos = $g->fotosSearch(array('GROUP_ID' => $group_id, 'DATE_CREATED_START' => $first[0], 'DATE_CREATED_END' => $end[0], 'ORDER' => $order));
+            }
+          }
+          else 
+          {
+            $order = 'P_TAKEN';
+            $fotos = $g->fotosSearch(array('GROUP_ID' => $group_id, 'DATE_TAKEN_START' => $first[0], 'DATE_TAKEN_END' => $end[0], 'ORDER' => $order));
+          }
+        }
+        else 
+        {
+          if($orderBy != '')
+          {
+            if($orderBy == 'dateTaken')
+            {
+              $order = 'P_TAKEN';
+              $fotos = $fb->fotosSearch(array('USER_ID' => $_USER_ID, 'DATE_TAKEN_START' => $first[0], 'DATE_TAKEN_END' => $end[0], 'ORDER' => $order));
+            }
+            else 
+            {
+              $order = 'P_CREATED';
+              $fotos = $fb->fotosSearch(array('USER_ID' => $_USER_ID, 'DATE_CREATED_START' => $first[0], 'DATE_CREATED_END' => $end[0], 'ORDER' => $order));
+            }
+          }
+          else 
+          {
+            $order = 'P_TAKEN';
+            $fotos = $fb->fotosSearch(array('USER_ID' => $_USER_ID, 'DATE_TAKEN_START' => $first[0], 'DATE_TAKEN_END' => $end[0], 'ORDER' => $order));
+          }
+        }
+        
+        $retval = array();
+        foreach($fotos as $v)
+        {
+          if($orderBy == 'dateTaken')
+          {
+            $retval[$v['P_TAKEN_KEY']][] = $v;
+          }
+          else 
+          {
+            $retval[$v['P_CREATED_KEY']][] = $v;
+          }
+        }
+        
+        $params = array('MONTH' => $month, 'DAY' => $day, 'YEAR' => $year);
+        echo jsonEncode(array('PARAMETERS' => $params, 'NOW' => $currTime, 'FIRST_DAY_OF_MONTH' => $first['wday'], 'NUM_DAYS' => $numDays, 'FOTOS' => $retval, 'GROUP_ID' => $group_id, 'ORDER' => $orderBy));
+        break;
+        
+      case 'change_header_photo':
+        include_once PATH_CLASS . '/CGroup.php';
+        $g = &CGroup::getInstance();
+        
+        $group_id = $_GET['group_id'];
+        $tags = !empty($_GET['tags']) ? (array)explode(',', $_GET['tags']) : '';
+        $offset = isset($_GET['offset']) ? $_GET['offset'] : 0;
+        $limit = isset($_GET['limit']) ? $_GET['limit'] : 8;
+        
+        if($tags !== '')
+        {
+          $fotos = $g->fotosSearch(array('GROUP_ID' => $group_id, 'OFFSET' => $offset, 'LIMIT' => $limit, 'TAGS' => $tags));
+        }
+        else 
+        {
+          $fotos = $g->fotosSearch(array('GROUP_ID' => $group_id, 'OFFSET' => $offset, 'LIMIT' => $limit));
+        }
+        
+        $fotos['MISC'] = array('TOTAL_ROWS' => $GLOBALS['dbh']->found_rows(), 'OFFSET' => $offset, 'LIMIT' => $limit, 'TAGS' => implode(',', (array)$tags));
+        echo jsonEncode($fotos);
+        break;
+        
+      case 'check_email':
+        include_once PATH_CLASS . '/CUser.php';
+        $us =& CUser::getInstance();
+        $check = $us->validateCredentials($_GET['email'], 'email');
+        
+        if($check === false)
+        {
+          echo 'success'; // no match found
+        }
+        else
+        {
+          echo 'failure'; // match found
+        }
+        break;
+      case 'check_username':
+        include_once PATH_CLASS . '/CUser.php';
+        $us =& CUser::getInstance();
+        $check = $us->validateCredentials($_GET['username'], 'username');
+        
+        if($check === false)
+        {
+          echo 'success'; // no match found
+        }
+        else
+        {
+          echo 'failure'; // match found
+        }
+        break;
+      case 'faq':
+        include_once PATH_CLASS . '/CFaq.php';
+        $fq =& CFaq::getInstance();
+        
+        $faqData = $fq->faqData($_GET['id']);
+        echo 'true,' . $faqData['F_ID'] . ',' . $faqData['F_CATEGORY'] . ',' . str_replace(',', '&comma;', preg_replace('/\{CONST_(.*?)\}/e', "constant('\\1')", $faqData['F_QUESTION'])) . ',' . str_replace(',', '&comma;', preg_replace('/\{CONST_(.*?)\}/e', "constant('\\1')", $faqData['F_ANSWER'])) . ',' . str_replace(',', '&comma;', $faqData['F_KEYWORDS']) . ',' . $faqData['F_LINK'];
+        break;
+        
+      case 'flag_foto':
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        
+        $fb = &CFotoboxManage::getInstance();
+        $fb->flag( $_GET['p_id'], $_GET['u_id'], $_GET['session_id'] );
+        
+        break;
+        
+      case 'flix_by_tags':
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fl = &CFlix::getInstance();
+        $fb = &CFotobox::getInstance();
+        
+        $tags = !empty($_GET['TAGS']) ? (array)explode(',', $_GET['TAGS'] ) : false;
+        $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : $_USER_ID;
+        $offset = isset($_GET['OFFSET']) ? intval($_GET['OFFSET']) : 0;
+        $limit = isset($_GET['LIMIT']) ? intval($_GET['LIMIT']) : 10;
+        $privacy = isset($_GET['PERMISSION']) ? intval($_GET['PERMISSION']) : 1;
+        $group_id = isset($_GET['group_id']) ? intval($_GET['group_id']) : false;
+        $moderator = isset($_GET['MODERATOR']) ? intval($_GET['MODERATOR']) : false;
+        
+        if($group_id !== false)
+        {
+          if($moderator == 1)
+          {
+            $flix = $fl->search(array('TAGS' => $tags, 'MODE' => 'GROUP_SHARE', 'MODERATOR' => true, 'USER_ID' => $user_id, 'GROUP_ID' => $group_id, 'OFFSET' => $offset, 'LIMIT' => $limit, 'PERMISSION' => privacy));
+          }
+          else 
+          {
+            $flix = $fl->search(array('TAGS' => $tags, 'MODE' => 'GROUP_SHARE', 'MODERATOR' => false, 'USER_ID' => $user_id, 'GROUP_ID' => $group_id, 'OFFSET' => $offset, 'LIMIT' => $limit, 'PERMISSION' => privacy));
+          }
+        }
+        else 
+        {
+          $flix = $fl->search(array('TAGS' => $tags, 'USER_ID' => $user_id, 'OFFSET' => $offset, 'LIMIT' => $limit, 'PERMISSION' => privacy));
+        }
+        
+        $totalFlix = $flix[0]['ROWS'];
+        
+        $output = array();
+        foreach( $flix as $f )
+        {
+          if($group_id !== false)
+          {
+            $flixData = $fl->search(array('MODE' => 'GROUP_SHARE', 'GROUP_ID' => $group_id, 'KEY' => $f['US_KEY']));
+            $fotoURL = $f['US_PHOTO']['thumbnailPath_str'];
+            $output[] = array('US_ID' => $f['US_ID'], 'US_KEY' => $f['US_KEY'], 'P_THUMB_PATH' => $fotoURL, 'US_NAME' => $f['US_NAME'], 'US_FOTO_COUNT' => $f['US_FOTO_COUNT'], 'US_VIEWS' => $f['US_VIEWS'], 'US_UF_ORIG_ID' => $f['US_UF_ORIG_ID']);
+          }
+          else 
+          {
+            $flixData = $fl->search(array('KEY' => $f['US_KEY']));
+            $fotoURL = $f['US_PHOTO']['thumbnailPath_str'];
+            $output[] = array('US_ID' => $f['US_ID'], 'US_KEY' => $f['US_KEY'], 'P_THUMB_PATH' => $fotoURL, 'US_NAME' => $f['US_NAME'], 'US_FOTO_COUNT' => $f['US_FOTO_COUNT'], 'US_VIEWS' => $f['US_VIEWS'], 'US_UF_ORIG_ID' => $f['US_UF_ORIG_ID']);
+          }
+        }
+        
+        $data = array('TOTAL_FLIX' => $totalFlix, 'OFFSET' => $offset, 'LIMIT' => $limit, 'USER_ID' => $user_id, 'GROUP_ID' => $group_id);
+        echo jsonEncode(array('FLIX_DATA' => $output, 'MISC' => $data));
+        break;
+        
+        
+      case 'flix_comments':
+        include_once PATH_CLASS . '/CComment.php';
+        
+        $flix_id = intval($_GET['flix_id']);
+        
+        $c =& CComment::getInstance();
+        $comments = $c->comments($flix_id, 'flix');
+        
+        $return = '';
+        foreach($comments as $v)
+        {
+          if(!is_file($avatarSrc = PATH_FOTO . $v['C_AVATAR']))
+          {
+            $avatarSrc = 'images/avatar_small.jpg';
+          }
+          $return .= $v['C_USERNAME'] . ',' . str_replace(',', '&comma;', date(FF_FORMAT_DATE_LONG, $v['C_TIME'])) . ',' . $avatarSrc . ',' . str_replace(array(',','~'), array('&comma;','&tilde;'), $v['C_COMMENT']) . '~';
+        }
+        
+        echo 'true~' . $return;
+        break;
+      case 'flix_gallery_generator':
+        include_once PATH_CLASS . '/CUser.php';
+        $u =& CUser::getInstance();
+        $userData = $u->find($_USER_ID);
+        
+        $perPage = intval($_POST['perPage']);
+        
+        if($userData !== false)
+        {
+          $template = file_get_contents(PATH_DOCROOT . '/flix_gallery_generator.tpl.php');
+          $template = str_replace(array('{USER_KEY}','{PAGE_SIZE}','{SERVER_NAME}','{DATE}','  ','<','>'),array($userData['U_KEY'],$perPage,FF_SERVER_NAME,date(DATE_RFC850, NOW),'&nbsp;&nbsp;','&lt;','&gt;'),$template);
+          echo nl2br($template);
+        }
+        else
+        {
+          echo 'Must be logged in';
+        }
+        break;
+      case 'flix_list':
+        include_once PATH_CLASS . '/CFlix.php';
+        
+        $fl =& CFlix::getInstance();
+        $arrFlix = $fl->flix($_USER_ID);
+        
+        echo jsonEncode($arrFlix);
+        break;
+      case 'flix_media_generator':
+        include_once PATH_CLASS . '/CUser.php';
+        $u =& CUser::getInstance();
+        $userData = $u->find($_USER_ID);
+        
+        if($userData !== false)
+        {
+          $template = file_get_contents(PATH_DOCROOT . '/flix_media_generator.tpl.php');
+          $template = str_replace(array('{USER_KEY}','{SERVER_NAME}','{DATE}','  ','<','>'),array($userData['U_KEY'],FF_SERVER_NAME,date(DATE_RFC850, NOW),'&nbsp;&nbsp;','&lt;','&gt;'),$template);
+          echo nl2br($template);
+        }
+        else
+        {
+          echo 'Must be logged in';
+        }
+        break;
+      case 'flix_name_update':
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFlixManage.php';
+        $flix_id = intval($_GET['flix_id']);
+        $fl =& CFlix::getInstance();
+        $flm =& CFlixManage::getInstance();
+        
+        $flixData = $fl->search(array('FLIX_ID' => $flix_id, 'USER_ID' => $_USER_ID));
+        $name = isset($_GET['name']) ? $_GET['name'] : '';
+        
+        if($flixData['US_U_ID'] == $_USER_ID)
+        {
+          $flm->updateSlideshow(array('US_ID' => $flix_id, 'USER_ID' => $_USER_ID, 'NAME' => $name));
+          echo 'success';
+        }
+        else
+        {
+          echo 'failure';
+        }
+        break;
+      case 'flix_privacy_set':
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFlixManage.php';
+        include_once PATH_CLASS . '/CSubscriptionManage.php';
+        $f  = &CFlix::getInstance();
+        $fm = &CFlixManage::getInstance();
+        $sm = &CSubscriptionManage::getInstance();
+        
+        $flixId = $_POST['flix_id'];
+        $privacy = $_POST['privacy'];
+        
+        $flix = $f->search(array('FLIX_ID' => $flixId));
+        if(($privacy & PERM_SLIDESHOW_PUBLIC) == PERM_SLIDESHOW_PUBLIC) // public slideshow
+        {
+          // $privacy = ($privacy & PERM_GROUP_LIMIT); // removing this until we do groups - not correct logic anyways
+          // add subscription data
+          $photo = $f->firstPhoto($flix['US_KEY']);
+          $sm->addData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Slideshow_Public', 'sd_element_id' => $flix['US_KEY'], 'sd_thumbnail' => $photo['thumbnailPath_str']));
+        }
+        else // private slideshow
+        {
+          //$privacy = ($privacy | PERM_SLIDESHOW_PUBLIC); // wth...this is bass ackwards
+          // delete subscription data
+          $sm->deleteData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Slideshow_Public', 'sd_element_id' => $flix['US_KEY']));
+        }
+        
+        $retval = $fm->setPrivacy(array('FLIX_ID' => $flixId, 'USER_ID' => $_USER_ID, 'PRIVACY' => $privacy));
+        
+        echo jsonEncode($retval);
+        break;
+      case 'flix_reorder': // not sure if this is used anymore
+        include_once PATH_CLASS . '/CFlixManage.php';
+        
+        $flm =& CFlixManage::getInstance();
+        $return = $flm->reorder($_USER_ID, $_GET['flixList']);
+        
+        echo jsonEncode($return);
+        break;
+      case 'flix_search':
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fl = &CFlix::getInstance();
+        $fb = &CFotobox::getInstance();
+        
+        $params = $_GET;
+        $params['USER_ID'] = $_USER_ID;
+        if(!isset($params['LIMIT']))
+        {
+          $params['LIMIT'] = 10;
+        }
+        
+        $flix = $fl->search($params);
+        $totalFlix = $flix[0]['ROWS'];
+        
+        $output = array();
+        foreach( $flix as $f )
+        {
+          //$fotoURL = $fl->fotoData(array('FLIX' => $f, 'FOTO_TYPE' => 'THUMB'));
+          $fotoURL = $f['US_PHOTO']['thumbnailPath_str'];
+          $output[] = array('US_ID' => $f['US_ID'], 'US_KEY' => $f['US_KEY'], 'US_PRIVACY' => $f['US_PRIVACY'], 'P_THUMB_PATH' => $fotoURL, 'US_NAME' => $f['US_NAME'], 'US_FOTO_COUNT' => $f['US_FOTO_COUNT'], 'US_VIEWS' => $f['US_VIEWS']); //, 'A_UF_ORIG_ID' => $f['A_UF_ORIG_ID']);
+        }
+        
+        $data = array('TOTAL_FLIX' => $totalFlix, 'OFFSET' => $params['OFFSET'], 'LIMIT' => $params['LIMIT'], 'USER_ID' => $params['USER_ID']);
+        echo jsonEncode(array('FLIX_DATA' => $output, 'MISC' => $data));
+        break;
+      case 'flix_tags':
+        include_once PATH_CLASS . '/CFlix.php';
+        
+        $fl =& CFlix::getInstance();
+        $flix_id = intval($_GET['flix_id']);
+        
+        $flixData = $fl->search(array('FLIX_ID' => $flix_id, 'USER_ID' => $_USER_ID, 'RETURN_TYPE' => 'SINGLE_FOTO'));
+        echo 'true,' . $flixData['US_TAGS'];
+        break;
+      case 'flix_tags_add':
+        include_once PATH_CLASS . '/CFlixManage.php';
+        include_once PATH_CLASS . '/CTag.php';
+        
+        $flm =& CFlixManage::getInstance();
+        $t   =& CTag::getInstance();
+        $flix_id = intval($_GET['flix_id']);
+        $tags    = (array)explode(',', $_GET['tags']);
+        $t->addTags($_USER_ID, $tags); // add to user_tags table
+        
+        $tags = $flm->addTags($flix_id, $tags, $_USER_ID);
+        
+        echo 'true,' . $tags;
+        break;
+      case 'flix_tags_remove':
+        include_once PATH_CLASS . '/CFlixManage.php';
+        
+        $flm =& CFlixManage::getInstance();
+        $flix_id = intval($_GET['flix_id']);
+        $tags    = (array)explode(',', $_GET['tags']);
+        $tags = $flm->removeTags($flix_id, $tags, $_USER_ID);
+        
+        echo 'true,' . $tags;
+        break;
+      case 'flixlist':
+        include_once PATH_CLASS . '/CFlix.php';
+        
+        $fl =& CFlix::getInstance();
+        $arrFlix = $fl->flix($_USER_ID);
+        
+        $return = '';
+        foreach($arrFlix as $v)
+        {
+          $return .= $v['A_ID'] . ',' . str_replace(array(',','~'), array('&comma;','&tilde;'), $v['A_NAME']) . ',' . $v['A_FOTO_COUNT'] . '~';
+        }
+        
+        echo 'true~' . $return;
+        break;
+      case 'flixlist_remote':
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        
+        $us =& CUser::getInstance();
+        $fl =& CFlix::getInstance();
+        $fb =& CFotobox::getInstance();
+        
+        $user_data= $us->userByKey($_GET['user_key']);
+        
+        $arr_flix = $fl->flixByStatus($user_data['U_ID'], 5, 0, true);
+        
+        $return = '';
+        
+        foreach($arr_flix as $v)
+        {
+          $foto_id    = $v['A_DATA'][0]['D_UP_ID'];
+          $foto_data  = $fb->fotoData($foto_id);
+          $sizeArr    = explode('x', $v['A_SIZE']);
+          $containerWidth   = $sizeArr[0];
+          $containerHeight  = $sizeArr[1];
+      
+          $swf_src = 'http://' . FF_SERVER_NAME . '/swf/flix_theme/layout_small/small_' . substr($v['A_TEMPLATE'], 1) . '?imageSource=http://' . FF_SERVER_NAME . PATH_FOTO . $foto_data['P_THUMB_PATH'] . '&fastflix=' . $v['A_FASTFLIX'] . '&containerWidth=' . $containerWidth . '&containerHeight=' . $containerHeight;
+          $return .= '<div>
+                        <OBJECT classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=7,0,0,0" WIDTH="133" HEIGHT="80">\<PARAM NAME="movie" VALUE="' . $swf_src . '" />
+                        <param name="wmode" value="transparent" />
+                        <param name="menu" value="false" />
+                        <EMBED menu="false" src="' . $swf_src . '" wmode="transparent" swliveconnect="true" quality="high" WIDTH="133" HEIGHT="80" TYPE="application/x-shockwave-flash" />
+                        </EMBED>
+                        </OBJECT>
+                      </div>
+                      <div>' . $v['A_NAME'] . '</div>
+                      <div>' . $v['A_DATA'][0]['D_DESC'] . '</div>';
+        }
+        
+        echo $return;
+        break;
+      case 'foto_copyright_set':
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        $fbm =& CFotoboxManage::getInstance();
+        
+        $foto_ids = (array)explode(',', $_GET['foto_ids']);
+        $copyright= intval($_GET['copyright']);
+        $fbm->setCopyrightByIds($_USER_ID, $foto_ids, $copyright);
+        
+        echo 'true,';
+        break;
+      case 'foto_name':
+        include_once PATH_CLASS . '/CFotobox.php';
+        $foto_id = intval($_GET['foto_id']);
+        $fb =& CFotobox::getInstance();
+        $fotoData = $fb->fotoData($foto_id, $_USER_ID);
+        echo str_replace('`', "'", htmlspecialchars($fotoData['P_NAME'])) . '`' . str_replace('`', "'", htmlspecialchars($fotoData['P_DESC']));
+        break;
+      case 'foto_privacy_set':
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        include_once PATH_CLASS . '/CToolbox.php';
+        include_once PATH_CLASS . '/CSubscriptionManage.php';
+        
+        $us   =& CUser::getInstance();
+        $fb   = &CFotobox::getInstance();
+        $fbm  =& CFotoboxManage::getInstance();
+        $usm  =& CUserManage::getInstance();
+        $tb   =& CToolbox::getInstance();
+        $sm   = &CSubscriptionManage::getInstance();
+         
+        if(isset($_GET['toolbox']))
+        {
+          $fotos = $tb->get($_USER_ID, 'foto');
+          $foto_ids = array();
+          foreach($fotos as $v)
+          {
+            $foto_ids[] = $v['P_ID'];
+          }
+          
+          if(isset($_GET['privacy']))
+          {
+            $privacy = intval($_GET['privacy']);
+          }
+          else
+          {
+            $pref = $us->pref($_USER_ID, 'FOTO_PRIVACY');
+            $privacy = $pref | PERM_PHOTO_PUBLIC;
+          }
+        }
+        else
+        {
+          $foto_ids = (array)explode(',', $_GET['foto_ids']);
+          $privacy = $_GET['privacy'];
+        }
+        
+        $fbm->setPrivacyByIds($_USER_ID, $foto_ids, $privacy);
+        
+        // add to subscription data
+        // if they are public then add them
+        // otherwise they are private, so delete them
+        if(($privacy & PERM_PHOTO_PUBLIC) == PERM_PHOTO_PUBLIC)
+        {
+          foreach($foto_ids as $v)
+          {
+            $fotoData = $fb->fotoData($v);
+            $sm->addData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Photo_Public', 'sd_element_id' => $v, 'sd_thumbnail' => $fotoData['P_THUMB_PATH']));
+          }
+        }
+        else 
+        {
+          foreach($foto_ids as $v)
+          {
+            $sm->deleteData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Photo_Public', 'sd_element_id' => $v));
+          }
+        }
+        
+        echo jsonEncode(true);
+        break;
+      case 'foto_tags':
+        include_once PATH_CLASS . '/CFotobox.php';
+        $foto_id = intval($_GET['foto_id']);
+        $fb =& CFotobox::getInstance();
+        $fotoData = $fb->fotoData($foto_id, $_USER_ID);
+        $tags = (array)explode(',', $fotoData['P_TAGS']);
+        
+        echo jsonEncode(array('P_ID' => $foto_id, 'TAGS' => $tags));
+        break;
+      case 'foto_tags_add':
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CToolbox.php';
+        include_once PATH_CLASS . '/CTag.php';
+        if(isset($_GET['toolbox']))
+        {
+          $tb =& CToolbox::getInstance();
+          $tb_ids = $tb->get($_USER_ID, 'foto');
+          $foto_ids = array();
+          foreach($tb_ids as $v)
+          {
+            $foto_ids[] = $v['P_ID'];
+          }
+        }
+        else
+        {
+          $foto_ids= isset($_GET['foto_id']) ? array(intval($_GET['foto_id'])) : (array)explode(',', preg_replace('/^,+|,+$/', '', $_GET['foto_ids']));
+        }
+        
+        $tags    = (array)explode(',', $_GET['tags']);
+        
+        $fbm =& CFotoboxManage::getInstance();
+        $t   =& CTag::getInstance();
+        
+        $t->addTags($_USER_ID, $tags); // add tags to user_tags
+        
+        $tags = $fbm->addTags($foto_ids, $tags, $_USER_ID);
+        $tags = (array)explode(',', $tags);
+        
+        echo jsonEncode(array('P_ID' => $foto_ids, 'TAGS' => $tags));
+        break;
+      case 'foto_tags_remove':
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CToolbox.php';
+        if(isset($_GET['toolbox']))
+        {
+          $tb =& CToolbox::getInstance();
+          $tb_ids = $tb->get($_USER_ID, 'foto');
+          $foto_ids = array();
+          foreach($tb_ids as $v)
+          {
+            $foto_ids[] = $v['P_ID'];
+          }
+        }
+        else
+        {
+          $foto_ids= isset($_GET['foto_id']) ? array(intval($_GET['foto_id'])) : (array)explode(',', preg_replace('/^,+|,+$/', '', $_GET['foto_ids']));
+        }
+        
+        $tags    = (array)explode(',', $_GET['tags']);
+        $fbm =& CFotoboxManage::getInstance();
+        $tags = $fbm->removeTags($foto_ids, $tags, $_USER_ID);
+        echo jsonEncode($tags);
+        break;
+      case 'foto_transform':
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CImageEditor.php';
+        
+        $fb =& CFotobox::getInstance();
+        $fbm=& CFotoboxManage::getInstance(FF_YM_STAMP);
+        $ie =& CImageEditor::getInstance();
+        
+        $photoId = intval($_REQUEST['photoId']);
+        
+        $photoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($photoData !== false)
+        {
+          $ie->loadImage($photoId, PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+          $ie->setUser($_USER_ID);
+          switch($_GET['subaction'])
+          {
+            case 'blur':
+              $ie->blur();
+              break;
+            case 'greyscale':
+              $ie->desaturate();
+              break;
+            case 'rotate':
+              $degrees = rotation($photoData['P_ROTATION'], $_REQUEST['degrees']);
+              $ie->rotate($degrees);
+              $fbm->update(array('up_id' => $photoId, 'up_rotation' => $degrees), false);
+              $photoData['P_ROTATION'] = $degrees; // set this so we didn't have to requery the database for the new rotation
+              break;
+            case 'restore':
+              $ie->restore();
+              $size = @getImageSize(PATH_FOTOROOT . $photoData['P_ORIG_PATH']);
+              $fbm->update(array('up_id' => $photoId, 'up_rotation' => 0), false);
+              $photoData['P_ROTATION']= 0; // set this so we didn't have to requery the database for the new rotation
+              $photoData['P_WIDTH']   = $size[0];
+              $photoData['P_HEIGHT']  = $size[1];
+              break;
+            case 'sepia':
+              $ie->sepia();
+              break;
+            case 'sharpen':
+              $ie->sharpen();
+              break;
+          }
+          
+          $photoData['P_HASH'] = md5('ff_' . $_SERVER['REMOTE_ADDR'] . '_ip');
+        }
+        
+        echo jsonEncode($photoData);
+        break;
+      case 'foto_name_update':
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        $foto_id = intval($_GET['foto_id']);
+        $fb =& CFotobox::getInstance();
+        $fbm =& CFotoboxManage::getInstance();
+        
+        $fotoData = $fb->fotoData($foto_id, $_USER_ID);
+        if($fotoData['P_U_ID'] == $_USER_ID)
+        {
+          $fbm->update(array('up_id' => $foto_id, 'up_name' => $_GET['name'], 'up_description' => $_GET['desc']), false);
+          echo 'success';
+        }
+        else
+        {
+          echo 'failure';
+        }
+        break;
+      case 'foto_update_date_taken':
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        $fbm =& CFotoboxManage::getInstance();
+        $fotoId = intval($_GET['fotoId']);
+        $dateTimeParts = explode(' ', $_GET['datetime']);
+        $dateParts = explode('/', $dateTimeParts[0]);
+        $timeParts = explode(':', $dateTimeParts[1]);
+        $dateTaken = mktime($timeParts[0], $timeParts[1], $timeParts[2], $dateParts[0], $dateParts[1], $dateParts[2]);
+        $fbm->update(array('up_id' => $fotoId, 'up_taken_at' => $dateTaken), true);
+        echo $fotoId;
+        break;
+      case 'foto_view':
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_DOCROOT . '/foto_view.act.php';
+        break;
+      case 'fotopage_add_friend':
+        include_once PATH_CLASS . '/CMail.php';
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $m  =& CMail::getInstance();
+        $u  =& CUser::getInstance();
+        $um =& CUserManage::getInstance();
+        
+        if(!isset($_POST['friendId']))
+        {
+          $friend = $u->userByUsername($_POST['username']);
+          $friendId = $friend['U_ID'];
+        }
+        else
+        {
+          $friendId = intval($_POST['friendId']);
+        }
+        
+        $retval = $um->addFriend($_USER_ID, $friendId);
+        if($retval === true)
+        {
+          $userData = $u->find($_USER_ID);
+          $message  = "You have a new friend request from {$userData['U_USERNAME']} ({$userData['U_EMAIL']}).\n\n"
+                    . "{$userData['U_USERNAME']} wrote:\n"
+                    . "{$_POST['message']}\n\n"
+                    . "Click <a href=\"/?action=network.confirm_friend.act&friendId={$_USER_ID}\">here</a> to add {$userData['U_USERNAME']} as your friend.";
+          
+          $um->addMessage($friendId, $_USER_ID, 'You have a new friend request', $message);
+          
+          $senderData = $u->find($friendId);
+          $headers = "MIME-Version: 1.0\n"
+                   . "Content-type: text/plain; charset=iso-8859-1\n"
+                   . 'Return-Path: ' . FF_EMAIL_FROM_FORMATTED . "\n"
+                   . 'From: ' . FF_EMAIL_FROM_FORMATTED;
+          $emailBody = $userData['U_USERNAME'] . ",\n\nYou have a new message from {$userData['U_USERNAME']} ({$userData['U_EMAIL']}).\n\n"
+                     . "Click the link below to view your message.\n\n"
+                     . "http://" . FF_SERVER_NAME . "/?action=messaging.inbox\n\n"
+                     . "Thanks,\n\nThe Photagious Team";
+          $m->send($senderData['U_EMAIL'], 'You have a new message at Photagious', $emailBody, $headers);
+        }
+        
+        echo jsonEncode($retval);
+        break;
+      case 'fotopage_add_to_cart':
+        include_once PATH_CLASS . '/CToolbox.php';
+        $tb =& CToolbox::getInstance();
+        $tb->add($_FF_SESSION->value('sess_hash'), intval($_GET['photoId']));
+        echo jsonEncode(true);
+        break;
+      case 'fotopage_foto_add':
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';      
+        $fb =& CFotobox::getInstance();
+        $fbm=& CFotoboxManage::getInstance();
+        
+        $photoId = intval($_GET['photo_id']);        
+        $fotoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($fotoData !== false)
+        {
+          $privacy = intval($fotoData['P_PRIVACY']) | PERM_PHOTO_PUBLIC;
+          $fbm->update(array('up_id' => $photoId, 'up_u_id' => $_USER_ID, 'up_privacy' => $privacy));
+          $fotoData['P_PRIVACY'] = $privacy;
+        }
+        
+        echo jsonEncode($fotoData);
+        break;
+      case 'fotopage_foto_permission_set':
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        
+        $fb =& CFotobox::getInstance();
+        $fbm=& CFotoboxManage::getInstance();
+        
+        $photoId = intval($_GET['photo_id']);
+        $setting = intval($_GET['setting']);
+        $type    = $_GET['type'];
+        
+        $fotoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        switch($type)
+        {
+          case 'download':
+            $mask = PERM_PHOTO_DOWNLOAD;
+            break;
+          case 'comment':
+            $mask = PERM_PHOTO_COMMENT;
+            break;
+        }
+        
+        if($fotoData !== false && isset($mask))
+        {
+          $privacy = $fotoData['P_PRIVACY'];
+          if($setting == 1) // set download to on
+          {
+            $privacy = $privacy | $mask;
+          }
+          else // set download to off
+          {
+            $privacy = $privacy & ~ $mask;
+          }
+          
+          $fbm->update(array('up_id' => $photoId, 'up_u_id' => $_USER_ID, 'up_privacy' => $privacy));
+          $fotoData['P_PRIVACY'] = $privacy;
+        }
+        
+        echo jsonEncode($fotoData);
+        break;
+      case 'fotopage_foto_remove':
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';      
+        $fb =& CFotobox::getInstance();
+        $fbm=& CFotoboxManage::getInstance();
+        
+        $photoId = intval($_GET['photo_id']);        
+        $fotoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($fotoData !== false)
+        {
+          $privacy = intval($fotoData['P_PRIVACY']) & PERM_GROUP_LIMIT;
+          
+          $fbm->update(array('up_id' => $photoId, 'up_u_id' => $_USER_ID, 'up_privacy' => $privacy));
+          $fotoData['P_PRIVACY'] = $privacy;
+        }
+        
+        echo jsonEncode($fotoData);
+        break;
+      case 'fotopage_foto_tag':
+        if($logged_in === true)
+        {
+          include_once PATH_CLASS . '/CFotoboxManage.php';
+          include_once PATH_CLASS . '/CTag.php';
+          $fb =& CFotoboxManage::getInstance();
+          $t   =& CTag::getInstance();          
+         
+          $fotoId = intval($_GET['foto_id']);
+          $tags   = (array)explode(',', $_GET['tags']);
+          
+          $t->addTags($_USER_ID, $tags); // add to user_tags table
+          $fb->addTags(array($fotoId), $tags);
+          
+          echo 'true,' . $_GET['tags'];
+        }
+        break;
+      case 'fotopage_flix_toggle':
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFlixManage.php';
+        include_once PATH_CLASS . '/CSubscriptionManage.php';
+        
+        $f = &CFlix::getInstance();
+        $fm = &CFlixManage::getInstance();
+        $sm = &CSubscriptionManage::getInstance();
+        
+        $flix_id = $_GET['slideshow_id'];
+        $flix = $f->search(array('FLIX_ID' => $flix_id));
+        
+        $privacy = intval($flix['US_PRIVACY']);
+        /* TOGGLE */
+        if(($privacy & PERM_SLIDESHOW_PUBLIC) == PERM_SLIDESHOW_PUBLIC) // if it's public then toggle to private
+        {
+          $privacy = ($privacy & PERM_GROUP_LIMIT);
+          // delete subscription data
+          $sm->deleteData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Slideshow_Public', 'sd_element_id' => $flix['US_KEY']));
+        }
+        else // if private then toggle to public
+        {
+          $privacy = ($privacy | PERM_SLIDESHOW_PUBLIC);
+          $photo = $f->firstPhoto($flix['US_KEY']);
+          
+          // add subscription data
+          $sm->addData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Slideshow_Public', 'sd_element_id' => $flix['US_KEY'], 'sd_thumbnail' => $photo['thumbnailPath_str']));
+        }
+
+        $main = array();
+        $main['US_ID'] = $flix_id;
+        $main['USER_ID'] = $_USER_ID;
+        $main['PRIVACY'] = $privacy;
+        $fm->updateSlideshow($main);
+        
+        $flix['US_PRIVACY'] = $privacy;
+          
+        echo jsonEncode($flix);
+        break;
+      case 'fotopage_foto_toggle':
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';  
+        include_once PATH_CLASS . '/CSubscriptionManage.php';
+        
+        $u = &CUser::getInstance();
+        $um = &CUserManage::getInstance(); 
+        $fb =& CFotobox::getInstance();
+        $fbm=& CFotoboxManage::getInstance();
+        $sm = &CSubscriptionManage::getInstance();
+        
+        $photoId = intval($_GET['photo_id']);        
+        $fotoData = $fb->fotoData($photoId, $_USER_ID);
+        
+        if($fotoData !== false)
+        {
+          $privacy = intval($fotoData['P_PRIVACY']);
+          if(($privacy & PERM_PHOTO_PUBLIC) == PERM_PHOTO_PUBLIC) // currently public
+          {
+            $privacy = ($privacy & PERM_GROUP_LIMIT);  // set the photo to private
+            
+            $homepagePhotoKey = $u->pref($_USER_ID, 'PP_PHOTO_KEY');
+            
+            if($fotoData['P_KEY'] == $homepagePhotoKey)
+            {
+              $um->removePrefs($_USER_ID, array('PP_PHOTO', 'PP_PHOTO_KEY'));
+            }
+            
+            // delete the subscription date
+            $sm->deleteData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Photo_Public', 'sd_element_id' => $photoId));
+          }
+          else // set to public
+          {
+            $privacy = ($privacy | PERM_PHOTO_PUBLIC);
+            
+            // add the subscription date
+            $sm->addData(array('sd_u_id' => $_USER_ID, 'sd_elementType' => 'Photo_Public', 'sd_element_id' => $photoId, 'sd_thumbnail' => $fotoData['P_THUMB_PATH']));
+          }
+          $fbm->update(array('up_id' => $photoId, 'up_u_id' => $_USER_ID, 'up_privacy' => $privacy));
+          $fotoData['P_PRIVACY'] = $privacy;
+        }
+
+        echo jsonEncode($fotoData);
+        break;
+      case 'fotopage_list_fotos':
+        
+        if($logged_in === false)
+        {
+          echo '<script type=text/javascript>window.location.reload();</script>';
+          die();
+        }
+        
+        echo '<div style="width:672px; height:498px; margin:10px; border:1px solid gray; background-color:#D4D4D4;">
+                <div style="padding-top:5px; padding-left:15px;">
+                  <div style="float:left; padding-right:5px;">
+                    <img src="images/icons/add_alt_2_16x16.png" class="png" border="0" width="16" height="16" />
+                  </div>
+                  <div style="float:left; padding-top:2px;">Add Photos and Slideshows</div>
+                  <div style="float:right; padding-right:10px;">';
+        // if subaction is photos, slideshows or home then the close button should just refresh the page to close the lightbox and update content underneath
+        if($_GET['subaction'] == 'photos' || $_GET['subaction'] == 'slideshows' || $_GET['subaction'] == 'home')
+        {
+          echo '<a href="javascript:void(0);" onclick="window.location.reload();"><img src="images/icons/close_16x16.png" class="png" width="16" height="16" border="0" /></a>';
+        }
+        else
+        {
+          echo '<a href="javascript:void(0);" class="lbAction" rel="deactivate"><img src="images/icons/close_16x16.png" class="png" width="16" height="16" border="0" /></a>';
+        }
+                    
+        echo '    </div>
+                </div>
+                <br clear="all" />
+                <div style="padding-top:10px; padding-left:5px;">
+                  <div id="_tabPhotos" onclick="pageShareToggleTabs(\'Photos\');" style="float:left; cursor:pointer; background-color:white; padding-top:3px; padding-left:3px; border-left:1px solid gray; border-right:1px solid gray; border-top:1px solid gray; width:85px; height:25px;">
+                    <div style="margin-top:6px;" class="bold">
+                      <img src="images/icons/camera_16x16.png" class="png" border="0" width="16" height="16" border="0" hspace="3" align="absmiddle" style="margin-top:-4px;" />
+                      Photos
+                    </div>
+                  </div>
+                  <div id="_tabSlideshows" onclick="pageShareToggleTabs(\'Slideshows\');" style="float:left; cursor:pointer; background-color:#D4D4D4; padding-top:3px; border-bottom:1px solid gray; border-right:1px solid gray; border-top:1px solid gray; width:110px; height:25px;">
+                    <div style="margin-top:6px;" class="bold">
+                      <img src="images/icons/images_16x16.png" class="png" border="0" width="16" height="16" border="0" hspace="3" align="absmiddle" />
+                      Slideshows
+                    </div>
+                  </div>
+                  <div id="_tabVideos" onclick="pageShareToggleTabs(\'Videos\');" style="float:left; cursor:pointer; background-color:#D4D4D4; padding-top:3px; border-bottom:1px solid gray; border-right:1px solid gray; border-top:1px solid gray; width:85px; height:25px;">
+                    <div style="margin-top:6px;" class="bold">
+                      <img src="images/icons/images_16x16.png" class="png" border="0" width="16" height="16" border="0" hspace="3" align="absmiddle" />
+                      Videos
+                    </div>
+                  </div>
+                </div>
+                <br clear="all" />
+                <div style="margin-top:-1px;background-color:white; margin-left:5px; margin-right:10px; border-left:1px solid gray; border-right:1px solid gray; border-bottom:1px solid gray;">
+                  <div style="margin-left:199px; width:457px; border-top:1px solid gray;"></div>
+                  <br clear="all" />
+                  <div style="padding-top:5px; padding-left:10px;">
+                    <div style="float:left; padding-right:5px;">
+                      <img src="images/tag.gif" border="0" />
+                    </div>
+                    <form id="_pageShareSearchByTag" onsubmit="return pageShareGetItems();">
+                      <div id="_searchBoxPhotos" style="float:left; padding-right:7px;">
+                        <input type="text" id="_pageShareSearchBoxPhotos" class="formfield" style="width:100px;" />
+                      </div>
+                      <div id="_searchBoxSlideshows" style="float:left; padding-right:7px; display:none;">
+                        <input type="text" id="_pageShareSearchBoxSlideshows" class="formfield" style="width:100px;"  />
+                      </div>
+                      <div id="_searchBoxVideos" style="float:left; padding-right:7px; display:none;">
+                        <input type="text" id="_pageShareSearchBoxVideos" class="formfield" style="width:100px;"  />
+                      </div>
+                      <!-- submit -->
+                      <div style="float:left;"><a href="javascript:void(0);" onclick="$(\'_pageShareSearchByTag\').onsubmit();"><img src="images/icons/search_16x16.png" class="png" width="16" height="16" border="0" title="Search by this user\'s tags" /></a></div>
+                    </form>
+                    <br clear="all" />
+                    <div id="_pageShareDataPhotos" style="height:350px; margin-right:15px;"></div>
+                    <div id="_pageShareDataSlideshows" style="height:350px; margin-right:15px; display:none;"></div>
+                    <div id="_pageShareDataVideos" style="height:350px; margin-right:15px; display:none;"></div>
+                    
+                    <div id="_pageSharePagingPhotos" style="text-align:right; height:15px; margin-right:15px; padding-bottom:5px;"></div>
+                    <div id="_pageSharePagingSlideshows" style="text-align:right; height:15px; margin-right:15px; padding-bottom:5px; display:none;"></div>
+                    <div id="_pageSharePagingVideos" style="text-align:right; height:15px; margin-right:15px; padding-bottom:5px; display:none;"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <script type="text/javascript">
+                $(\'_pageShareSearchBoxPhotos\').focus();
+                pageShareToggleTabs(\'Photos\');
+                //new Autocompleter.Local("_searchBoxPhotos", "auto_complete_searchBox", userTags, {tokens: ","});
+                //new Autocompleter.Local("_searchBoxSlideshows", "auto_complete_searchBox", userTags, {tokens: ","});
+              </script>';
+        break;
+      case 'fotopage_remove_from_cart':
+        include_once PATH_CLASS . '/CToolbox.php';
+        $tb =& CToolbox::getInstance();
+        $toolboxItem = $tb->getItem($_POST['toolboxId']);
+        $tb->remove($_FF_SESSION->value('sess_hash'), intval($_POST['toolboxId']));
+        echo jsonEncode($toolboxItem);
+        break;
+      case 'fotopage_slideshow_toggle':
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFlixManage.php';
+        $slideshowId = intval($_GET['slideshow_id']);
+        $privacy = intval($_GET['privacy']);
+        
+        if(($privacy & PERM_SLIDESHOW_PRIVATE) == PERM_SLIDESHOW_PRIVATE) // private
+        {
+          $privacy = PERM_SLIDESHOW_PRIVATE;
+        }
+        else
+        if(($privacy & PERM_SLIDESHOW_PUBLIC) == PERM_SLIDESHOW_PUBLIC) // public
+        {
+          $fl =& CFlix::getInstance();
+          $flixData = $fl->search(array('MODE' => 'USER', 'USER_ID' => $_USER_ID, 'SLIDESHOW_ID' => $slideshowId));
+          $privacy = intval($flixData['US_PRIVACY']) | PERM_SLIDESHOW_PUBLIC;
+        }
+        
+        break;
+       
+      case 'fotopage_video_toggle':
+        include_once PATH_CLASS . '/CVideo.php';
+        $videoId = intval($_GET['video_id']);
+        $privacy = intval($_GET['privacy']);
+        
+        if(($privacy & PERM_VIDEO_PRIVATE) == PERM_VIDEO_PRIVATE) // private
+        {
+          $privacy = PERM_VIDEO_PRIVATE;
+        }
+        else
+        if(($privacy & PERM_VIDEO_PUBLIC) == PERM_VIDEO_PUBLIC) // public
+        {
+          $v =& CVideo::getInstance();
+          $videoData = $v->search(array('USER_ID' => $_USER_ID, 'ID' => $videoId));
+          $privacy = intval($videoData['V_PRIVACY']) | PERM_VIDEO_PUBLIC;
+        }
+        
+        break;
+      
+      case 'fotopage_what_is_subscription':
+        include_once PATH_DOCROOT . '/subscription_what_is.dsp.php';
+        break;
+        
+      case 'fotos_delete':
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFlixManage.php';
+        include_once PATH_CLASS . '/CToolbox.php';
+        if(isset($_GET['toolbox']))
+        {
+          $tb =& CToolbox::getInstance();
+          $tb_ids = $tb->get($_USER_ID, 'foto');
+          $foto_ids = array();
+          foreach($tb_ids as $v)
+          {
+            $foto_ids[] = $v['P_ID'];
+          }
+        }
+        else
+        {
+          $foto_ids= isset($_GET['foto_id']) ? array(intval($_GET['foto_id'])) : (array)explode(',', preg_replace('/^,+|,+$/', '', $_GET['foto_ids']));
+        }
+        
+        $f = &CFotobox::getInstance();
+        $fb =& CFotoboxManage::getInstance();
+        
+        $success = $fb->delete($foto_ids, $_USER_ID);
+         
+        if($success === true && isset($_GET['toolbox']))
+        {
+          $tb->clear($_USER_ID, 'foto');
+        }
+        
+        echo jsonEncode($success);
+        break;
+      case 'fotos_search':
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $fb =&CFotobox::getInstance();
+        $usm=&CUserManage::getInstance();
+        
+        $params = array('USER_ID' => $_USER_ID);
+        $urlOmit = array('action' => true);
+        parse_str($_SERVER['QUERY_STRING'], $urlParams);
+        foreach($urlParams as $k => $v)
+        {
+          if(!isset($urlOmit[$k]))
+          {
+            if($k != 'TAGS')
+            {
+              $params[$k] = $v;
+            }
+            else
+            if($v != '')
+            {
+              $params[$k] = (array)explode(',', $v);
+            }
+          }
+        }
+        
+        if(isset($urlParams['saveLimit']))
+        {
+          $usm->setPrefs($_USER_ID, array('MYPHOTOS_LIMIT' => intval($urlParams['saveLimit'])));
+        }
+        
+        $fotos = $fb->fotosSearch($params);
+        $fotos['MISC'] = array('TOTAL_ROWS' => $GLOBALS['dbh']->found_rows(), 'OFFSET' => $params['OFFSET'], 'LIMIT' => $params['LIMIT'], 'TAGS' => implode(',', (array)$params['TAGS']));
+        
+        echo jsonEncode($fotos);
+        break;
+      
+      case 'group_foto_popup':
+        include_once PATH_CLASS . '/CGroup.php';
+        $gp =& CGroup::getInstance();
+        $params = array('GROUP_ID' => $_GET['groupId']);
+        
+        // build query string
+        $urlOmit = array('OFFSET' => true, 'action' => true);
+        parse_str($_SERVER['QUERY_STRING'], $urlParams);
+        
+        $urlAppend = '';
+        foreach($urlParams as $k => $v)
+        {
+          if(!isset($urlOmit[$k]))
+          {
+            $urlAppend .= '&' . $k . '=' . $v;
+            if($k != 'TAGS')
+            {
+              $params[$k] = $v;
+            }
+            else
+            {
+              $params[$k] = (array)explode(',', $v);
+            }
+          }
+        }
+        
+        if(($urlParams['OFFSET'] - 1) < 0)
+        {
+          $params['OFFSET'] = 0;
+          $params['LIMIT'] = 2;
+        }
+        else
+        {
+          $params['OFFSET'] = $urlParams['OFFSET'] - 1;
+          $params['LIMIT'] = 3;
+        }
+        
+        $fotos = $gp->fotosSearch($params);
+        $totalRows = $GLOBALS['dbh']->found_rows();
+        
+        // determine which photo is where
+        if(count($fotos) == 3) // photo is in the middle
+        {
+          $prev = $fotos[0];
+          $foto = $fotos[1];
+          $next = $fotos[2];
+        }
+        else
+        if($params['OFFSET'] == 0) // first photo in list
+        {
+          $prev = false;
+          $foto = $fotos[0];
+          $next = false;
+          
+          if(count($fotos) == 2) // make sure there is a next photo
+          {
+            $next = $fotos[1];
+          }
+        }
+        else // last photo in list
+        {
+          $prev = $fotos[0];
+          $foto = $fotos[1];
+          $next = false;
+        }
+        
+        $dynPhoto = dynamicImageLock($foto['P_THUMB_PATH'], $foto['P_KEY'], $foto['P_ROTATION'], $foto['P_WIDTH'], $foto['P_HEIGHT'], 500, 375);
+        $tagsArr = (array)explode(',', $foto['P_TAGS']);
+        echo '<div style="padding-left:10px; padding-top:10px;">';
+               //<div style="float:left; padding-right:20px;"><img src="images/fotopopup_edit.gif" width="14" height="14" border="0" align="absmiddle" style="padding-right:3px;" /><a href="/?action=fotobox.image_form&image_id=' . $foto['P_ID'] . '" target="_blank" title="edit this foto">Edit</a></div>
+               //<div style="float:left; padding-right:20px;"><img src="images/fotopopup_duplicate.gif" width="16" height="16" border="0" align="absmiddle" style="padding-right:3px;" /><a href="/?action=fotobox.save_to_fotobox_form&image_id=' . $foto['P_ID'] . '" target="_blank">Duplicate</a></div>
+               //<div style="float:left; padding-right:20px;"><img src="images/fotopopup_delete.gif" width="12" height="16" border="0" align="absmiddle" style="padding-right:3px;" /><a href="/?action=fotobox.fotos_delete_form&ids=' . $foto['P_ID'] . '" target="_blank">Delete</a></div>
+        echo ' <div style="float:left; padding-right:20px;"><img src="images/fotopopup_all_sizes.gif" width="14" height="14" border="0" align="absmiddle" style="padding-right:3px;" /><a href="/?action=fotobox.all_sizes&foto_id=' . $foto['P_ID'] . '" target="_blank" title="view all sizes of this foto">All Sizes</a></div>
+               <div style="float:right; padding-right:10px;"><a href="javascript:function(){ return false; }  " class="lbAction" rel="deactivate"><img src="images/fotopopup_close.gif" width="23" height="23" border="0" align="absmiddle" /></a></div>
+               <br clear="all" />
+              </div>
+              <div style="padding-left:10px; padding-top:5px;">
+                <div style="float:left;">
+                  <div style="z-index:1; width:500px; height:375px;">
+                    <div align="center" id="photoMainDiv"><img id="photoMainPopup" src="' . $dynPhoto[0] . '-' . NOW . '" border="0" /></div>
+                  </div>
+                  <div style="padding-top:5px;">
+                    <div style="width:235px; float:left;">
+                      <div style="padding-bottom:15px;"><img src="images/fotopopup_taken_on.gif" width="15" height="16" border="0" align="absmiddle" /> Taken: ' . ($foto['P_TAKEN'] > 0 ? date('M-d-Y (D)', $foto['P_TAKEN']) : 'N/A') . '</div>
+                      <div>This photo has been viewed ' . intval($foto['P_VIEWS'])  . ' times.</div>
+                      <!--
+                      <div style="padding-bottom:5px;">
+                        <select class="formfield">
+                          <option value="">Share this with a Group</option>
+                          <option value="">Show this on my Photo Page</option>
+                        </select>
+                      </div>
+                      <div><img src="images/share_it.gif" width="89" height="18" border="0" /></div>
+                      -->
+                    </div>
+                  </div>
+                  <div style="float:left;">
+                    <div style="padding-bottom:3px;">Name: ' . ($foto['P_NAME'] != '' ? $foto['P_NAME'] : 'N/A') . '</div>
+                    <div>Description: ' . ($foto['P_DESC'] != '' ? $foto['P_DESC'] : 'N/A') . '</div>
+                  </div>
+                </div>
+                <div style="width:165px; margin-left:10px; float:left;">
+                  <div style="border-bottom:dashed 1px #d5d5d5;"></div>
+                  <div style="height:60px; margin-top:10px;">';
+                    if($prev !== false) // previous photo exists
+                    {
+                      $pUrl = '/xml_result?action=group_foto_popup' . $urlAppend . '&OFFSET=' . ($urlParams['OFFSET'] - 1);
+                      echo '<div style="margin-left:5px; margin-top:15px; float:left;"><a href="' . $pUrl . '" class="lbAction" rel="insert"><img src="images/fotopopup_previous.gif" width="15" height="15" border="0" /></a></div>
+                            <div style="margin-left:8px; width:44px; height:44px; border:solid 1px #d5d5d5; float:left;"><a href="' . $pUrl . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $prev['P_THUMB_PATH'] . '" width="44" height="44" border="0" /></a></div>';
+                    }
+                    else // no previous photo
+                    {
+                      echo '<div style="margin-left:5px; margin-top:15px; width:15px; height:15px; float:left;"></div>
+                            <div style="margin-left:8px; width:44px; height:44px; float:left;"></div>';
+                    }
+                    
+                    if($next !== false) // next photo exists
+                    {
+                      $nUrl = '/xml_result?action=group_foto_popup' . $urlAppend . '&OFFSET=' . ($urlParams['OFFSET'] + 1);
+                      echo '<div style="margin-left:8px; width:44px; height:44px; border:solid 1px #d5d5d5; float:left;"><a href="' . $nUrl . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $next['P_THUMB_PATH'] . '" width="44" height="44" border="0" /></a></div>
+                            <div style="margin-left:5px; margin-top:15px; float:left;"><a href="' . $nUrl . '" class="lbAction" rel="insert"><img src="images/fotopopup_next.gif" width="15" height="15" border="0" /></a></div>';
+                    }
+                    else // no previous photo
+                    {
+                      echo '<div style="margin-left:5px; margin-top:15px; width:15px; height:15px; float:left;"></div>
+                            <div style="margin-left:8px; width:44px; height:44px; float:left;"></div>';
+                    }
+        echo '
+                    <br clear="all" />
+                  </div>
+                  <div style="margin-top:10px; border-bottom:dashed 1px #d5d5d5;"></div>
+                  
+                  <div style="padding-top:4px; text-align:center;" class="f_7">Currently viewing ' . ($urlParams['OFFSET'] + 1) . ' of ' . $totalRows . '</div>
+                  
+                  <div style="margin-top:10px;" class="bold">Tags:</div>';
+                  /*
+                  <div>
+                    <form style="display:inline;" onsubmit="if($(\'tagsField\').value != \'\'){ addTag(' . $foto['P_ID'] . ', $(\'tagsField\').value); } return false;">
+                      <div style="float:left;"><input autocomplete="off" type="text" id="tagsField" class="formfield" style="width:100px;"></div><div class="auto_complete" id="tagsField_auto_complete" style="width:100px;"></div>
+                      <div style="float:left; margin-left:5px;"><input type="submit" id="tagsButton" value="Tag" class="formbutton" /></div>
+                    </form>
+                    <br clear="all" />
+                  </div>
+                  */
+            echo '<div style="height:370px; margin-top:5px; overflow:auto;" id="tags">Loading...</div>
+                </div>
+              </div>
+              <script type="text/javascript">
+                getTags("' . $foto['P_ID'] . '");
+              </script>
+        ';
+        break;
+      case 'group_fotos_add':
+        include_once PATH_CLASS . '/CGroup.php';
+        include_once PATH_CLASS . '/CGroupManage.php';
+        $g  =& CGroup::getInstance();
+        $gm =& CGroupManage::getInstance();
+        
+        $groupId = intval($_POST['groupId']);
+        $photoIds= (array)explode(',', $_POST['fotoIds']);
+        
+        $groupData = $g->groupData($groupId);
+        
+        $retval = array('GROUP' => $groupData);
+        
+        $retval['FOTOS'] = $gm->shareFotos($_USER_ID, $groupId, $photoIds);
+        
+        echo jsonEncode($retval);
+        break;
+      case 'group_fotos_search':
+        include_once PATH_CLASS . '/CGroup.php';
+        $gp = &CGroup::getInstance();
+        
+        
+        $urlOmit = array('action' => true);
+        parse_str($_SERVER['QUERY_STRING'], $urlParams);
+        foreach($urlParams as $k => $v)
+        {
+          if(!isset($urlOmit[$k]))
+          {
+            if($k != 'TAGS')
+            {
+              $params[$k] = $v;
+            }
+            else
+            if($v != '')
+            {
+              $params[$k] = (array)explode(',', $v);
+            }
+          }
+        }
+        
+        $fotos = $gp->fotosSearch($params);
+        $fotos['MISC'] = array('TOTAL_ROWS' => $GLOBALS['dbh']->found_rows(), 'OFFSET' => $params['OFFSET'], 'LIMIT' => $params['LIMIT'], 'TAGS' => implode(',', (array)$params['TAGS']));
+        
+        echo jsonEncode($fotos);
+        break;
+      case 'group_list':
+        include_once PATH_CLASS . '/CGroup.php';
+        
+        $g =& CGroup::getInstance();
+        
+        $groups = $g->groups($_USER_ID);
+        
+        $return = '';
+        foreach($groups as $k => $v)
+        {
+          $groups[$k]['CONTRIBUTE'] = $g->canContribute($v['G_ID'], $_USER_ID, $v);
+        }
+        
+        echo jsonEncode($groups);
+        break;
+        
+      case 'header_update':
+        include_once PATH_CLASS . '/CGroupManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        
+        $gm =& CGroupManage::getInstance();
+        $fb =& CFotobox::getInstance();
+        
+        $group_id = $_GET['group_id'];
+        $retval = '';
+        
+        if($_GET['id'] == 0)
+        {
+          $gm->removePrefs($group_id, array('HEADER_PHOTO', 'HEADER_KEY'));
+          $retval = 'images/avatar.jpg';
+        }
+        else
+        {
+          $fotoData = $fb->fotoData($_GET['id']);
+          
+          if(isset($fotoData['P_THUMB_PATH']))
+          {
+            $gm->setPrefs($group_id, array('HEADER_PHOTO' => $fotoData['P_THUMB_PATH'], 'HEADER_KEY' => $fotoData['P_KEY']));
+            $src = $fotoData['P_THUMB_PATH'];
+            $retval = dynamicImage($src, $fotoData['P_KEY'], 95, 95);
+          }
+          else
+          {
+            $retval = 'null';
+          }
+        }
+        
+        echo 'true,' . $retval;
+        break;
+        
+      case 'login_generic':
+        include_once PATH_CLASS . '/CUser.php';
+        $us =& CUser::getInstance();
+        $exists = false;
+        $pref = false;
+        
+        if( isset( $_GET['userKey'] ) )
+        {
+          $exists = $us->userByKey($_GET['userKey']);
+          $pref = $us->pref($exists['U_ID'], 'FOTO_PRIVACY');
+        }
+        else
+        {
+          $exists = $us->find($_GET['username'], $_GET['password']);
+          $pref = $us->pref($exists['U_ID'], 'FOTO_PRIVACY');
+        }
+        
+        if($exists === false)
+        {
+          echo 'failure';
+        }
+        else
+        {
+          $user_id_enc = $exists['U_ID'] . '-' . md5($exists['U_ID'] . '_ff');
+          $userkey = $exists['U_KEY'];
+          echo 'success,'.$user_id_enc.','.$userkey.','.intval($exists['U_SPACETOTAL']).','.intval($exists['U_SPACEUSED']).','.$exists['U_USERNAME'].','.$pref;
+        }
+        break;
+      
+      case 'message_delete':
+        include_once PATH_CLASS . '/CUserManage.php';
+        $um=& CUserManage::getInstance();
+        
+        $delete = $um->markMessage($_USER_ID, $_POST['messageId'], 'Deleted') == true ? $_POST['messageId'] : 0;
+        echo jsonEncode($delete);
+        break;
+        
+      case 'message_get':
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $u =& CUser::getInstance();
+        $um=& CUserManage::getInstance();
+        
+        if($_POST['mark'] == 'Read')
+        {
+          $um->markMessage($_USER_ID, $_POST['messageId'], 'Read');
+        }
+        
+        $message = $u->getMessage($_USER_ID, $_POST['messageId']);
+        $message['UI_MESSAGE'] = nl2br($message['UI_MESSAGE']);
+        echo jsonEncode($message);
+        break;
+      case 'message_reply':
+        include_once PATH_CLASS . '/CMail.php';
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $m =& CMail::getInstance();
+        $u =& CUser::getInstance();
+        $um=& CUserManage::getInstance();
+        
+        $recipient  = $u->find($_POST['userId']);
+        $userData   = $u->find($_USER_ID);
+        $original   = $u->getMessage($_USER_ID, $_POST['messageId']);
+        
+        $replyToMessage = preg_replace('/<!-- reply:.+:reply -->/s', '', $original['UI_MESSAGE']);
+        $messageBody = $_POST['message'] . "\n<!-- reply: [i]{$userData['U_USERNAME']} wrote:[/i]\n{$replyToMessage} :reply -->";
+        
+        $message = $um->addMessage($_POST['userId'], $_USER_ID, $_POST['subject'], $messageBody, $_POST['messageId']);
+        
+        $headers = "MIME-Version: 1.0\n"
+                 . "Content-type: text/plain; charset=iso-8859-1\n"
+                 . 'Return-Path: ' . FF_EMAIL_FROM_FORMATTED . "\n"
+                 . 'From: ' . FF_EMAIL_FROM_FORMATTED;
+        $emailBody = $recipient['U_USERNAME'] . ",\n\nYou have a new message from {$userData['U_USERNAME']} ({$userData['U_EMAIL']}).\n\n"
+                   . "Click the link below to view your message.\n\n"
+                   . "http://" . FF_SERVER_NAME . "/?action=messaging.inbox\n\n"
+                   . "Thanks,\n\nThe Photagious Team";
+        $m->send($recipient['U_EMAIL'], 'You have a new message at Photagious', $emailBody, $headers);
+        
+        echo jsonEncode(array('id' =>$message, 'replyTo' => $_POST['messageId']));
+        break;
+      case 'message_send':
+        include_once PATH_CLASS . '/CMail.php';
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $m =& CMail::getInstance();
+        $u =& CUser::getInstance();
+        $um=& CUserManage::getInstance();
+        
+        $recipient  = $u->my($_POST['toUser']);
+        $userData   = $u->find($_USER_ID);
+        
+        $message = $um->addMessage($recipient['U_ID'], $_USER_ID, $_POST['subject'], $_POST['message']);
+        
+        $headers = "MIME-Version: 1.0\n"
+                 . "Content-type: text/plain; charset=iso-8859-1\n"
+                 . 'Return-Path: ' . FF_EMAIL_FROM_FORMATTED . "\n"
+                 . 'From: ' . FF_EMAIL_FROM_FORMATTED;
+        $emailBody = $recipient['U_USERNAME'] . ",\n\nYou have a new message from {$userData['U_USERNAME']} ({$userData['U_EMAIL']}).\n\n"
+                   . "Click the link below to view your message.\n\n"
+                   . "http://" . FF_SERVER_NAME . "/?action=messaging.inbox\n\n"
+                   . "Thanks,\n\nThe Photagious Team";
+        $m->send($recipient['U_EMAIL'], 'You have a new message at Photagious', $emailBody, $headers);
+        
+        echo jsonEncode(array('id' => $message, 'htmlId' => $_POST['htmlId']));
+        break;
+        
+      case 'personal_photo_update':
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        
+        $u = &CUser::getInstance();
+        $um =& CUserManage::getInstance();
+        $fb =& CFotobox::getInstance();
+        $fbm = &CFotoboxManage::getInstance();
+        
+        $retval = '';
+        
+        if($_GET['id'] == 0)
+        {
+          $um->removePrefs($_USER_ID, array('PP_PHOTO', 'PP_PHOTO_KEY'));
+          $fotoData = $fb->fotosSearch(array('USER_ID' => $_USER_ID, 'PERMISSION' => PERM_PHOTO_PUBLIC, 'LIMIT' => 1, 'ORDER' => 'P_TAKEN'));
+          $src = $fotoData[0]['P_THUMB_PATH'];
+          
+          $width = $fotoData[0]['P_WIDTH'];
+          $height= $fotoData[0]['P_HEIGHT'];
+        
+          if($fotoData[0]['P_ROTATION'] == '90' || $fotoData[0]['P_ROTATION'] == '270')
+          {
+            $_tmp = $width;
+            $width = $height;
+            $height= $_tmp;
+          }
+          
+          if($width >= $height) // crop top/bottom
+          {
+            $photoWidth = 550;
+            $photoHeight = 300;
+          }
+          else // crop left/right
+          {
+            $photoWidth = 400;
+            $photoHeight = 533;
+          }
+        
+          $retval = dynamicImage($src, $fotoData[0]['P_KEY'], $photoWidth, $photoHeight);
+          $id = $fotoData[0]['P_ID'];
+          $userData = $u->find($_USER_ID);
+          $username = $userData['U_USERNAME'];
+        }
+        else
+        {
+          $fotoData = $fb->fotoData($_GET['id'], $_USER_ID);
+          
+          if(isset($fotoData['P_THUMB_PATH']))
+          {
+            $um->setPrefs($_USER_ID, array('PP_PHOTO' => $fotoData['P_THUMB_PATH'], 'PP_PHOTO_KEY' => $fotoData['P_KEY']));
+            if($fotoData['P_PRIVACY'] == 0)
+            {
+              $fbm->update(array('up_id' => $_GET['id'], 'up_privacy' => 1));
+            }
+            
+            $src = $fotoData['P_THUMB_PATH'];
+            
+            $width = $fotoData['P_WIDTH'];
+            $height= $fotoData['P_HEIGHT'];
+          
+            if($fotoData['P_ROTATION'] == '90' || $fotoData['P_ROTATION'] == '270')
+            {
+              $_tmp = $width;
+              $width = $height;
+              $height= $_tmp;
+            }
+            
+            if($width >= $height) // crop top/bottom
+            {
+              $photoWidth = 550;
+              $photoHeight = 300;
+            }
+            else // crop left/right
+            {
+              $photoWidth = 400;
+              $photoHeight = 533;
+            }
+          
+            $retval = dynamicImage($src, $fotoData['P_KEY'], $photoWidth, $photoHeight);
+            $id = $fotoPage['P_ID'];
+            $userData = $u->find($_USER_ID);
+            $username = $userData['U_USERNAME'];
+          }
+          else
+          {
+            $retval = 'null';
+          }
+        }
+        
+        echo 'true,' . $retval . ',' . $username . ',' . $id . ',' . $photoWidth . ',' . $photoHeight;
+        break;
+      case 'pm_ban':
+        include_once PATH_CLASS . '/CPrivateMessage.php';
+        $pm = &CPrivateMessage::getInstance();
+        $u_id = $_USER_ID;
+        $who = $_GET['who'];
+        $pm->ban($u_id, $who);
+        break;
+        
+      case 'pm_optIn':
+        include_once PATH_CLASS . '/CPrivateMessage.php';
+        $pm = &CPrivateMessage::getInstance();
+        $u_id = $_USER_ID;
+        $pm->optIn($u_id);
+        break;
+        
+      case 'pm_optOut':
+        include_once PATH_CLASS . '/CPrivateMessage.php';
+        $pm = &CPrivateMessage::getInstance();
+        $u_id = $_USER_ID;
+        $pm->optOut($u_id);
+        break;
+        
+      case 'pm_send':
+        include_once PATH_CLASS . '/CPrivateMessage.php';
+        $pm = &CPrivateMessage::getInstance();
+        
+        $div_id = $_GET['div_id'];
+        $u_id = $_USER_ID;
+        $who= $_GET['who'];
+        $subject = $_GET['subject'];
+        $message = $_GET['message'];
+        
+        $result = $pm->send($u_id, $who, $subject, $message);
+        echo jsonEncode(array($div_id, $result));
+        break;
+        
+      case 'pm_unBan':
+        include_once PATH_CLASS . '/CPrivateMessage.php';
+        $pm = &CPrivateMessage::getInstance();
+        $u_id = $_USER_ID;
+        $who = $_GET['who'];
+        $pm->unBan($u_id, $who);
+        break;
+
+      case 'publish_to_facebook':
+        set_time_limit(0);
+        include_once PATH_CLASS . '/CToolbox.php';
+        include_once PATH_CLASS . '/CFacebook.php';
+        $tb = CToolbox::getInstance();
+        $fb = CFacebook::getInstance();
+        $albumName = $_GET['albumName'];
+        if(empty($albumName))
+        {
+          $albumName = date('F j, Y', NOW);
+        }
+
+        $photos = $tb->get($_USER_ID);
+        $upload = $fb->publishPhotos($photos, $albumName, $_FF_SESSION->value('username'));
+        echo jsonEncode($upload['link']);
+        break;
+        
+      case 'reject_photo':
+        include PATH_CLASS . '/CGroupManage.php';
+        $gm = &CGroupManage::getInstance();
+        
+        $group_id = $_GET['group_id'];
+        $photo_id = $_GET['photo_id'];
+        $photo_orig_id = $_GET['photo_orig_id'];
+        $u_orig_id = $_GET['u_orig_id'];
+        
+        $gm->rejectPhoto($group_id, $photo_id, $photo_orig_id, $u_orig_id);
+        break;
+        
+      case 'reject_slideshow':
+        include PATH_CLASS . '/CGroupManage.php';
+        $gm = &CGroupManage::getInstance();
+        
+        $group_id = $_GET['group_id'];
+        $slideshow_id = $_GET['slideshow_id'];
+        $slideshow_orig_id = $_GET['slideshow_orig_id'];
+        $u_orig_id = $_GET['u_orig_id'];
+        
+        $gm->rejectSlideshow($group_id, $slideshow_id, $slideshow_orig_id, $u_orig_id);
+        break;
+        
+      case 'report_delete':
+        include_once PATH_CLASS . '/CReport.php';
+        $r = &CReport::getInstance();
+        $r->DeleteReport($_GET['r_id']);
+        
+        echo jsonEncode(array($_GET['r_id']));
+        break;
+        
+      case 'scrapbook_add_item':
+        include_once PATH_CLASS . '/CScrapbook.php';
+        $s = &CScrapbook::getInstance();
+        
+        $type = $_GET['type'];
+        $size = $_GET['size'];
+        $x = $_GET['x'];
+        $y = $_GET['y'];
+        $extra = $_GET['extra'];
+        $user_id = $_GET['user_id'];
+        $parent_id = $_GET['parent_id'];
+
+        $itemData = false;
+        $insertId = false;
+        switch($type)
+        {
+          case 'photo':
+            
+            include_once PATH_CLASS . '/CFotobox.php';
+            $f = &CFotobox::getInstance();
+            switch($size)
+            {
+              case 'small':
+                $itemData = $f->fotoData($extra, $user_id);
+                $insertId = $s->insertItem($user_id, $parent_id, $type, $size, $x, $y, $extra);
+                $itemData['SI_ID'] = $insertId;
+                break;
+            }
+            break;
+        }
+        
+        $data = array('TYPE' => $type, 'SIZE' => $size, 'X' => $x, 'Y' => $y, 'EXTRA' => $extra, 'USER_ID' => $user_id, 'PARENT_ID' => $parent_id);      
+        echo jsonEncode(array('DATA' => $data, 'ITEM_SPECIFIC_DATA' => $itemData));
+        break;
+        
+      case 'slideshow_reorder':
+        include_once PATH_CLASS . '/CFlixManage.php';
+        $flm = &CFlixManage::getInstance();
+        
+        foreach($_POST['flixList'] as $k => $v)
+        {
+          $flm->updateSlideshow(
+              array('US_ID' => $v, 'ORDER' => $k, 'USER_ID' => $_USER_ID)
+            );
+        }
+        echo jsonEncode(true);
+        break;
+        
+      case 'sub_account_details_set':
+        include_once PATH_CLASS . '/CUserManage.php';
+        
+        $accountId = intval($_GET['sa_id']);
+        $name = $_GET['name'];
+        $email = $_GET['email'];
+        $password = $_GET['password'];
+        
+        $usm =& CUserManage::getInstance();
+        
+        $data = array('usa_id' => $accountId, 'usa_username' => $name, 'usa_email' => $email, 'usa_password' => $password);
+        $usm->updateSubAccount($data);
+        
+        echo jsonEncode('true');
+        break;
+      case 'sub_account_permission_set':
+        include_once PATH_CLASS . '/CPermission.php';
+        
+        $accountId = intval($_GET['sa_id']);
+        $permAction= $_GET['permAction'];
+        $permBit = $_GET['permBit']; // C R U D
+        $permValue = intval($_GET['permValue']); // 0 or 1
+        
+        $prm =& CPermission::getInstance();
+        
+        $prm->setPermission($accountId, $permAction, $permBit, $permValue);
+        
+        echo jsonEncode('true');
+        break;
+      case 'sub_account_permissions':
+        include_once PATH_CLASS . '/CPermission.php';
+        
+        $accountId = $_GET['sa_id'];
+        $prm =& CPermission::getInstance();
+        
+        $types = $prm->types();
+        
+        $retval = array();
+        
+        foreach($types as $k => $v)
+        {
+          $perms = $prm->hasPermission($accountId, $v['NAME']);
+          $retval[$v['NAME']] = $perms;
+        }
+        
+        echo jsonEncode($retval);
+        break;
+      case 'user_blogs':
+        include_once PATH_CLASS . '/CUser.php';
+        $us =& CUser::getInstance();
+        $blogs = $us->blogs($_USER_ID);
+        
+        $return = '';
+        foreach($blogs as $v)
+        {
+          $return .= $v['B_ID'] . ',' . $v['B_TYPE'] . ',' . str_replace(',', '&comma;', $v['B_NAME']) . ',' . $v['B_URL'] . ',';
+        }
+        
+        echo 'true,' . $return;
+        break;
+        
+      case 'user_by_key':
+        include_once PATH_CLASS . '/CUser.php';
+        $us =& CUser::getInstance();
+        $exists = false;
+        
+        $exists = $us->userByKey($_GET['userKey']);
+        
+        if($exists === false)
+        {
+          echo 'failure';
+        }
+        else
+        {
+          $user_id_enc = $exists['U_ID'] . '-' . md5($exists['U_ID'] . '_ff');
+          
+          // U_ID, U_KEY, U_USERNAME, U_EMAIL, U_ACCOUNTTYPE, U_SPACETOTAL, U_SPACEUSED, U_DATECREATED, U_DATEEXPIRES
+          
+          echo 'success,'.$user_id_enc.','.$exists['U_ID'].','.$exists['U_USERNAME'].','.$exists['U_EMAIL'].','.$exists['U_ACCOUNTTYPE'].','.$exists['U_SPACETOTAL'].','.$exists['U_SPACEUSED'].','.$exists['U_DATECREATED'].','.$exists['U_DATEEXPIRES'];
+        }
+        break;
+        
+      case 'user_groups':
+        include_once PATH_CLASS . '/CGroup.php';
+        
+        $g =& CGroup::getInstance();
+        
+        $groups = $g->groups($_USER_ID);
+        
+        $return = '';
+        foreach($groups as $v)
+        {
+          if(isset($_GET['contribute']))
+          {
+            if($g->canContribute($v['G_ID'], $_USER_ID, $v))
+            {
+              $return .= $v['G_ID'] . ',' . str_replace(',', '&comma;', $v['G_NAME']) . ',';
+            }
+          }
+          else
+          {
+            $return .= $v['G_ID'] . ',' . str_replace(',', '&comma;', $v['G_NAME']) . ',';
+          }
+        }
+        
+        echo 'true,' . $return;
+        break;
+      case 'user_prefs':
+        include_once PATH_CLASS . '/CUser.php';
+        $u =& CUser::getInstance();
+        $userData = $u->find($_USER_ID);
+        
+        echo 'true,' . $userData['U_DEFAULTCC'] . ',' . $userData['U_DEFAULTPRIVACY'];
+        
+        break;
+        
+      case 'video_search':
+        include_once PATH_CLASS . '/CVideo.php';
+        $v = &CVideo::getInstance();
+        
+        $params = $_GET;
+        $params['USER_ID'] = $_USER_ID;
+        if(!isset($params['LIMIT']))
+        {
+          $params['LIMIT'] = 10;
+        }
+        
+        $video = $v->search($params);
+        $totalVideos = $video[0]['ROWS'];
+        
+        $output = array();
+        foreach( $video as $v )
+        {
+          $fotoURL = PATH_VIDEO . $v['V_SCREEN_75x75'];
+          $output[] = array('V_ID' => $v['V_ID'], 'V_KEY' => $v['V_KEY'], 'V_PRIVACY' => $v['V_PRIVACY'], 'V_THUMB_PATH' => $fotoURL, 'V_NAME' => $v['V_NAME'], 'V_VIEWS' => $v['V_VIEWS']);
+        }
+        
+        $data = array('TOTAL_VIDEOS' => $totalVideos, 'OFFSET' => $params['OFFSET'], 'LIMIT' => $params['LIMIT'], 'USER_ID' => $params['USER_ID']);
+        echo jsonEncode(array('VIDEO_DATA' => $output, 'MISC' => $data));
+        break;
+        
+      case 'groupMemberAdd':
+        include_once PATH_CLASS . '/CGroup.php';
+        include_once PATH_CLASS . '/CGroupManage.php';
+        include_once PATH_CLASS . '/CPrivateMessage.php';
+        include_once PATH_CLASS . '/CUser.php';
+        $g = &CGroup::getInstance();
+        $gm = &CGroupManage::getInstance();
+        $pm = &CPrivateMessage::getInstance();
+        $u = &CUser::getInstance();
+        
+        $div_id = $_GET['div_id'];
+        $u_id = $_USER_ID;
+        $who= $_GET['who'];
+        $group_id = $_GET['group_id'];
+        $numberOfMembers = $_GET['numberOfMembers'];
+        
+        $ran = randomString(32);
+        $userInfo = $u->find($who);
+        $gm->invite(array('gi_g_id' => $group_id, 'gi_u_id' => $who, 'gi_reference' => $ran, 'gi_email' => $userInfo['U_EMAIL']));
+        
+        $groupInfo = $g->groupData($group_id);
+        
+        $subject = "Membership Invite";
+        $message = "You have been invited to join group " . $groupInfo['G_NAME'] . ".  Please use this link to accept or decline, <a href=\"http://" . FF_SERVER_NAME . "/?action=group.member_accept&group_id=" . $group_id . "&key=" . $ran . "\">http://" . FF_SERVER_NAME . "/?action=group.member_accept&group_id=" . $group_id . "&key=" . $ran . "</a>.";
+        $pm->send($u_id, $who, $subject, $message);
+        
+        echo jsonEncode(array($div_id, $who, $numberOfMembers));
+        break;
+        
+      case 'groupMemberDelete':
+        include_once PATH_CLASS . '/CGroupManage.php';
+        $gm = &CGroupManage::getInstance();
+        
+        $div_id = $_GET['div_id'];
+        $u_id = $_USER_ID;
+        $who= $_GET['who'];
+        $group_id = $_GET['group_id'];
+        $numberOfMembers = $_GET['numberOfMembers'];
+        
+        $gm->removeMember($group_id, $who);
+        echo jsonEncode(array($div_id, $who, $numberOfMembers, $result));
+        break;
+        
+      case 'groupMemberSearch':
+        include_once PATH_CLASS . '/CGroup.php';
+        $g = &CGroup::getInstance();
+        
+        $urlOmit = array('action' => true);
+        parse_str($_SERVER['QUERY_STRING'], $urlParams);
+        foreach($urlParams as $k => $v)
+        {
+          if(!isset($urlOmit[$k]))
+          {
+            $params[$k] = $v;
+          }
+        }
+        
+        $result = $g->memberSearch($params['SEARCH_ITEM'], $params['GROUP_ID'], $params['OFFSET'], $params['LIMIT']);
+        $params['TOTAL_ROWS'] = $result[0]['TOTAL_ROWS'];
+        $params['PATH_FOTO'] = PATH_FOTO;
+        $params['FF_SERVER_NAME'] = FF_SERVER_NAME;
+        
+        echo jsonEncode(array('PARAMS' => $params, 'RESULT' => $result));
+        break;
+        
+      case 'group_quick_set_add':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $tags = (array)explode(',', $_GET['tags']);
+        $group_id = $_GET['group_id'];
+        $t->groupAddQuickSet($_GET['name'], $tags, $group_id, $_GET['parent'], $_GET['position']);
+        echo 'true, ' . $group_id;
+        break;
+      case 'user_quick_set_add':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $tags = (array)explode(',', $_GET['tags']);
+        $t->addQuickSet($_GET['name'], $tags, $_USER_ID, $_GET['parent'], $_GET['position']);
+        echo 'true';
+        break;
+      case 'group_quick_set_delete':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $group_id = $_GET['group_id'];
+        $t->groupDeleteQuickSet($_GET['set_id'], $group_id);
+        echo 'true,' . $group_id;
+        break;
+      case 'user_quick_set_delete':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        
+        $t->deleteQuickSet($_GET['set_id'], $_USER_ID);
+        echo 'true';
+        break;
+      case 'group_quick_set_specific':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $set_id = $_GET['set_id'];
+        $group_id = $_GET['group_id'];
+        $tag = $t->groupQuickSet($group_id, $set_id);
+        
+        $return = $tag['S_ID'] . ',' . $tag['S_P_ID'] . ',' . $tag['S_U_ID'] . ',' . str_replace(',', '&comma;', $tag['S_NAME']) . ',' . str_replace(',', '&comma;', $tag['S_TAGS']);
+        echo 'true,' . $return;
+        break;
+      case 'user_quick_set_specific':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $set_id = $_GET['set_id'];
+        $tag = $t->quickSet($_USER_ID, $set_id);
+        
+        $return = $tag['S_ID'] . ',' . $tag['S_P_ID'] . ',' . $tag['S_U_ID'] . ',' . str_replace(',', '&comma;', $tag['S_NAME']) . ',' . str_replace(',', '&comma;', $tag['S_TAGS']);
+        echo 'true,' . $return;
+        break;
+      case 'group_quick_set_update':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $group_id = $_GET['group_id'];
+        $t->groupUpdateQuickSet($_GET['set_id'], $group_id, $_GET['name'], $_GET['tags'], $_GET['position']);
+        echo 'true,' . $group_id;
+        break;
+      case 'user_quick_set_update':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        
+        $t->updateQuickSet($_GET['set_id'], $_USER_ID, $_GET['name'], $_GET['tags'], $_GET['position']);
+        echo 'true';
+        break;
+      
+      case 'group_quick_sets':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $parent_id = isset($_GET['parent_id']) ? intval($_GET['parent_id']) : 0; // 0 means just top level....1 means all
+        $recurse   = isset($_GET['recurse']) ? intval($_GET['recurse']) : 0;
+        $group_id = $_GET['group_id'];
+        
+        $tags = $t->groupQuickSets($group_id, $parent_id);
+        $return = '';
+        
+        foreach($tags as $v)
+        {
+          $return .= $v['S_ID'] . ',' . $v['S_P_ID'] . ',' . str_replace(array(',','~'), array('&comma;','&tilde;'), $v['S_NAME']) . ',' . str_replace(array(',','~'),array('&comma;','&tilde;'), $v['S_TAGS']) . '~';
+          
+          if($recurse == 1)
+          {
+            $tags_2 = $t->groupQuickSets($group_id, $v['S_ID']);
+            foreach($tags_2 as $v_2)
+            {
+              $return .= $v_2['S_ID'] . ',' . $v_2['S_P_ID'] . ',' . str_replace(array(',','~'), array('&comma;','&tilde;'), $v_2['S_NAME']) . ',' . str_replace(array(',','~'),array('&comma;','&tilde;'), $v_2['S_TAGS']) . '~';
+            }
+          }
+        }
+        
+        echo 'true~' . $return; // use tilde for this case
+        break;
+      case 'poolMemberSearch':
+        include_once PATH_CLASS . '/CGroup.php';
+        include_once PATH_CLASS . '/CUser.php';
+        $u = &CUser::getInstance();
+        $g = &CGroup::getInstance();
+        
+        $urlOmit = array('action' => true);
+        parse_str($_SERVER['QUERY_STRING'], $urlParams);
+        foreach($urlParams as $k => $v)
+        {
+          if(!isset($urlOmit[$k]))
+          {
+            $params[$k] = $v;
+          }
+        }
+        
+        //$pu_id = $g->poolId($params['GROUP_ID']);
+        $result = $u->usersByPool($params['GROUP_ID'], $params['SEARCH_ITEM'], $params['OFFSET'], $params['LIMIT']);
+        $params['TOTAL_ROWS'] = $result[0]['TOTAL_ROWS'];
+        $params['PATH_FOTO'] = PATH_FOTO;
+        $params['FF_SERVER_NAME'] = FF_SERVER_NAME;
+        
+        echo jsonEncode(array('PARAMS' => $params, 'RESULT' => $result));
+        break;
+        
+      case 'user_quick_sets':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $parent_id = isset($_GET['parent_id']) ? intval($_GET['parent_id']) : 0; // 0 means just top level....1 means all
+        $recurse   = isset($_GET['recurse']) ? intval($_GET['recurse']) : 0;
+        
+        $tags = $t->quickSets($_USER_ID, $parent_id);
+        $return = '';
+        
+        foreach($tags as $v)
+        {
+          $return .= $v['S_ID'] . ',' . $v['S_P_ID'] . ',' . str_replace(array(',','~'), array('&comma;','&tilde;'), $v['S_NAME']) . ',' . str_replace(array(',','~'),array('&comma;','&tilde;'), $v['S_TAGS']) . '~';
+          
+          if($recurse == 1)
+          {
+            $tags_2 = $t->quickSets($_USER_ID, $v['S_ID']);
+            foreach($tags_2 as $v_2)
+            {
+              $return .= $v_2['S_ID'] . ',' . $v_2['S_P_ID'] . ',' . str_replace(array(',','~'), array('&comma;','&tilde;'), $v_2['S_NAME']) . ',' . str_replace(array(',','~'),array('&comma;','&tilde;'), $v_2['S_TAGS']) . '~';
+            }
+          }
+        }
+        
+        echo 'true~' . $return; // use tilde for this case
+        break;
+      case 'group_quick_set_count':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $group_id = $_GET['group_id'];
+        $sets = $t->groupQuickSets($group_id, 0);
+        echo 'true,' . count($sets);
+        break;
+      case 'user_quick_set_count':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $sets = $t->quickSets($_USER_ID, 0);
+        
+        echo 'true,' . count($sets);
+        break;
+      case 'group_quick_set_reorder':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        $group_id = $_GET['group_id'];
+        
+        if($_GET['id'] == 'groupQuickSetParents') // reorder parents
+        {
+          $parent_id = 0;
+          $sets = $t->quickSets($group_id, $parent_id);
+          $newOrder = $_POST['groupQuickSetParents'];
+        }
+        else 
+        {
+          $keys = array_keys($_POST);
+          preg_match('/\d+$/', $keys[0], $matches);
+          $parent_id = $matches[0];
+          $newOrder = $_POST[$keys[0]];
+        }
+        
+        $t->reorder($newOrder, $parent_id, $group_id);
+        echo '<script language="javascript">groupQuickSetRefresh("manage",'+group_id+'); quickSetDialogHide();</script>';
+        break;
+      case 'user_quick_set_reorder':
+        include_once PATH_CLASS . '/CTag.php';
+        $t =& CTag::getInstance();
+        
+        if($_GET['id'] == 'quickSetParents') // reorder parents
+        {
+          $parent_id = 0;
+          $sets = $t->quickSets($_USER_ID, $parent_id);
+          $newOrder = $_POST['quickSetParents'];
+        }
+        else 
+        {
+          $keys = array_keys($_POST);
+          preg_match('/\d+$/', $keys[0], $matches);
+          $parent_id = $matches[0];
+          $newOrder = $_POST[$keys[0]];
+        }
+        
+        $t->reorder($newOrder, $parent_id, $_USER_ID);
+        echo '<script language="javascript">quickSetRefresh("manage"); quickSetDialogHide();</script>';
+        break;
+      case 'get_fotos':
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fb =& CFotobox::getInstance();
+        
+        $start = intval($_GET['start']);
+        $limit = intval($_GET['limit']);
+        
+        $fotos = $fb->fotos($_USER_ID, false, false, $start, $limit);
+        $fotos[0]['TOTAL_ROWS'] = $GLOBALS->dbh->found_rows();
+        
+        echo jsonEncode($fotos);
+        break;
+      case 'group_flix_popup':
+        
+        if($logged_in === false)
+        {
+          echo '<script type=text/javascript>window.location.reload();</script>';
+          die();
+        }
+        
+        $id = $_GET['id'];
+        $tags = !empty($_GET['tags']) ? $_GET['tags'] : false;
+        $offset = $_GET['offset'];
+        $group_id = $_GET['group_id'];
+        
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fb = &CFotobox::getInstance();
+        $fl =& CFlix::getInstance();
+        
+        $flix = $fl->search(array('FLIX_ID' => $id, 'GROUP_ID' => $group_id, 'MODE' => 'GROUP'));
+        
+        if($offset == 0)
+        {
+          $nextPrev = $fl->search(array('GROUP_ID' => $group_id, 'OFFSET' => $offset, 'LIMIT' => 2, 'TAGS' => $tags, 'MODE' => 'GROUP'));
+        }
+        else 
+        {
+          $nextPrev = $fl->search(array('GROUP_ID' => $group_id, 'OFFSET' => ($offset-1), 'LIMIT' => 3, 'TAGS' => $tags, 'MODE' => 'GROUP'));
+        }
+        
+        $fotoURL = dynamicImage($flix['US_PHOTO']['thumbnailPath_str'], $flix['US_PHOTO']['photoKey_str'], 450, 230);
+        
+        echo '<div style="padding-top:10px; padding-left:10px;">
+                <div style="float:left;"><img src="images/fotopopup_edit.gif" border="0" /></div>
+                <div style="float:left; padding-left:5px; padding-top:2px;"><a href="/?action=flix.flix_form&key=' . $flix['US_KEY'] . '">Edit</a></div>';
+        echo   '<div style="float:left; padding-left:15px;"><img src="images/fotopopup_delete.gif" border="0" /></div>
+                <div style="float:left; padding-left:5px; padding-top:2px;"><a href="/?action=flix.flix_delete_form&flix_ids=' . $flix['US_ID'] . '">Delete</a></div>
+                <div style="float:right; padding-right:10px;"><a href="javascript:void();" onclick="location.href=location.href;"><img src="images/fotopopup_close.gif" border="0" /></a></div>
+                <br clear="all" />
+                <div style="padding-top:15px; padding-left:5px;">
+                  <div style="float:left; border:solid 1px #686868; width:450px; height:260px; background-color:#686868;">
+                    <div style="width:450px; height:230px;"><img src="' . $fotoURL . '" border="0" /></div>
+                    <div style="text-align:center; padding-top:4px;" class="bg_dark"><a href="/slideshow?' . $flix['US_KEY'] . '"><img src="images/buttons/btn_view_slideshow.png" class="png" border="0" width="151" height="26" /></a></div>
+                  </div>
+                  <div style="float:left; margin-left:25px; width:180px; height:77px;">
+                    <div style="float:left; padding-top:10px; padding-left:4px; padding-bottom:4px; border-top:dashed 1px #D5D5D4; border-bottom:dashed 1px #D5D5D4;">';
+                      
+                      if($offset > 0)
+                      {
+                        // previous
+                        $fotoURL = $nextPrev[0]['US_PHOTO']['thumbnailPath_str'];
+                        
+                        echo '<div style="float:left; padding-top:20px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[0]['US_ID'] . '&offset=' . ($offset-1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/left_arrow.gif" border="0" /></a></div>
+                              <div style="float:left; margin-left:4px; margin-right:3px; padding-left:7px; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                <div style="float:left; padding-top:5px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[0]['US_ID'] . '&offset=' . ($offset-1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                              </div>';
+                        
+                        if(count($nextPrev) > 2)
+                        {
+                          // next
+                          $fotoURL = $nextPrev[2]['US_PHOTO']['thumbnailPath_str'];
+                          
+                          echo '<div style="float:left; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                  <div style="float:left; padding-top:5px; padding-left:7px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[2]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                                </div>
+                                <div style="float:left; padding-top:20px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[2]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/right_arrow.gif" border="0" /></a></div>';
+                        }
+                        else 
+                        {
+                          // no next
+                          echo '<div style="float:left; width:64px; height:59px;"></div>
+                                <div style="float:left; visibility:hidden; padding-top:20px;"><img src="images/right_arrow.gif" border="0" /></div>';
+                                
+                        }
+                      }
+                      else 
+                      {
+                        // no previous
+                        echo '<div style="visibility:hidden; float:left; padding-top:20px;"><img src="images/left_arrow.gif" border="0" /></div>
+                              <div style="visibility:hidden; float:left; padding-left:8px; padding-right:8px;"><img src="images/slideshow_frame_small.gif" border="0" /></div>';
+                        if(count($nextPrev) > 1)
+                        {
+                          // next
+                          $fotoURL = $nextPrev[1]['US_PHOTO']['thumbnailPath_str'];
+                          
+                          echo '<div style="float:left; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                  <div style="float:left; padding-top:5px; padding-left:7px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[1]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                                </div>
+                                <div style="float:left; padding-top:20px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[1]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/right_arrow.gif" border="0" /></a></div>';
+                        }
+                        else 
+                        {
+                          // no next
+                          echo '<div style="float:left; width:64px; height:59px;"></div>
+                                <div style="float:left; visibility:hidden; padding-top:20px;"><img src="images/right_arrow.gif" border="0" /></div>';
+                                
+                        }
+                      }
+                      
+              echo '</div>
+                    <br />
+                    <div style="padding-top:25px; padding-left:15px;">
+                      <div class="bold">Tags:</div>
+                      <form id="_tagForm" style="text-align:left;" onsubmit="if($(\'flixListTags\').value != \'\'){ this.value=\'Tagging...\'; addFlixTags(\'' . $flix['US_ID'] . '\', $(\'flixListTags\').value); $(\'flixListTags\').value = \'\'; } return false;">
+                        <div style="float:left; padding-right:5px;"><input autocomplete="off" type="text" id="flixListTags" class="formfield" style="width:100px;"></div><div class="auto_complete" id="flixListTags_auto_complete" style="width:100px;"></div>
+                        <script>$(\'flixListTags\').focus();</script>
+                        <div><input type="submit" id="tagsButton" value="Tag" class="formbutton bold" style="cursor:pointer;" /></div>
+                        <br />
+                        <div id="flix_tags_existing_' . $flix['US_ID'] . '" style="padding-left:10px; height:120px; width:150px; overflow:auto;">';
+        
+                          $arr_tags = (array)explode(',', $flix['US_TAGS']);
+                          $str = '';
+                          if($flix['US_TAGS'] == '')
+                          {
+                            $str = '<div class="bold">No Tags</div>';
+                          }
+                          else 
+                          {
+                            foreach($arr_tags as $k => $v)
+                            {
+                              if($v != '')
+                              {
+                                $str .= '<div style="overflow:auto;" id="flix_remove_tag_' . $flix['US_ID'] . '_' . $k . '">(<a href="javascript:void(removeFlixTags(' . $flix['US_ID'] . ',\'' . $v . '\'));" onclick="$(\'flix_remove_tag_' . $flix['US_ID'] . '_' . $k . '\').style.backgroundColor=\'yellow\';" title="untag from flix (' . $v . ')">x</a>)' . $v . '</div>';
+                              }
+                            }
+                          }
+                          echo substr($str, 0, -2);
+                          
+                  echo '</form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <br clear="all" />
+                  <!--
+                   <div style="margin-top:10px;"><a href="/?action=reports.report_main" class="plain"><img src="images/icons/chart_alt_2_16x16.png" class="png" width="16" height="16" border="0" hspace="4" />Generate Reports</a></div>
+                   <div style="margin-top:2px;"><a href="/?action=flix.schedule" class="plain"><img src="images/icons/history_16x16.png" class="png" width="16" height="16" hspace="4" border="0" align="absmiddle" />Schedule Your Slideshows</a></div>
+                   -->
+                  </div>
+                  <div style="float:left; padding-left:5px; padding-top:9px;"><a href="/?action=home.slideshow_share&KEY=' . $flix['US_KEY'] . '"><img src="images/buttons/btn_share_slideshow.gif" width="120" height="18" border="0" /></a></div>
+                  <br clear="all" />
+                  <!--<div style="padding-top:8px;"><a href="">(Need help sharing your slideshow?)</a></div>-->
+                  <div style="float:left; padding-left:15px; padding-top:10px;">
+                    <div class="bold">Slideshow Details</div>
+                    <div style="padding-top:8px;">Frames: ' . $flix['US_FOTO_COUNT'] . '</div>
+                    <div>Views: ' . $flix['US_VIEWS'] . '</div>
+                    <!--<div>Length: ' . $flix['US_LENGTH'] . '</div>-->
+                  </div>
+                  <div style="float:left; padding-left:100px;">
+                    <div style="background-color:#efefef; width:260px; position:absolute; padding-left:3px; display:none;" id="flixNameUpdateDiv">
+                      <form id="flixNameUpdateForm" onsubmit="flixNameUpdate(\'' . $flix['US_ID'] . '\', $(\'flixUpdateFormName\').value, \'\'); return false;">
+                        <div style="padding-bottom:3px;">Name<br/><input type="text" id="flixUpdateFormName" class="formfield" style="width:250px;" onfocus="this.select();" value="' . ($flix['US_NAME'] != '' ? $flix['US_NAME'] : 'Enter a name') . '" /></div>
+                        <div><input type="button" onclick="this.value=\'Saving...\'; flixNameUpdate(\'' . $flix['US_ID'] . '\', $(\'flixUpdateFormName\').value, \'\');" class="formfield bold" value="Update" id="flixUpdateFormSub" /> or <input type="button" value="Cancel" onclick="_toggle(\'flixNameUpdateDiv\')" class="formfield bold" /></div>
+                      </form>
+                    </div>
+                    <div style="padding-bottom:3px;"><img src="images/fotopopup_edit_name_description.gif" width="15" height="16" border="0" align="absmiddle" /> <a href="javascript:_toggle(\'flixNameUpdateDiv\');">Edit name of slideshow</a></div>
+                    <div id="flixNameDesc">
+                      <div style="padding-bottom:3px;">Name: ' . ($flix['US_NAME'] != '' ? $flix['US_NAME'] : '<span class="italic">None entered</span>') . '</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <script type="text/javascript">
+                new Autocompleter.Local("flixListTags", "flixListTags_auto_complete", userTags);
+                getTags("' . $flix['US_ID'] . '");
+              </script>';
+        
+        break;
+
+      case 'flix_popup':
+        if($logged_in === false)
+        {
+          echo '<script type="text/javascript"> window.location.reload(); </script>';
+          die();
+        }
+        
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        
+        $id = $_GET['id'];
+        $tags = !empty($_GET['tags']) ? $_GET['tags'] : false;
+        $offset = $_GET['offset'];
+        
+        $fb = &CFotobox::getInstance();
+        $fl =& CFlix::getInstance();
+        
+        $flix = $fl->search(array('MODE' => 'USER', 'FLIX_ID' => $id, 'USER_ID' => $_USER_ID));
+        //$template = $fl->template($flix['A_TEMPLATE']);
+        
+        if($offset == -1)
+        {
+          // no next or previous
+        }
+        else
+        if($offset == 0)
+        {
+          $nextPrev = $fl->search(array('MODE' => 'USER', 'USER_ID' => $_USER_ID, 'TAGS' => $tags, 'LIMIT' => 2, 'OFFSET' => $offset));
+        }
+        else 
+        {
+          $nextPrev = $fl->search(array('MODE' => 'USER', 'USER_ID' => $_USER_ID, 'TAGS' => $tags, 'LIMIT' => 3, 'OFFSET' =>( $offset-1)));
+        }
+        
+        $fotoURL = dynamicImage($flix['US_PHOTO']['thumbnailPath_str'], $flix['US_PHOTO']['photoKey_str'], 450, 230);
+        
+        echo '<div style="padding-top:10px; padding-left:10px;">
+                <div style="float:left;"><img src="images/fotopopup_edit.gif" border="0" /></div>
+                <div style="float:left; padding-left:5px; padding-top:2px;"><a href="/?action=flix.flix_form&key=' . $flix['US_KEY'] . '">Edit</a></div>
+                <div style="float:left; padding-left:15px; padding-top:2px;"><img src="images/fotopopup_duplicate.gif" width="16" height="16" border="0" align="absmiddle" style="padding-right:3px;" /><a href="javascript:void(0);" onclick="duplicateSlideshow(' . $flix['US_ID'] . ');">Duplicate</a></div>
+                <div style="float:left; padding-left:15px;"><img src="images/fotopopup_delete.gif" border="0" /></div>
+                <div style="float:left; padding-left:5px; padding-top:2px;"><a href="/?action=flix.flix_delete_form&flix_ids=' . $flix['US_ID'] . '">Delete</a></div>
+                <div style="float:right; padding-right:10px;"><a href="javascript:function(){ return false; }  " class="lbAction" rel="deactivate"><img src="images/fotopopup_close.gif" border="0" /></a></div>
+                <br clear="all" />
+                <div style="padding-top:15px; padding-left:5px;">
+                  <div style="z-index:2; position:absolute; width:250px; height:30px; margin-top:10px; margin-left:100px; background-color:white; display:none;" class="border_lite" id="slideshowConfirm">
+                    <div style="padding:5px; text-align:center;" class="bold" id="slideshowConfirmMessage"></div>
+                  </div>
+                  <div style="float:left; border:solid 1px #686868; width:450px; height:260px; background-color:#686868;">
+                    <div style="width:370px;"><img src="' . $fotoURL . '" border="0" /></div>
+                    <div style="text-align:center; padding-top:4px;" class="bg_dark"><a href="/slideshow?' . $flix['US_KEY'] . '"><img src="images/buttons/btn_view_slideshow.png" class="png" border="0" width="151" height="26" /></a></div>
+                  </div>
+                  <div style="float:left; margin-left:25px; width:180px; height:77px;">
+                    <div style="float:left; padding-top:10px; padding-left:4px; padding-bottom:4px; border-top:dashed 1px #D5D5D4; border-bottom:dashed 1px #D5D5D4;">';
+                      
+                      if($offset > 0)
+                      {
+                        // previous
+                        $fotoURL = $nextPrev[0]['US_PHOTO']['thumbnailPath_str'];
+                        
+                        echo '<div style="float:left; padding-top:20px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[0]['US_ID'] . '&offset=' . ($offset-1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/left_arrow.gif" border="0" /></a></div>
+                              <div style="float:left; margin-left:4px; margin-right:3px; padding-left:7px; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                <div style="float:left; padding-top:5px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[0]['US_ID'] . '&offset=' . ($offset-1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                              </div>';
+                        
+                        if(count($nextPrev) > 2)
+                        {
+                          // next
+                          $fotoURL = $nextPrev[2]['US_PHOTO']['thumbnailPath_str'];
+                          
+                          echo '<div style="float:left; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                  <div style="float:left; padding-top:5px; padding-left:7px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[2]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                                </div>
+                                <div style="float:left; padding-top:20px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[2]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/right_arrow.gif" border="0" /></a></div>';
+                        }
+                        else 
+                        {
+                          // no next
+                          echo '<div style="float:left; width:64px; height:59px;"></div>
+                                <div style="float:left; visibility:hidden; padding-top:20px;"><img src="images/right_arrow.gif" border="0" /></div>';
+                                
+                        }
+                      }
+                      else 
+                      {
+                        // no previous
+                        echo '<div style="visibility:hidden; float:left; padding-top:20px;"><img src="images/left_arrow.gif" border="0" /></div>
+                              <div style="visibility:hidden; float:left; padding-left:8px; padding-right:8px;"><img src="images/slideshow_frame_small.gif" border="0" /></div>';
+                        if(count($nextPrev) > 1)
+                        {
+                          // next
+                          $fotoURL = $nextPrev[1]['US_PHOTO']['thumbnailPath_str'];
+                          
+                          echo '<div style="float:left; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                  <div style="float:left; padding-top:5px; padding-left:7px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[1]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                                </div>
+                                <div style="float:left; padding-top:20px;"><a href="/xml_result?action=flix_popup&id=' . $nextPrev[1]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/right_arrow.gif" border="0" /></a></div>';
+                        }
+                        else 
+                        {
+                          // no next
+                          echo '<div style="float:left; width:64px; height:59px;"></div>
+                                <div style="float:left; visibility:hidden; padding-top:20px;"><img src="images/right_arrow.gif" border="0" /></div>';
+                                
+                        }
+                      }
+                      
+              echo '</div>
+                    <br />
+                    <div style="padding-top:25px; padding-left:15px;">
+                      <div class="bold">Tags:</div>
+                      <form id="_tagForm" style="text-align:left;" onsubmit="if($(\'flixListTags\').value != \'\'){ this.value=\'Tagging...\'; addFlixTags(\'' . $flix['US_ID'] . '\', $(\'flixListTags\').value); $(\'flixListTags\').value = \'\'; } return false;">
+                        <div style="float:left; padding-right:5px;"><input autocomplete="off" type="text" id="flixListTags" class="formfield" style="width:100px;"></div><div class="auto_complete" id="flixListTags_auto_complete" style="width:100px;"></div>
+                        <script>$(\'flixListTags\').focus();</script>
+                        <div><input type="submit" id="tagsButton" value="Tag" class="formbutton bold" style="cursor:pointer;" /></div>
+                        <br />
+                        <div id="flix_tags_existing_' . $flix['US_ID'] . '" style="padding-left:10px; height:120px; width:150px; overflow:auto;">';
+                          $arr_tags = (array)explode(',', $flix['US_TAGS']);
+                          $str = '';
+                          if($flix['US_TAGS'] == '')
+                          {
+                            $str = '<div class="bold">No Tags</div>';
+                          }
+                          else 
+                          {
+                            foreach($arr_tags as $k => $v)
+                            {
+                              if($v != '')
+                              {
+                                $str .= '<div style="overflow:auto;" id="flix_remove_tag_' . $flix['US_ID'] . '_' . $k . '">(<a href="javascript:void(removeFlixTags(' . $flix['US_ID'] . ',\'' . $v . '\'));" onclick="$(\'flix_remove_tag_' . $flix['US_ID'] . '_' . $k . '\').style.backgroundColor=\'yellow\';" title="untag from flix (' . $v . ')">x</a>)' . $v . '</div>';
+                              }
+                            }
+                          }
+                          echo substr($str, 0, -2);
+                          
+                  echo '  </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <br clear="all" />
+                  <div style="float:left; padding-left:5px; margin-top:10px;">
+                  ';
+                  
+                  if(permission($_FF_SESSION->value('account_perm'), PERM_USER_1))
+                  {
+                    echo '
+                      <div style="margin-top:2px;"><a href="/?action=flix.schedule" class="plain"><img src="images/icons/history_16x16.png" class="png" width="16" height="16" hspace="4" border="0" align="absmiddle" />Schedule Your Slideshows</a></div>
+                    ';
+                  }
+
+                  echo '
+                    <div>
+                      <a href="/?action=home.slideshow_share&KEY=' . $flix['US_KEY'] . '"><img src="images/buttons/btn_share_slideshow.gif" width="120" height="18" vspace="10" border="0" /></a>
+                    </div>
+                    
+                    <div style="margin-top:10px;">
+                      <div class="bold">Who can view your slideshow?</div>
+                      <div>
+                        <form id="slideshowPerms">
+                          <div>
+                            <div style="float:left;"><input type="checkbox" id="ssPerm0" value="' . PERM_SLIDESHOW_PRIVATE . '" ' . ($flix['US_PRIVACY'] == PERM_SLIDESHOW_PRIVATE ? 'checked="true"' : '') . ' onclick="$(\'ssPerm1\').checked=false; $(\'ssPerm2\').checked=false; $(\'ssPerm3\').checked=false; slideshowUpdatePerms(' . $flix['US_ID'] . ');" /></div>
+                            <div style="float:left; margin-top:3px;">Only those I send a link to</div>
+                            <br clear="all" />
+                          </div>
+                          <div>
+                            <div style="float:left;"><input type="checkbox" id="ssPerm1" value="' . PERM_SLIDESHOW_PUBLIC . '" ' . (($flix['US_PRIVACY'] & PERM_SLIDESHOW_PUBLIC) == PERM_SLIDESHOW_PUBLIC ? 'checked="true"' : '') . ' onclick="$(\'ssPerm0\').checked=false; slideshowUpdatePerms(' . $flix['US_ID'] . ');" /></div>
+                            <div style="float:left; margin-top:3px;">Anyone can view it</div>
+                            <br clear="all" />
+                          </div>
+                          <div>
+                            <div style="float:left;"><input type="checkbox" id="ssPerm2" value="' . PERM_SLIDESHOW_COMMENT . '" ' . (($flix['US_PRIVACY'] & PERM_SLIDESHOW_COMMENT) == PERM_SLIDESHOW_COMMENT ? 'checked="true"' : '') . ' onclick="$(\'ssPerm0\').checked=false; $(\'ssPerm1\').checked=true; slideshowUpdatePerms(' . $flix['US_ID'] . ');" /></div>
+                            <div style="float:left; margin-top:3px;">Allow comments</div>
+                            <br clear="all" />
+                          </div>
+                          <div>
+                            <div style="float:left;"><input type="checkbox" id="ssPerm3" value="' . PERM_SLIDESHOW_RELATED . '" ' . (($flix['US_PRIVACY'] & PERM_SLIDESHOW_RELATED) == PERM_SLIDESHOW_RELATED ? 'checked="true"' : '') . ' onclick="$(\'ssPerm0\').checked=false; $(\'ssPerm1\').checked=true; slideshowUpdatePerms(' . $flix['US_ID'] . ');" /></div>
+                            <div style="float:left; margin-top:3px;">Show my related content<br/><span class="italic">(photos, videos and tags)</span></div>
+                            <br clear="all" />
+                          </div>
+                        </form>
+                      </div>
+                      <div id="slideshowPermsConfirm"></div>
+                    </div>
+                  </div>
+                  <div style="float:left; padding-left:35px; margin-top:10px;">
+                    <div style="background-color:#efefef; width:260px; position:absolute; padding-left:3px; display:none;" id="flixNameUpdateDiv">
+                      <form id="flixNameUpdateForm" onsubmit="flixNameUpdate(\'' . $flix['US_ID'] . '\', $(\'flixUpdateFormName\').value, \'\'); return false;">
+                        <div style="padding-bottom:3px;">Name<br/><input type="text" id="flixUpdateFormName" class="formfield" style="width:250px;" onfocus="this.select();" value="' . ($flix['US_NAME'] != '' ? $flix['US_NAME'] : 'Enter a name') . '" /></div>
+                        <div><input type="button" onclick="this.value=\'Saving...\'; flixNameUpdate(\'' . $flix['US_ID'] . '\', $(\'flixUpdateFormName\').value, \'\');" class="formfield bold" value="Update" id="flixUpdateFormSub" /> or <input type="button" value="Cancel" onclick="_toggle(\'flixNameUpdateDiv\')" class="formfield bold" /></div>
+                      </form>
+                    </div>
+                    <div style="padding-bottom:3px;"><img src="images/fotopopup_edit_name_description.gif" width="15" height="16" border="0" align="absmiddle" /> <a href="javascript:_toggle(\'flixNameUpdateDiv\');">Edit name of slideshow</a></div>
+                    <div id="flixNameDesc">
+                      <div style="width:200px; padding-bottom:3px;">Name: ' . ($flix['US_NAME'] != '' ? $flix['US_NAME'] : '<span class="italic">None entered</span>') . '</div>
+                    </div>
+                    <div style="padding-top:30px;">This slideshow has been viewed ' . $flix['US_VIEWS'] . ' time' . ($flix['US_VIEWS'] != 1 ? 's' : '') . '.</div>
+                  </div>
+                </div>
+              </div>
+              
+              <script type="text/javascript">
+                new Autocompleter.Local("flixListTags", "flixListTags_auto_complete", userTags);
+                //getTags("' . $flix['US_ID'] . '");
+                
+                $("slideshowConfirm").style.display = "block";
+                editOptsConfirm = new fx.Opacity("slideshowConfirm", {duration:300});
+                editOptsConfirm.hide();
+              </script>';
+        
+        break;
+      /* this can eventually go */
+      case 'my_flix_popup':
+        
+        if($logged_in === false)
+        {
+          echo '<script type=text/javascript>window.location.reload();</script>';
+          die();
+        }
+        
+        $id = $_GET['id'];
+        $tags = !empty($_GET['tags']) ? $_GET['tags'] : false;
+        $offset = $_GET['offset'];
+        
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CUser.php';
+        $fl =& CFlix::getInstance();
+        $u = &CUser::getInstance();
+        
+        $flix = $fl->search(array('FLIX_ID' => $id, 'USER_ID' => $_USER_ID, 'PERMISSION' => PERM_SLIDESHOW_PUBLIC));
+        //$template = $fl->template($flix['A_TEMPLATE']);
+        
+        if($offset == 0)
+        {
+          $nextPrev = $fl->search(array('MODE' => 'USER', 'USER_ID' => $_USER_ID, 'TAGS' => $tags, 'LIMIT' => 2, 'OFFSET' => $offset, 'PERMISSION' => PERM_SLIDESHOW_PUBLIC));
+        }
+        else 
+        {
+          $nextPrev = $fl->search(array('MODE' => 'USER', 'USER_ID' => $_USER_ID, 'TAGS' => $tags, 'LIMIT' => 3, 'OFFSET' =>( $offset-1), 'PERMISSION' => PERM_SLIDESHOW_PUBLIC));
+        }
+        
+        $fotoURL = $flix['US_PHOTO']['thumbnailPath_str'];
+        
+        $userData = $u->find($flix['US_U_ID']);
+        
+        echo '<div style="padding-top:10px; padding-left:10px;">
+                <div style="float:right; padding-right:10px;"><a href="javascript:void();" class="lbAction" rel="deactivate"><img src="images/fotopopup_close.gif" border="0" /></a></div>
+                <br clear="all" />
+                <div style="padding-top:15px; padding-left:5px;">
+                  <div style="float:left; border:solid 1px #686868; width:450px; height:251px; background-color:#686868;">
+                    <div style="width:370px;"><img src="' . PATH_FOTOS . $fotoURL . '" border="0" /></div>
+                    <div style="float:right; padding-right:15px; padding-top:4px; color:#BABABA;">Preview</div>
+                  </div>
+                  <div style="float:left; margin-left:25px; width:180px; height:77px; border-top:dashed 1px #D5D5D4; border-bottom:dashed 1px #D5D5D4;">
+                    <div style="padding-top:10px; padding-left:4px;">';
+                      
+                      if($offset > 0)
+                      {
+                        // previous
+                        $fotoURL = $nextPrev[0]['US_PHOTO']['thumbnailPath_str'];
+                        
+                        echo '<div style="float:left; padding-top:20px;"><a href="/xml_result?action=my_flix_popup&id=' . $nextPrev[0]['US_ID'] . '&offset=' . ($offset-1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/left_arrow.gif" border="0" /></a></div>
+                              <div style="float:left; margin-left:4px; margin-right:3px; padding-left:7px; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                <div style="float:left; padding-top:5px;"><a href="/xml_result?action=my_flix_popup&id=' . $nextPrev[0]['US_ID'] . '&offset=' . ($offset-1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                              </div>';
+                        
+                        if(count($nextPrev) > 2)
+                        {
+                          // next
+                          $fotoURL = $nextPrev[2]['US_PHOTO']['thumbnailPath_str'];
+                          
+                          echo '<div style="float:left; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                  <div style="float:left; padding-top:5px; padding-left:7px;"><a href="/xml_result?action=my_flix_popup&id=' . $nextPrev[2]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                                </div>
+                                <div style="float:left; padding-top:20px;"><a href="/xml_result?action=my_flix_popup&id=' . $nextPrev[2]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/right_arrow.gif" border="0" /></a></div>';
+                        }
+                      }
+                      else 
+                      {
+                        // no previous
+                        echo '<div style="visibility:hidden; float:left; padding-top:20px;"><img src="images/left_arrow.gif" border="0" /></div>
+                              <div style="visibility:hidden; float:left; padding-left:8px; padding-right:8px;"><img src="images/slideshow_frame_small.gif" border="0" /></div>';
+                        if(count($nextPrev) > 1)
+                        {
+                          // next
+                          $fotoURL = $nextPrev[1]['US_PHOTO']['thumbnailPath_str'];
+                          
+                          echo '<div style="float:left; background:url(\'images/slideshow_frame_small.gif\') no-repeat; width:64px; height:59px;">
+                                  <div style="float:left; padding-top:5px; padding-left:7px;"><a href="/xml_result?action=my_flix_popup&id=' . $nextPrev[1]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $fotoURL . '" width="47" height="47" border="0" /></a></div>
+                                </div>
+                                <div style="float:left; padding-top:20px;"><a href="/xml_result?action=my_flix_popup&id=' . $nextPrev[1]['US_ID'] . '&offset=' . ($offset+1) . '&tags=' . $tags . '" class="lbAction" rel="insert"><img src="images/right_arrow.gif" border="0" /></a></div>';
+                        }
+                      }
+                      
+              echo '</div>
+                    <br clear="all" />
+                    <div style="padding-top:25px; padding-left:15px;">
+                    </div>
+                  </div>
+                </div>
+                <br clear="all" />
+                <div style="padding-left:5px; padding-top:15px;">
+                  <div>"' . $flix['US_NAME'] . '"</div>
+                  <br clear="all" />
+                  <div style="padding-left:15px; padding-top:30px;">
+                    <div class="bold">Slideshow Details</div>
+                    <div style="padding-top:8px;">Photos: ' . $flix['US_FOTO_COUNT'] . '</div>
+                    <div>Created By: ' . $userData['U_NAMEFIRST'] . ' ' . $userData['U_NAMELAST'] . '</div>
+                    <div>Views: ' . $flix['US_VIEWS'] . '</div>
+                    <div>Length: ' . $flix['US_LENGTH'] . '</div>
+                  </div>
+                </div>
+              </div>
+              <script type="text/javascript">
+                new Autocompleter.Local("flixListTags", "flixListTags_auto_complete", userTags);
+                $("tagsField").focus();
+                getTags("' . $foto['P_ID'] . '");
+              </script>';
+        break;
+      case 'flix_duplicate':
+        include_once PATH_CLASS . '/CFlixManage.php';
+        
+        $flm = &CFlixManage::getInstance();
+        $id = $_GET['slideshowId'];
+        $user_id = $_USER_ID;
+        
+        $flm->duplicate($id, $user_id);
+        break;
+      case 'foto_duplicate':
+        include_once PATH_CLASS . '/CIdat.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        include_once PATH_CLASS . '/CFotoboxManage.php';
+        include_once PATH_CLASS . '/CImageEditor.php';
+        
+        $id   =& CIdat::getInstance();
+        $ie   =& CImageEditor::getInstance();
+        $fb   =&  CFotobox::getInstance();
+        $fbm  =&  CFotoboxManage::getInstance();
+        $fbm  ->  setStamp(FF_YM_STAMP);
+        
+        $photoId = intval($_GET['photoId']);
+        $fotoData = $fb->fotoData($photoId);
+        $srcFilename = PATH_FOTOROOT . $fotoData['P_ORIG_PATH'];
+        
+        $imageKey  = $id->nextID(FF_IMAGE_KEY) . randomString();
+        $imageName   = basename($srcFilename);
+        $newFilename = time() . '_' . $fb->safename(substr($imageName, strpos($imageName, '_') + 1));
+        $fbm->uploadOriginal($srcFilename, $newFilename);
+        $fbm->uploadThumbnail($srcFilename, $newFilename);
+        
+        
+        $fbData = array(
+                      'up_u_id'   => $_USER_ID,
+                      'up_key'    => $imageKey,
+                      'up_tags'   => $fotoData['P_TAGS'],
+                      'up_name'   => ($fotoData['P_NAME'] != '' ? 'Copy of ' . preg_replace('/^Copy of/', '', $fotoData['P_NAME']) : ''),
+                      'up_size'   => $fotoData['P_SIZE'],
+                      'up_width'  => $fotoData['P_WIDTH'],
+                      'up_height' => $fotoData['P_HEIGHT'],
+                      'up_description'  =>  '',
+                      'up_original_path'=>  '/original/'  . FF_YM_STAMP . '/' . $newFilename,
+                      'up_thumb_path'   =>  '/thumbnail/' . FF_YM_STAMP . '/' . $newFilename
+                    );
+        
+        $newPhotoId = $fbm->add($fbData);
+        
+        $ie->loadImage($newPhotoId, PATH_FOTOROOT . $fbData['up_original_path']);
+        $ie->_applyHistory($photoId); // apply from $photoId to $newPhotoId
+        
+        echo jsonEncode($newPhotoId);
+        break;
+      case 'foto_popup':
+        
+        if($logged_in === false)
+        {
+          echo '<script type=text/javascript>window.location.reload();</script>';
+          die();
+        }
+        
+        include_once PATH_CLASS . '/CFotobox.php';
+        $fb =& CFotobox::getInstance();
+        $params = array('USER_ID' => $_USER_ID);
+        
+        // build query string
+        $urlOmit = array('OFFSET' => true, 'action' => true);
+        parse_str($_SERVER['QUERY_STRING'], $urlParams);
+        
+        $urlAppend = '';
+        foreach($urlParams as $k => $v)
+        {
+          if(!isset($urlOmit[$k]))
+          {
+            $urlAppend .= '&' . $k . '=' . $v;
+            if($k != 'TAGS')
+            {
+              $params[$k] = $v;
+            }
+            else
+            {
+              $params[$k] = (array)explode(',', $v);
+            }
+          }
+        }
+        
+        if($urlParams['OFFSET'] <= 0) // if first photo (should never be < 0)
+        {
+          $params['OFFSET'] = 0;
+          $params['LIMIT'] = 2;
+        }
+        else // else
+        {
+          $params['OFFSET'] = $urlParams['OFFSET'] - 1;
+          $params['LIMIT'] = 3;
+        }
+        
+        $fotos = $fb->fotosSearch($params);
+        $totalRows = $GLOBALS['dbh']->found_rows();
+        
+        // determine which photo is where
+        $cntFotos = count($fotos);
+        if($cntFotos == 3) // photo is in the middle
+        {
+          $prev = $fotos[0];
+          $foto = $fotos[1];
+          $next = $fotos[2];
+        }
+        else
+        if($cntFotos == 2) // only two photos in the list
+        {
+          $prev = false;
+          $foto = false;
+          $next = false;
+          
+          if($urlParams['OFFSET'] == 0) // if this is the first of two photos
+          {
+            $foto = $fotos[0];
+            $next = $fotos[1];
+          }
+          else // this is the last of two photos
+          {
+            $prev = $fotos[0];
+            $foto = $fotos[1];
+          }
+        }
+        else // only photo
+        {
+          $prev = false;
+          $foto = $fotos[0];
+          $next = false;
+        }
+        
+        $tagsArr = (array)explode(',', $foto['P_TAGS']);
+        $dynPhoto = dynamicImageLock($foto['P_THUMB_PATH'], $foto['P_KEY'], $foto['P_ROTATION'], $foto['P_WIDTH'], $foto['P_HEIGHT'], 500, 375);
+        echo '<div style="padding-left:10px; padding-top:10px;">
+               <div style="float:left; padding-right:20px;"><img src="images/fotopopup_edit.gif" width="14" height="14" border="0" align="absmiddle" style="padding-right:3px;" /><a href="javascript:void(0);" onclick="photoEditOpts(' . $foto['P_ID'] . ');" title="edit this photo">Edit</a></div>
+               <div style="float:left; padding-right:20px;"><img src="images/fotopopup_duplicate.gif" width="16" height="16" border="0" align="absmiddle" style="padding-right:3px;" /><a href="javascript:void(0);" onclick="duplicatePhoto(' . $foto['P_ID'] . ');">Duplicate</a></div>
+               <!--<div style="float:left; padding-right:20px;"><img src="images/fotopopup_delete.gif" width="12" height="16" border="0" align="absmiddle" style="padding-right:3px;" /><a href="/?action=fotobox.fotos_delete_form&ids=' . $foto['P_ID'] . '" target="_blank">Delete</a></div>-->
+               <div style="float:left; padding-right:20px;"><img src="images/telephone_16x16.gif" width="16" height="16" border="0" align="absmiddle" style="padding-right:3px;" /><a href="javascript:void(0);" onclick="window.open(\'http://72.32.52.172/x2m/link.jsp?username=' . ($_FF_SESSION->value('account_perm') == PERM_USER_0 ? 'FotoFlix' : 'FotoFlixPro') . '&fileurl=' . urlencode(substr($dynPhoto[0], 0, strpos($dynPhoto[0], '?'))) . '\', \'\', \'resizable, scrollbars, width=500, height=400\');" title="send to a mobile phone">Send to Mobile</a></div>
+               <div style="float:left; padding-right:20px;"><img src="images/toolbox.gif" width="14" height="11" border="0" align="absmiddle" style="padding-right:3px;" /><a href="javascript:void(0);" onclick="addToTbFromLb(' . $foto['P_ID'] . ');" title="add/remove to Tool Box" id="addToTbFromLb"></a></div>
+               <div style="float:left; padding-right:20px;"><img src="images/fotopopup_all_sizes.gif" width="14" height="14" border="0" align="absmiddle" style="padding-right:3px;" /><a href="/?action=fotobox.all_sizes&foto_id=' . $foto['P_ID'] . '" title="view all sizes of this photo">All Sizes</a></div>
+               <div style="float:right; padding-right:10px;"><a href="javascript:void(0);" class="lbAction" rel="deactivate"><img src="images/fotopopup_close.gif" width="23" height="23" border="0" align="absmiddle" onclick="loadFotos(fbOpts);" /></a></div>
+               <br clear="all" />
+              </div>
+              <div style="padding-left:10px; padding-top:5px;">
+                <div style="float:left;">
+                  <div style="z-index:2; position:absolute; width:200px; height:30px; margin-top:10px; margin-left:150px; background-color:white; display:none;" class="border_lite" id="photoConfirm">
+                    <div style="padding:5px; text-align:center;" class="bold" id="photoConfirmMessage"></div>
+                  </div>
+                  <div style="z-index:1; width:500px; height:375px;">
+                    <div align="center" id="photoMainDiv"><img id="photoMainPopup" src="' . $dynPhoto[0] . '-' . NOW . '" border="0" /></div>
+                  </div>
+                  <div id="editOpts" style="z-index:3; position:absolute; display:none; margin-left:25px; margin-top:-155px; width:450px; height:80px; border:solid 1px #808080; background-color:#e4e4e6;"></div>
+                  <script type="text/javascript">
+                    $("editOpts").style.display = "block";
+                    editOptsEff = new fx.Opacity("editOpts");
+                    editOptsEff.hide();
+                    
+                    $("photoConfirm").style.display = "block";
+                    editOptsConfirm = new fx.Opacity("photoConfirm", {duration:300});
+                    editOptsConfirm.hide();
+                  </script>
+                  <div style="padding-top:5px;">
+                    <div style="width:235px; float:left;">
+                      <div style="padding-bottom:15px;"><img src="images/fotopopup_taken_on.gif" width="15" height="16" border="0" align="absmiddle" /> Taken: <input type="text" class="formfield" value="' . ($foto['P_TAKEN'] > 0 ? date('m/d/Y h:i:s', $foto['P_TAKEN']) : 'm/d/yyyy h:m:s') . '" style="width:115px;" id="dateTimeField" /> <a href="javascript:updateDateTaken(' . $foto['P_ID'] . ', $F(\'dateTimeField\'));"><img src="/images/icons/save_16x16.png" class="png" width="16" height="16" border="0" align="absmiddle" /></a></div>
+                      <div>This photo has been viewed ' . intval($foto['P_VIEWS'])  . ' times.</div>
+                    </div>
+                  </div>
+                  <div style="float:left;">
+                    <div style="background-color:#efefef; width:260px; position:absolute; padding-left:3px; display:none;" id="fotoNameUpdateDiv">
+                      <form id="fotoNameUpdateForm" style="display:inline" onsubmit="fotoNameUpdate(\'' . $foto['P_ID'] . '\', \'\', $(\'fotoUpdateFormDesc\').value); this.value=\'Saving...\'; return false;">
+                        <!-- <div style="padding-bottom:3px;">Name<br/><input type="text" id="fotoUpdateFormName" class="formfield" style="width:250px;" onfocus="this.select();" value="' . ($foto['P_NAME'] != '' ? $foto['P_NAME'] : 'Enter a name') . '" /></div> -->
+                        <div style="padding-bottom:3px;">Description<br/><textarea id="fotoUpdateFormDesc" style="width:250px; height:27px;" class="formfield" onfocus="this.select();">' . ($foto['P_DESC'] != '' ? $foto['P_DESC'] : 'Enter a description') . '</textarea></div>
+                        <div><input type="submit" class="formfield bold" value="Update" id="fotoUpdateFormSub" /> or <input type="button" value="Cancel" onclick="_toggle(\'fotoNameUpdateDiv\')" class="formfield bold" /></div>
+                      </form>
+                    </div>
+                    <div style="padding-bottom:3px;"><img src="images/fotopopup_edit_name_description.gif" width="15" height="16" border="0" align="absmiddle" /> <a href="javascript:_toggle(\'fotoNameUpdateDiv\');">Edit description</a></div>
+                    <div id="fotoNameDesc">
+                      <!-- <div style="padding-bottom:3px;">Name: ' . ($foto['P_NAME'] != '' ? str_mid($foto['P_NAME'],20) : '<span class="italic">None entered</span>') . '</div> -->
+                      <div style="width:200px; height:70px; overflow:auto;">Description: ' . ($foto['P_DESC'] != '' ? $foto['P_DESC'] : '<span class="italic">None entered</span>') . '</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="width:165px; margin-left:10px; float:left;">
+                  <div style="border-bottom:dashed 1px #d5d5d5;"></div>
+                  <div style="height:60px; margin-top:10px;">';
+                    if($prev !== false) // previous photo exists
+                    {
+                      $pUrl = '/xml_result?action=foto_popup' . $urlAppend . '&OFFSET=' . ($urlParams['OFFSET'] - 1);
+                      echo '<div style="margin-left:5px; margin-top:15px; float:left;"><a href="' . $pUrl . '" class="lbAction" rel="insert"><img src="images/fotopopup_previous.gif" width="15" height="15" border="0" /></a></div>
+                            <div style="margin-left:8px; width:44px; height:44px; border:solid 1px #d5d5d5; float:left;"><a href="' . $pUrl . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $prev['P_THUMB_PATH'] . '?' . NOW . '" width="44" height="44" border="0" /></a></div>';
+                    }
+                    else // no previous photo
+                    {
+                      echo '<div style="margin-left:5px; margin-top:15px; width:15px; height:15px; float:left;"></div>
+                            <div style="margin-left:8px; width:44px; height:44px; float:left;"></div>';
+                    }
+                    
+                    if($next !== false) // next photo exists
+                    {
+                      $nUrl = '/xml_result?action=foto_popup' . $urlAppend . '&OFFSET=' . ($urlParams['OFFSET'] + 1);
+                      echo '<div style="margin-left:8px; width:44px; height:44px; border:solid 1px #d5d5d5; float:left;"><a href="' . $nUrl . '" class="lbAction" rel="insert"><img src="' . PATH_FOTO . $next['P_THUMB_PATH'] . '?' . NOW . '" width="44" height="44" border="0" /></a></div>
+                            <div style="margin-left:5px; margin-top:15px; float:left;"><a href="' . $nUrl . '" class="lbAction" rel="insert"><img src="images/fotopopup_next.gif" width="15" height="15" border="0" /></a></div>';
+                    }
+                    else // no previous photo
+                    {
+                      echo '<div style="margin-left:5px; margin-top:15px; width:15px; height:15px; float:left;"></div>
+                            <div style="margin-left:8px; width:44px; height:44px; float:left;"></div>';
+                    }
+        echo '
+                    <br clear="all" />
+                  </div>
+                  <div style="margin-top:10px; border-bottom:dashed 1px #d5d5d5;"></div>
+                  
+                  <div style="padding-top:4px; text-align:center;" class="f_7">Currently viewing ' . ($urlParams['OFFSET'] + 1) . ' of ' . $totalRows . '</div>
+                  
+                  <div style="margin-top:10px;" class="bold">Tags:</div>
+                  <div>
+                    <form style="display:inline;" onsubmit="if($(\'tagsField\').value != \'\'){ addTag(' . $foto['P_ID'] . ', $(\'tagsField\').value); } return false;">
+                      <div style="float:left;"><input autocomplete="off" type="text" id="tagsField" class="formfield" style="width:100px;"></div><div class="auto_complete" id="tagsField_auto_complete" style="width:100px;"></div>
+                      <div style="float:left; margin-left:5px;"><input type="submit" id="tagsButton" value="Tag" class="formbutton" /></div>
+                    </form>
+                    <br clear="all" />
+                  </div>
+                  <div style="height:300px; margin-top:5px; overflow:auto;" id="tags">Loading...</div>
+                </div>
+              </div>
+              <script type="text/javascript">
+                new Autocompleter.Local("tagsField", "tagsField_auto_complete", userTags, {tokens: ","});
+                $("tagsField").focus();
+                getTags("' . $foto['P_ID'] . '");
+                showToTbFromLb(' . $foto['P_ID'] . ');
+              </script>
+        ';
+        break;
+      case 'payment_auth':
+        include_once PATH_CLASS . '/CEcomGateway.php';
+        
+        $gw = CEcomGateway::init(ECOMGATEWAY_AUTHORIZE);
+        $gw->overrideOpts('auth_type', 'AUTH_ONLY');
+        
+        $paymentInfo = array(
+          'order_num' => null,
+          'invoice_num' => null,
+          'amount'    => $_POST['ecom_amount'],
+          'tax'       => '0',
+          'shipping'  => '0',
+          
+          'cc_num'    => $_POST['ecom_cc_num'],
+          'cc_exp'    => $_POST['ecom_cc_month'] . $_POST['ecom_cc_year'],
+          'cc_code'   => $_POST['ecom_cc_cvv'],
+          //'cc_type'   => $_POST['CC_TYPE'],
+          'recurring' => 'NO',
+          
+          'first_name'=> $_POST['u_nameFirst'],
+          'last_name' => $_POST['u_nameLast'],
+          'company'   => $_POST['u_businessName'],
+          'address'   => $_POST['u_address'],
+          'city'      => $_POST['u_city'],
+          'state'     => $_POST['u_state'],
+          'zip'       => $_POST['u_zip'],
+          'country'   => 'US',
+          'phone'     => '',
+          'fax'       => '',
+          
+          'customer_id'     => null,
+          'customer_ip'     => $_SERVER['REMOTE_ADDR'],
+          'description'     => 'Authorize transaction'
+        );
+        
+        $result = $gw->send($paymentInfo);
+        echo jsonEncode($result);
+        break;
+      
+      case 'update_group_settings':
+        include_once PATH_CLASS . '/CGroupManage.php';
+        $gm = &CGroupManage::getInstance();
+  
+        $group_id = $_GET['group_id'];
+        
+        $headerTitle = $_GET['_headerTitle'];
+        $headerDescription = $_GET['_headerDescription'];
+        $rightColumnTitle = $_GET['_rightColumnTitle'];
+        $rightColumnTags = $_GET['_rightColumnTags'];
+        $siteColors = $_GET['p_colors'];
+        
+        $prefs = array('RIGHT_TITLE' => $rightColumnTitle, 'RIGHT_TAGS' => $rightColumnTags, 'SITE_COLORS' => $siteColors);
+        $gm->setPrefs($group_id, $prefs);
+        
+        $data = array('g_id' => $group_id, 'g_name' => $headerTitle, 'g_description' => $headerDescription);
+        $gm->update($data);
+        
+        echo 'success';
+        break;
+        
+      case 'update_payment_auth':
+        include_once PATH_CLASS . '/CEcomGateway.php';
+        
+        $gw = CEcomGateway::init(ECOMGATEWAY_AUTHORIZE);
+        $gw->overrideOpts('auth_type', 'AUTH_ONLY');
+        
+        $paymentInfo = array(
+          'order_num' => null,
+          'invoice_num' => null,
+          'amount'    => $_POST['ecom_amount'],
+          'tax'       => '0',
+          'shipping'  => '0',
+          
+          'cc_num'    => $_POST['er_ccNum'],
+          'cc_exp'    => $_POST['er_ccExpMonth'] . $_POST['er_ccExpYear'],
+          'cc_code'   => $_POST['er_ccCcv'],
+          //'cc_type'   => $_POST['CC_TYPE'],
+          'recurring' => 'YES',
+          
+          'first_name'=> $_POST['er_ccNameFirst'],
+          'last_name' => $_POST['er_ccNameLast'],
+          'company'   => '',
+          'address'   => $_POST['er_ccStreet'],
+          'city'      => $_POST['er_ccCity'],
+          'state'     => $_POST['er_ccState'],
+          'zip'       => $_POST['er_ccZip'],
+          'country'   => 'US',
+          'phone'     => '',
+          'fax'       => '',
+          
+          'customer_id'     => null,
+          'customer_ip'     => $_SERVER['REMOTE_ADDR'],
+          'description'     => 'Authorize transaction'
+        );
+        
+        $result = $gw->send($paymentInfo);
+        echo jsonEncode($result);
+        break;
+        
+      case 'share_foto':
+        include_once PATH_CLASS . '/CGroupManage.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        $f = &CFotobox::getInstance();
+        $gm = &CGroupManage::getInstance();
+        
+        $group_id = $_GET['group_id'];
+        $photo_id = $_GET['photo_id'];
+        
+        $gm->shareFotos($_USER_ID, $group_id, array($photo_id));
+        $data = $f->fotoData($photo_id);
+        
+        echo jsonEncode($data);
+        break;
+        
+      case 'share_slideshow':
+        include_once PATH_CLASS . '/CGroupManage.php';
+        include_once PATH_CLASS . '/CFlix.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        
+        $fl = &CFlix::getInstance();
+        $fb = &CFotobox::getInstance();
+        $gm = &CGroupManage::getInstance();
+        
+        $group_id = $_GET['group_id'];
+        $slideshow_id = $_GET['slideshow_id'];
+        
+        $gm->shareFlix($group_id, array($slideshow_id), $_USER_ID);
+        $flix = $fl->search(array('FLIX_ID' => $slideshow_id, 'USER_ID' => $_USER_ID));
+        $flixData = $fl->search(array('KEY' => $flix['US_KEY']));
+        $fotoData = $fb->fotoData($flixData['US_PHOTO']['photoId_int']);
+        $output[] = array('US_ID' => $flix['US_ID'], 'US_KEY' => $flix['US_KEY'], 'P_THUMB_PATH' => $fotoData['P_THUMB_PATH'], 'US_NAME' => $flix['US_NAME'], 'US_FOTO_COUNT' => $flix['US_FOTO_COUNT'], 'US_VIEWS' => $flix['US_VIEWS'], 'US_UF_ORIG_ID' => $flix['US_UF_ORIG_ID']);
+        
+        echo jsonEncode(array('FLIX_DATA' => $output));
+        break;
+        
+      case 'share_with_group':
+        include_once PATH_CLASS . '/CGroup.php';
+        $g = &CGroup::getInstance();
+        
+        if($logged_in === false)
+        {
+          echo '<script type=text/javascript>window.location.reload();</script>';
+          die();
+        }
+        
+        $group_id = $_GET['group_id'];
+        $moderator = $g->isModerator($_USER_ID, $group_id);
+        
+        echo '<div style="width:672px; height:498px; margin:10px; border:1px solid gray; background-color:#D4D4D4;">
+                <div style="padding-top:5px; padding-left:15px;">
+                  <div style="float:left; padding-right:5px;">
+                    <img src="images/add.gif" border="0" width="14" height="14" />
+                  </div>
+                  <div style="float:left; padding-top:2px;">Add Content - Click a photo or slideshow to share it or unshare it</div>
+                  <div id="closeButton" style="float:right; padding-right:10px;">
+                    <a href="javascript:void(0);" onclick="window.location.reload();"><img src="images/icons/close_16x16.png" class="png" border="0" width="16" height="16" /></a>
+                  </div>
+                </div>
+                <br clear="all" />
+                <div style="padding-top:10px; padding-left:5px;">
+                  <div id="_tabPhotos" onclick="groupShareToggleTabs(\'Photos\', ' . $group_id . ', ' . intval($moderator) . ', ' . $_USER_ID . ');" style="float:left; cursor:pointer; background-color:white; padding-top:3px; padding-left:3px; border-left:1px solid gray; border-right:1px solid gray; border-top:1px solid gray; width:75px; height:25px;">
+                    <div style="float:left; padding-right:4px; padding-top:1px;">
+                      <img src="images/icons/camera_16x16.png" class="png" border="0" />
+                    </div>
+                    <div style="padding-top:3px;">Photos</div>
+                  </div>
+                  <div id="_tabSlideshows" onclick="groupShareToggleTabs(\'Slideshows\',' . $group_id . ', ' . intval($moderator) . ', ' . $_USER_ID . ');" style="float:left; cursor:pointer; background-color:#D4D4D4; padding-top:3px; border-bottom:1px solid gray; border-right:1px solid gray; border-top:1px solid gray; width:100px; height:25px;">
+                    <div style="float:left;  padding-left:7px; padding-top:3px; padding-right:4px;">
+                      <img src="images/icons/images_16x16.png" class="png" border="0" width="16" height="16" />
+                    </div>
+                    <div style="padding-top:4px;">Slideshows</div>
+                  </div>
+                </div>
+                <br clear="left" />
+                <div style="margin-top:-1px;background-color:white; margin-left:5px; margin-right:10px; border-left:1px solid gray; border-right:1px solid gray; border-bottom:1px solid gray;">
+                  <div style="margin-left:179px; width:477px; border-top:1px solid gray;"></div>
+                  <br clear="all" />
+                  <div style="padding-top:5px; padding-left:10px;">
+                    <div style="float:left; padding-right:5px;">
+                      <img src="images/tag.gif" border="0" />
+                    </div>
+                    <form style="display:inline;" id="_groupShareSearchByTag" onsubmit="return groupShareGetItems(' . $group_id . ');">
+                    <div id="_searchBoxPhotos" style="float:left; padding-right:7px;">
+                      <input type="text" id="_groupShareSearchBoxPhotos" />
+                    </div>
+                    <div id="_searchBoxSlideshows" style="float:left; padding-right:7px; display:none;">
+                      <input type="text" id="_groupShareSearchBoxSlideshows" />
+                    </div>
+                    <div><input type="submit" value="search tags" class="normal" /></div>
+                    <br clear="all" />
+                    <div id="_groupShareDataPhotos" style="height:350px; margin-right:15px;"></div>
+                    <div id="_groupShareDataSlideshows" style="height:350px; margin-right:15px; display:none;"></div>
+                    <br clear="all" />
+                    <div id="_groupSharePagingPhotos" style="text-align:right; margin-right:45px; padding-bottom:5px;"></div>
+                    <div id="_groupSharePagingSlideshows" style="text-align:right; margin-right:45px; padding-bottom:5px; display:none;"></div>
+                  </div>
+                </div>
+                <!-- <div style="padding-left:15px; padding-top:10px;">Click a photo or slideshow to share it with the group</div> -->
+              </div>
+              
+              <script type="text/javascript">
+                $(\'_groupShareSearchBoxPhotos\').focus();
+                groupShareToggleTabs(\'Photos\', ' . $group_id . ', ' . intval($moderator) . ', ' . $_USER_ID . ');
+                //new Autocompleter.Local("_searchBoxPhotos", "auto_complete_searchBox", userTags, {tokens: ","});
+                //new Autocompleter.Local("_searchBoxSlideshows", "auto_complete_searchBox", userTags, {tokens: ","});
+              </script>';
+        break;
+
+      case 'tips_get_next':
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $u =& CUser::getInstance();
+        $um =& CUserManage::getInstance();
+        
+        $tip = intval($u->pref($_USER_ID, 'TIP_ID'));
+        
+        $output = $u->getNextTip($tip, $_GET['group']);
+        
+        $tip++;
+        $um->setPrefs($_USER_ID, array('TIP_ID' => $tip));
+        
+        if($output === false)
+        {
+          $output = array('T_ID' => 0, 'T_TITLE' => 'No more tips', 'T_BODY' => 'We will be adding more tips soon!');
+        }
+        
+        echo jsonEncode($output);
+        break;
+      case 'tips_get_tip':
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $u =& CUser::getInstance();
+        $um =& CUserManage::getInstance();
+        
+        $output = $u->getTipByKey($_GET['key']);
+        /*if($output === false)
+        {
+          $output = $u->getRandomTip();
+        }*/
+        echo jsonEncode($output);
+        break;
+      case 'tips_reset':
+        include_once PATH_CLASS . '/CUser.php';
+        include_once PATH_CLASS . '/CUserManage.php';
+        $u =& CUser::getInstance();
+        $um =& CUserManage::getInstance();
+        
+        $tip = 0;
+        $um->setPrefs($_USER_ID, array('TIP_ID' => $tip));
+        
+        $output = $u->getNextTip($tip);
+        
+        echo jsonEncode($output);
+        break;
+        
+      case 'toolbox_add':
+        include_once PATH_CLASS . '/CToolbox.php';
+        include_once PATH_CLASS . '/CFotobox.php';
+        $tb =& CToolbox::getInstance();
+        $fb =& CFotobox::getInstance();
+        
+        $item = intval($_GET['itemId']);
+        
+        $itemType = !empty($_GET['itemType']) ? $_GET['itemType'] : 'foto';
+        
+        $retval = array();
+        $retval['T_ID'] = $tb->add($_USER_ID, $item, $itemType);
+        $retval['FOTO'] = $fb->fotoData($item, $_USER_ID);
+        
+        echo jsonEncode($retval);
+        break;
+      case 'toolbox_delete_all':
+        include_once PATH_CLASS . '/CToolbox.php';
+        $tb =& CToolbox::getInstance();
+        
+        $type = !empty($_GET['type']) ? $_GET['type'] : 'foto';
+        
+        $tb->clear($_USER_ID, $type);
+        
+        return jsonEncode(true);
+        break;
+      case 'toolbox_load':
+        include_once PATH_CLASS . '/CToolbox.php';
+        $tb =& CToolbox::getInstance();
+        
+        $type = $_GET['type'];
+        
+        $toolbox = $tb->get($_USER_ID, $type);
+        
+        echo jsonEncode($toolbox);
+        break;
+      case 'toolbox_remove':
+        include_once PATH_CLASS . '/CToolbox.php';
+        $tb =& CToolbox::getInstance();
+        
+        $toolboxId = $_GET['id'];
+        $type = !empty($_GET['type']) ? $_GET['type'] : 'foto';
+        
+        $retval = $tb->getItem($_USER_ID, $toolboxId, $type);
+        
+        if($item !== false)
+        {
+         $tb->remove($_USER_ID, $toolboxId, $type);
+        }
+        
+        echo jsonEncode($retval);
+        break;
+        
+      case 'flix_schedule_search':
+        include_once PATH_CLASS . '/CFlix.php';
+        $f = &CFlix::getInstance();
+        
+        $flix = $f->search(array('MODE' => 'USER', 'USER_ID' => $_USER_ID, 'TAGS' => $_GET['tags'], 'LIMIT' => '10', 'RETURN_TYPE' => 'SINGLE_FOTO'));
+        
+        $totalFlix = $flix[0]['ROWS'];
+        
+        $output = array();
+        foreach($flix as $v)
+        {
+          $scheduleData = $f->scheduleData($v['US_ID']);
+          $scheduleArray = array();
+          foreach($scheduleData as $sd)
+          {
+            $endDate = $sd['USS_END_DATE'] > 0 ? date('n/j/Y', $sd['USS_END_DATE']) : 'N/A';
+            $scheduleArray[] = array('USS_ID' => $sd['USS_ID'], 'USS_START_DATE' => date('n/j/Y', $sd['USS_START_DATE']), 'USS_END_DATE' => $endDate);
+          }
+          
+          $foto = $f->firstPhoto($v['US_KEY']);
+          $fotoURL = $foto['thumbnailPath_str'];
+          $output[] = array('US_ID' => $v['US_ID'], 'US_KEY' => $v['US_KEY'], 'P_THUMB_PATH' => $fotoURL, 'US_NAME' => $v['US_NAME'], 'US_FOTO_COUNT' => $v['US_FOTO_COUNT'], 'US_VIEWS' => $v['US_VIEWS'], 'SCHEDULE' => $scheduleArray);
+        }
+        
+        $data = array('TOTAL_FLIX' => $totalFlix, 'OFFSET' => $params['OFFSET'], 'LIMIT' => $params['LIMIT'], 'USER_ID' => $params['USER_ID']);
+        echo jsonEncode(array('FLIX_DATA' => $output, 'MISC' => $data));
+        break;
+      case 'flix_schedule_set':
+        include_once PATH_CLASS . '/CFlixManage.php';
+        $fm = &CFlixManage::getInstance();
+        
+        $us_id = $_GET['us_id'];
+        $startDate = (string)$_GET['startDate'];
+        $endDate = preg_match('/\d{1,2}\/\d{1,2}\/\d{2,4}/', $_GET['endDate']) ? $_GET['endDate'] : 0;
+        
+        $params = array('US_ID' => $us_id, 'US_U_ID' => $_USER_ID, 'START_DATE' => $startDate, 'END_DATE' => $endDate);
+        $params['ID'] = $fm->schedule($params);
+        echo jsonEncode($params);
+        break;
+      case 'flix_schedule_unset':
+        include_once PATH_CLASS . '/CFlixManage.php';
+        $fm = &CFlixManage::getInstance();
+        
+        $id = $_GET['id'];
+        $fm->unschedule($id, $_USER_ID);
+        echo jsonEncode($id);
+        break;
+        
+      case 'embed_flix':
+        include_once PATH_CLASS . '/CFlix.php';
+        $f = &CFlix::getInstance();
+        
+        $us_id = $_GET['us_id'];
+        
+        $data = $f->search(array('FLIX_ID' => $us_id, 'RETURN_TYPE' => 'SINGLE_FOTO'));
+        
+        echo jsonEncode(array('FLIX_DATA' => $data, 'MISC' => array('SERVER' => FF_SERVER_NAME)));
+        break;
+        
+      case 'blog_flix':
+        include_once PATH_CLASS . '/CFlix.php';
+        $f = &CFlix::getInstance();
+        
+        $us_id = $_GET['us_id'];
+        
+        $data = $f->search(array('FLIX_ID' => $us_id, 'RETURN_TYPE' => 'SINGLE_FOTO'));
+        
+        echo jsonEncode(array('FLIX_DATA' => $data));
+        break;
+        
+      case 'get_md5':
+        $md5Request = $_GET['md5_request'];
+        $result = md5($md5Request);
+        echo jsonEncode(array('RESULT' => $result));
+        break;
+        
+      case 'decrypt_cc':
+        $ccNum = $_GET['cc_num'];
+        $result = decrypt($ccNum);
+        echo jsonEncode(array('RESULT' => $result));
+        break;
+        
+      case 'delete_comment':
+        include_once PATH_CLASS . '/CComment.php';
+        $c = &CComment::getInstance();
+        
+        $c_id = $_GET['c_id'];
+        $c->delete($c_id);
+        
+        echo true;
+        break;
+        
+      case 'disable_payment':
+        include_once PATH_CLASS . '/CEcom.php';
+        $e = new CEcom();
+        
+        $erId = $_GET['er_id'];
+        $erUId = $_GET['er_u_id'];
+        
+        $result = $e->updateRecurringPayment(array('er_id' => $erId, 'er_u_id' => $erUId, 'er_status' => 'Disabled'));
+        
+        echo $result;
+        break;
+        
+      case 'enable_payment':
+        include_once PATH_CLASS . '/CEcom.php';
+        $e = new CEcom();
+        
+        $erId = $_GET['er_id'];
+        $erUId = $_GET['er_u_id'];
+        
+        $result = $e->updateRecurringPayment(array('er_id' => $erId, 'er_u_id' => $erUId, 'er_status' => 'Active'));
+        
+        echo $result;
+        break;
+        
+      case 'disable_account':
+        include_once PATH_CLASS . '/CUserManage.php';
+        $u = &CUserManage::getInstance();
+        
+        $uId = $_GET['u_id'];
+        
+        $result = $u->update(array('u_id' => $uId, 'u_status' => 'Disabled'));
+        
+        echo $result;
+        break;
+        
+      case 'enable_account':
+        include_once PATH_CLASS . '/CUserManage.php';
+        $u = &CUserManage::getInstance();
+        
+        $uId = $_GET['u_id'];
+        
+        $result = $u->update(array('u_id' => $uId, 'u_status' => 'Active'));
+        
+        echo $result;
+        break;
+        
+      default:
+        //echo '<script language="javascript"> alert("..'.$_REQUEST['action'].'"); </script>';
+        break;
+    }
+  }
+  else 
+  {
+    echo '<script language="javascript"> alert(".'.$_REQUEST['action'].'"); </script>';
+  }
+  
+  include_once PATH_DOCROOT . '/garbage_collector.act.php';
+?>

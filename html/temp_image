@@ -1,0 +1,24 @@
+<?php
+  include_once './init_constants.php';
+  $src  = $_GET['src'];
+  
+  $dir  = dirname($src);
+  $file = basename($src);
+
+  if(strcmp(PATH_TMPROOT, $dir) !== 0)
+  {
+    die();
+  }
+
+  header("Pragma: no-cache");
+  header("Expires: 0");
+  header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+  
+  header("Content-Type: image/image/jpeg");
+  header("Content-Disposition: attachment; filename=" . PATH_TMP . '/' . $file);
+  
+  header("Content-Description: File Transfer");
+  @readfile($src);
+  
+  unlink($src);
+?>

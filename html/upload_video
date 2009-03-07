@@ -1,0 +1,90 @@
+<?php
+  set_time_limit(0); // sets no time limit since this script is called via java uploader
+
+  include_once './init_constants.php';
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CIdat.php';
+  include_once PATH_CLASS . '/CUser.php';
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_CLASS . '/CUserManage.php';
+  include_once PATH_CLASS . '/CVideo.php';
+
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  $id =& CIdat::getInstance();
+  $u  =& CUser::getInstance();
+  $um =& CUserManage::getInstance();
+  $v =& CVideo::getInstance();
+  
+  if(isset($_REQUEST['user_enc']))
+  {
+    $enc = $u->userIdDec($_REQUEST['user_enc']);
+    
+    if($enc['match'] === false)
+    {
+      die();
+    }
+    
+    $_USER_ID = $enc['id'];
+  }
+  
+  if(isset($enc) && isset($_REQUEST['sid']))
+  {
+    $sid = $_REQUEST['sid'];
+    $qstr = file_get_contents($qstringFile = '/tmp/' . $sid . '_qstring');
+    
+    unlink($qstringFile);
+    
+    parse_str($qstr);
+    
+    $_REQUEST['privacySetting'] = $privacySetting;
+    $_REQUEST['tagsToAdd'] = $tagsToAdd;
+    $_REQUEST['name'] = $name;
+    $_REQUEST['description'] = $description;
+    $_REQUEST['tags'] = $tags;
+    $_REQUEST['privacy'] = $privacy;
+    
+    if(isset($redirect))
+    {
+      $_REQUEST['redirect'] = $redirect;
+    }
+    
+    $uploadedFile = array('name' => $file['name'][0], 'size' => $file['size'][0], 'tmp_name' => $file['tmp_name'][0]);
+  }
+  else
+  {
+    $uploadedFile = array('name' => $_FILES['video']['name'], 'size' => $_FILES['video']['size'], 'tmp_name' => $_FILES['video']['tmp_name']);
+  }
+  
+  if(is_file($uploadedFile['tmp_name']))
+  {
+    $name = !empty($_REQUEST['name']) ? $_REQUEST['name'] : 'N/A';
+    $description = $_REQUEST['description'];
+    $tags = $_REQUEST['tags'];
+    $privacy = intval($_REQUEST['privacy']);
+    $key  = randomString();
+    $img  = $v->screenshots($uploadedFile['tmp_name'], $uploadedFile['name']);
+    $flv  = $v->prepare($uploadedFile['tmp_name']);
+    $path = $v->save($flv, $uploadedFile['name']);
+    $data = array(
+              'v_u_id'  => $_USER_ID,
+              'v_key'   => $key,
+              'v_name'  => $name,
+              'v_description' => $description,
+              'v_tags'  => $tags,
+              'v_path'  => $path,
+              'v_screen75x75' => $img['75x75'],
+              'v_screen115x50' => $img['115x50'],
+              'v_screen150x100' => $img['150x100'],
+              'v_screen400x300' => $img['400x300'],
+              'v_length'=> intval($length),
+              'v_privacy' => $privacy
+            );
+    
+    $videoId = $v->add($data);
+  }
+  
+  header('Location: /?action=video.list&message=uploaded&uploaded=' . $videoId);
+  die();
+?>

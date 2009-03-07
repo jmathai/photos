@@ -1,0 +1,7 @@
+<?php
+  $id_hash = $_SERVER['QUERY_STRING'];
+  
+  $_GET['action'] = 'fotobox.foto_viewer';
+  
+  include_once './index.php';
+?>

@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <link rel="stylesheet" type="text/css" href="/style_sheet.css"/>
+  <script type="text/javascript" id="__FFMS" src="http://ffms.fotoflix.com/js/api.js"></script>
+  
+  <script type="text/javascript">
+    <?php
+      $token = file_get_contents('http://ffms.fotoflix.com/api/json?action=authenticate.login&username=jmathai&password=jmathai');
+      echo 'var ffms = new FFMS(' . $token . ');';
+    ?>
+    
+    
+    function loadPhotos(term)
+    {
+      if(term.length > 0)
+      {
+        ffms.photo.search({TAGS: term,callback:'loadPhotosRsp'});
+      }
+      else
+      {
+        ffms.photo.search({callback:'loadPhotosRsp'});
+      }
+    }
+    
+    function loadPhotosRsp(data)
+    {
+      var _html = '<div style="padding:10px 0px 10px 0px; font-size:12pt; font-weight:bold;">Showing  images</div>';
+      for(i in data)
+      {
+        if(parseInt(i) == i)
+        {
+          i = parseInt(i);
+          photo = data[i];
+          tags = [];
+          if(photo.P_TAGS != null)
+          {
+            tags = photo.P_TAGS.split(',');
+          }
+          
+          _html +=  '<div style="float:left; padding:20px; width:155px;">'
+                +   ' <div><a href="http://v3.fotoflix.com/fotos'+photo.P_WEB_PATH+'" target="_blank"><img id="__'+photo.P_ID+'" src="http://v3.fotoflix.com/fotos' + photo.P_THUMB_PATH + '" width="75" height="75" vspace="5" hspace="5" border="0" /></a></div>'
+                +   ' <div><form style="display:inline;" onsubmit="ffms.photo.addTags('+photo.P_ID+',document.getElementById(\'tag'+i+'\').value,\'refreshTags\'); document.getElementById(\'tag'+i+'\').value=\'\'; return false;"><input type="text" id="tag'+i+'" size="7" class="formfield" />&nbsp;<input type="submit" value="add" class="formbutton" /></form></div>'
+                +   ' <div><a href="javascript:ffms.photo.transform.crop('+photo.P_ID+',100,100,400,275,\'refresh\');">crop</a></div>'
+                +   ' <div><a href="javascript:ffms.photo.transform.greyscale('+photo.P_ID+',\'refresh\');">greyscale</a></div>'
+                +   ' <div><a href="javascript:ffms.photo.transform.rotate('+photo.P_ID+',90,\'refresh\');">rotate</a></div>'
+                +   ' <div><a href="javascript:ffms.photo.transform.sepia('+photo.P_ID+',\'refresh\');">sepia</a></div>'
+                +   ' <div>zoom <a href="javascript:ffms.photo.transform.zoom('+photo.P_ID+', 20, \'refresh\');">1</a> <a href="javascript:ffms.photo.transform.zoom('+photo.P_ID+', 40, \'refresh\');">2</a> <a href="javascript:ffms.photo.transform.zoom('+photo.P_ID+', 60, \'refresh\');">3</a> <a href="javascript:ffms.photo.transform.zoom('+photo.P_ID+', 80, \'refresh\');">4</a></div>'
+                +   ' <div><a href="javascript:ffms.photo.transform.restore('+photo.P_ID+',\'refresh\');">restore</a></div>'
+                +   ' <div id="tagsfor'+photo.P_ID+'" style="height:75px; width:100%; overflow:auto;">';
+          for(j=0; j<tags.length; j++)
+          {
+            if(tags[j]!='')
+            {
+              _html += formatTag(photo.P_ID, tags[j]);
+            }
+          }
+          _html +=  ' </div>'
+                +   '</div>';
+        }
+        
+       // _html += '<br clear="all" />';
+        
+        document.getElementById('photos').innerHTML = _html;
+        document.getElementById('button').value = 'search';
+      }
+    }
+    
+    function refresh(data)
+    {
+      document.getElementById('__'+data.P_ID).src = 'http://v3.fotoflix.com/fotos'+data.P_THUMB_PATH+'?timestamp='+parseInt(Math.random()*100000);
+    }
+    
+    function refreshTags(data)
+    {
+      var tags  =  data.P_TAGS.split(',');
+      var _html = '';
+      
+      for(j=0; j<tags.length; j++)
+      {
+        if(tags[j] != '')
+        {
+          _html += formatTag(data.P_ID, tags[j]);
+        }
+      }
+      document.getElementById('tagsfor'+data.P_ID).innerHTML = _html;
+    }
+    
+    function formatTag(id, tag)
+    {
+      return '<div><a href="javascript:ffms.photo.removeTags('+parseInt(id)+',\''+tag+'\',\'refreshTags\');">x</a> '+tag+'</div>';
+    }
+  </script>
+</head>
+
+<body onload="loadPhotos('');">
+<table width="780"  border="0" align="center" cellpadding="0" cellspacing="0">
+  <tr>
+    <td align="center">
+      <img src="/header.gif" width="780" height="163" border="0" />
+    </td>
+  </tr>
+  <tr>
+    <td class="style1">
+      <div id="photoToolbar" style="display:block;">
+        <form onsubmit="loadPhotos(document.getElementById('search').value); return false;">
+          <input type="text" style="width:100px;" id="search" class="formfield" />&nbsp;<input type="submit" id="button" value="search" class="formbutton" onclick="this.value='Please wait...';"/>
+        </form>
+        <div id="photos" style="width:100%;"></div>
+        <br clear="all" />
+      </div>
+</td>
+
+  </tr>
+  <tr>
+    <td align="center">
+      <div align="center"><img src="/images/bottom.gif" width="749" height="33"><br>
+      </div>
+      <div align="center"></div>
+    <div align="center" class="style1">
+      <p><a href="/content/index">Home</a> | <a href="/content/about_us">About Us</a> | <a href="/content/news">News</a> | <a href="/content/featured">Featured</a> | <a href="/content/shoes">Shoes</a> | <a href="/content/clothes">Clothes </a>| <a href="/content/caps">Caps</a> | <a href="/content/locations">Locations</a> | <a href="/content/careers_list">Careers</a> | <a href="/content/subscribe">Subscribe</a> | <a href="/content/contact_us">Contact Us</a> </p>
+
+      <p>Affiliates:  <a href="http://www.cincysportsworld.com/" target="_blank">cincysportsworld.com</a><br>
+        <br>
+  Copyright Deveroes&copy; 2006<br>
+      <br>
+      </p>
+      </div>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,113 @@
+<?php
+  include_once './init_constants.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_INCLUDE . '/variables.php';
+  include_once PATH_HOMEROOT . '/init.php';
+  
+  include_once PATH_DOCROOT . '/init_database.php';
+  
+  include_once PATH_CLASS . '/CSession.php';
+  include_once PATH_DOCROOT . '/init_session.php';
+  
+  $parts 	= explode('/', $_SERVER['REQUEST_URI']);
+  $action	= isset($action) ? 'home' : $parts[2];
+  $bgcolor= '#000000';
+  include_once PATH_DOCROOT . '/header_basic.dsp.php';
+?>
+    <div style="background-color:#000000; border-bottom:solid 1px #404040; margin-bottom:10px; height:25px; width:100%;">
+      <div style="width:865px; margin:auto;">
+        <div style="width:125px; padding-top:2px; float:left;">
+          <a href="/" title="visit the Photagious home page"><img src="images/photagious_black_small.gif" width="94" height="21" hspace="3" border="0" /></a>
+        </div>
+        <div style="padding-top:5px; margin-right:5px; float:right;">
+          <?php
+            if($logged_in === true)
+            {
+              echo '<a href="/?action=fotobox.fotobox_myfotos" title="your photos" class="plain f_white">your photos</a>';
+            }
+            else
+            {
+            	echo '<a href="https://' . FF_SERVER_NAME . '/?action=home.registration_form_b" class="f_white plain">sign up for a free trial</a>&nbsp;|&nbsp;<a href="/?action=home.login_form&redirect=' . urlencode($_SERVER['REQUEST_URI']) . '" class="f_white plain">login</a>';
+            }
+          ?>
+        </div>
+      </div>
+    </div>
+<?php
+  switch($action)
+  {
+    case 'home':
+        echo '<!--url\'s used in the movie-->
+						<!--text used in the movie-->
+						<!--
+						Next
+						Previous
+						of
+						Our photo management interface saves you time and helps you find the photos you want.  Do multiple tag searches , add photos to your tool box as you browse your collection.  It\'s like having a personal shopping cart for your photos!
+						
+						 Now you can see your slideshow at the same time as you edit, giving you the ultimate freedom to tell your story.
+						 view samples
+						Add music from our music library or upload your own mp3 file to your slideshow.
+						Add Title frames , video, blank frames and photos directly.  
+						Photo Tools
+						Edit
+						Easily adjust the order of your slideshow with our drag and drop interface.
+						<p align="left"><font face="tahoma" size="13" color="#ffffff" letterSpacing="0.000000" kerning="0"><b>Create your own <sbr />personal page with all <sbr />your public photos and <sbr />slideshows for the world <sbr />to see. &nbsp;Or password <sbr />protect for only friends <sbr />and family, your in <sbr />complete control. &nbsp;</b></font></p><p align="left"></p><p align="left"><font face="tahoma" size="13" color="#ffffff" letterSpacing="0.000000" kerning="0"><b>You can also allow <sbr />visitors to download the <sbr />orginal file, comment <sbr />and add tags.</b></font></p><p align="left"></p><p align="left"><font face="tahoma" size="13" color="#ffffff" letterSpacing="0.000000" kerning="0"><a href="http://www.photagious.com/users/demo" target = "_blank"><b>Click Here to see more.</b></a></font></p>
+						Leverage the full power of Photagious with RSS and easy to use javascript API library.  Click Here to see the Javascript library.  Create customizable Flash slideshows that can be embed into and edited via your own site.
+						Click here to see sites that are currently using Photagious.com  
+						-->
+						<!-- saved from url=(0013)about:internet -->
+						<div align="center">
+							<script type="text/javascript">
+								embedSwf({"SRC":"/swf/site/home.swf","WIDTH":"985","HEIGHT":"523","BGCOLOR":"#000000","VERSION":8,"ALTERNATE":\'<div style="width:985px; height:405px; margin:0px;"><img src="images/homepage/home_notext_top.jpg"width="985" height="405" border="0" /></div><div style="background:url(images/homepage/home_notext_bottom.jpg); width:985px; height:151px;"><div style="width:700px;" class="f_white"><div class="f_11 bold f_red">You are not running the latest version of the Flash Player.</div><div style="margin-top:4px;"><a href="http://www.adobe.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash" target="_blank" class="f_white plain">Click here to install the latest version of the flash player.</a></div><div class="f_medium" style="margin-top:40px;">In order to provide the best experience for our users we utilize a number of new technologies including Flash.</div></div></div>\'});
+							</script>
+						</div>';
+    	break;
+    case 'tour':
+      echo '<!--url\'s used in the movie-->
+						<!--text used in the movie-->
+						<!--
+						Next
+						Previous
+						of
+						Our photo management interface saves you time and helps you find the photos you want.  Do multiple tag searches , add photos to your tool box as you browse your collection.  It\'s like having a personal shopping cart for your photos!
+						
+						 Now you can see your slideshow at the same time as you edit, giving you the ultimate freedom to tell your story.
+						 view samples
+						Add music from our music library or upload your own mp3 file to your slideshow.
+						Add Title frames , video, blank frames and photos directly.  
+						Photo Tools
+						Edit
+						Easily adjust the order of your slideshow with our drag and drop interface.
+						<p align="left"><font face="tahoma" size="13" color="#ffffff" letterSpacing="0.000000" kerning="0"><b>Create your own <sbr />personal page with all <sbr />your public photos and <sbr />slideshows for the world <sbr />to see. &nbsp;Or password <sbr />protect for only friends <sbr />and family, your in <sbr />complete control. &nbsp;</b></font></p><p align="left"></p><p align="left"><font face="tahoma" size="13" color="#ffffff" letterSpacing="0.000000" kerning="0"><b>You can also allow <sbr />visitors to download the <sbr />orginal file, comment <sbr />and add tags.</b></font></p><p align="left"></p><p align="left"><font face="tahoma" size="13" color="#ffffff" letterSpacing="0.000000" kerning="0"><a href="http://www.photagious.com/users/demo" target = "_blank"><b>Click Here to see more.</b></a></font></p>
+						Leverage the full power of Photagious with RSS and easy to use javascript API library.  Click Here to see the Javascript library.  Create customizable Flash slideshows that can be embed into and edited via your own site.
+						Click here to see site that are currently using Photagious.com  
+						-->
+						<!-- saved from url=(0013)about:internet -->
+						<div align="center">
+							<script type="text/javascript">
+								embedSwf({"SRC":"/swf/slideshow/tour2.swf","WIDTH":"760","HEIGHT":"500","BGCOLOR":"#000000"});
+							</script>
+						</div>';
+      break;
+  }
+  
+  echo footer($logged_in, $_FF_SESSION->value('username'));
+  
+  if($action == 'home')
+  {
+    echo '<div style="width:980px; padding:10px;">
+          <p>Welcome to Photagious.com. Photagious is an online photo sharing site that allows you to <a href="/?action=home.samples">create slideshows</a> with music, titles, graphics, thought bubbles and more.  You can <a href="/?action=home.samples&subaction=printing">order prints online</a>, <a href="/?action=home.samples&subaction=storage">archive your photos</a> and manage your photos all in one place.  We are confident that you will enjoy our newest version of FotoFlix.  Some of our early users knew us only as FotoFlix.com. After taking what our users loved about FotoFlix and adding tons of new features, a year later we decided we had to give our new product a new name. In August of 2006 we launched Photagious. The name Photagious embodies the spirit of our product offering and we know you\'ll love what it offers.  Photagious is where you\'ll feed your own photo addiction and share that addiction with others.  You\'ll <a href="/?action=home.samples">create amazing slideshows</a> with ease!  Make your photos and <a href="/?action=home.samples">slideshows</a> public or private.  Password protect your own personal photo page and <a href="/?action=home.samples">slideshows</a>.  Allow friends and families to download originals, you can even set your personal page to automatically email them when you\'ve created a <a href="/?action=home.samples">slideshow</a> or added new photos.  We designed this site with you in mind... you\'ll never see an ad next to your photos or <a href="/?action=home.samples">slideshows</a> you create.  Who wants a flashing banner ad next to some of their most prized memories? We don\'t and we thought you wouldn\'t either. </p>
+          
+          <p><strong>Our <a href="/?action=home.samples&subaction=all_themes">slideshow themes</a> are perfect for portfolios, photo enthusiasts, <a href="/?action=home.samples&subaction=wedding">wedding slideshows</a>, birthdays and holidays!</strong></p>
+          <p>For those more advanced users who have their own website or blog, Photagious is definitely the place for you!  No other site offers you more control over the presentation of your photos.  No other photo sharing site gives you the ability to edit your slideshow while browsing your own site.  No other photo sharing site allows you to create a <a href="/?action=home.samples&subaction=portfolio">slideshow gallery page</a> and view reports on your <a href="/?action=home.samples">slideshows</a>.</p>
+          
+          <p>So what could possibly make our service more addictive?  How about unlimited <a href="/?action=home.samples&subaction=storage">photo storage</a>! Never worry about losing photos from your hard drive ever again, all your photos are backed up daily.  If you have thousands of digital photos, you\'ve come to the right place.  Easily find your photos with our management tools.  You\'ll also have no limits when creating <a href="/?action=home.samples">Flash slideshows</a> using our web based <a href="/?action=home.samples">photo slideshow software</a>, add up 200 photos per <a href="/?action=home.samples">slideshow</a>!  Your <a href="/?action=home.samples">online slideshows</a> can be shared via email or you can embed your <a href="/?action=home.samples">online slideshow</a> into your own web site/blog with ease.  With over 35 <a href="/?action=home.samples&subaction=all_themes">slideshow themes</a> and completely <a href="/?action=home.samples">customizable themes</a>, you can make the best <a href="/?action=home.samples">online slideshow</a> in a matter of seconds! And it doesn\'t stop there... check out all the <a href="/?action=home.samples&subaction=printing">printing options</a> and 
+          
+          <a href="/?action=home.samples&subaction=printing">personalized photo gifts</a> too! Photagious is your one stop shop for all your photo sharing needs. The best part is it costs as little as $3.95 a month, that\'s less than your morning latte.</p>
+          <p>So what are you waiting for... get started today with our risk free 7 day trial! </p>
+          </div>';
+  }
+  
+  include_once PATH_DOCROOT . '/footer_basic.dsp.php';
+?>

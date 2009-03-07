@@ -1,0 +1,31 @@
+<?php
+  /*
+  * THIS FILE GETS PARSED BY PHP AND OUTPUTS JAVASCRIPT FOR REMOTE FOTOFLIX FUNCTIONS
+  */
+  header('Content-type: text/javascript');  
+  $arr_prefs = isset($arr_prefs) ? $arr_prefs : $_GET;
+  
+  include_once '../init_constants.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_HOMEROOT . '/init.php';
+  
+  include_once PATH_DOCROOT .'/init_database.php';
+  include_once PATH_CLASS . '/CUser.php';
+  include_once PATH_CLASS . '/CFlix.php';
+  include_once PATH_CLASS . '/CFotobox.php';
+  
+  $us =& CUser::getInstance();
+  $fl =& CFlix::getInstance();
+  $fb =& CFotobox::getInstance();
+  
+  $u_key  = $arr_prefs['key'];
+  
+  $iframe_src = 'http://' . FF_SERVER_NAME . '/flixlist_1,0?';
+  
+  foreach($arr_prefs as $k => $v)
+  {
+    $iframe_src .= $k . '=' . $v . '&';
+  }
+  
+  echo 'document.write(\'<iframe style="background-color:transparent;" src="' . $iframe_src . '"><noframes>Sorry, your browser does not support frames.</noframes></iframe>\');';
+?>

@@ -1,0 +1,17 @@
+<?php
+  include_once '../../init_constants.php';
+  
+  $regFile = file_get_contents('./_WebPublishUploader.txt');
+  $regFile = str_replace('{SERVER_NAME}', FF_SERVER_NAME, $regFile);
+  
+  header('Pragma: public');
+  header('Expires: 0');
+  header('Cache-Control: must-revalidate, post-check=0, pre-check=0'); 
+  header('Content-Type: application/force-download');
+  header('Content-Type: application/octet-stream');
+  header('Content-Disposition: attachment; filename=WebPublishUploader.reg;');
+  header('Content-Transfer-Encoding: ascii');
+  header('Content-Length: ' . strlen($regFile));
+  
+  echo $regFile;
+?>

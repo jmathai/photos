@@ -1,0 +1,207 @@
+<?php
+  $arr_prefs = isset($arr_prefs) ? $arr_prefs : $_GET;
+  
+  if(strlen($arr_prefs['key']) != 32)
+  {
+    die('Sorry, the userkey specified is not valid.');
+  }
+
+  include_once './init_constants.php';
+  include_once PATH_INCLUDE . '/functions.php';
+  include_once PATH_HOMEROOT . '/init.php';
+  
+  include_once PATH_DOCROOT . '/init_database.php';
+  include_once PATH_CLASS . '/CUser.php';
+  include_once PATH_CLASS . '/CFlix.php';
+  include_once PATH_CLASS . '/CFotobox.php';
+  include_once PATH_CLASS . '/CPaging.php';
+  
+  $us =& CUser::getInstance();
+  $fl =& CFlix::getInstance();
+  $fb =& CFotobox::getInstance();
+  
+  /* PARAMETERS */
+  $u_key  = $arr_prefs['key'];
+  $cols   = isset($arr_prefs['cols']) ? $arr_prefs['cols'] : 3;
+  $rows   = isset($arr_prefs['rows']) ? $arr_prefs['rows'] : 3;
+  $hidetitle = isset($arr_prefs['hidetitle']) ? true : false;
+  $hidepages = isset($arr_prefs['hidepages']) ? true : false;
+  $orderby= isset($arr_prefs['orderby']) ? $arr_prefs['orderby'] : '';
+  $thumbdisplay = isset($arr_prefs['thumbdisplay']) ? $arr_prefs['thumbdisplay'] : 'flix';
+  $detailfirstfoto = isset($arr_prefs['detailfirstfoto']) ? $arr_prefs['detailfirstfoto'] : 'no';
+  
+  $user_data= $us->userByKey($u_key);
+  
+  if(isset($arr_prefs['bgcolor']))
+  {
+    $bgcolor = $arr_prefs['bgcolor'];
+  }
+  
+  if(isset($arr_prefs['background']))
+  {
+    $background = $arr_prefs['background'];
+  }
+  
+  $page           = isset($_GET['page']) ? $_GET['page'] : 1;
+  $perpage        = $rows * $cols;
+  $pagestodisplay = 10;
+    $offset       = ($page * $perpage) - $perpage;
+    $limit        = $offset + $perpage;
+  
+  $flix_array = $fl->flixByStatus($user_data['U_ID'], ($rows * $cols), $offset, 3);
+  $cnt_flix_array = $fl->found_rows;
+  
+  if($hidepages === false)
+  {
+    $totalpages     = ceil($cnt_flix_array / $perpage);
+    $pagevarname    = 'page';
+    $linkfile       = $_SERVER['PHP_SELF'];
+    $linkgetvars    = $_SERVER['QUERY_STRING'];
+    
+    $pg             = new CPaging($page, $pagestodisplay, $totalpages);
+    $pg             ->setHtmlParams($pagevarname, $linkfile, $linkgetvars, 'ffFlixList');
+    $page_html      = 'You are viewing page ' . $page . ' of ' . $totalpages . '&nbsp;&nbsp;|&nbsp;&nbsp;' . $pg->getPages();
+  }
+  else
+  {
+    $offset = 0;
+    $perpage = $limit  = $cnt_flix_array;
+    $page_html = '';
+  }
+  
+  if(!isset($included))
+  {
+    include_once PATH_DOCROOT . '/header_basic.dsp.php';
+  }
+  
+  if(isset($arr_prefs['fontcolor']))
+  {
+    if(preg_match('/^[0-9a-f]{6}$/', strtolower($arr_prefs['fontcolor'])))
+    {
+      $arr_prefs['fontcolor'] = '#' . $arr_prefs['fontcolor'];
+    }
+    echo '<style type="text/css">
+            .ffFlixList, a.ffFlixList:link, a.ffFlixList:visited
+            {
+              color:' . $arr_prefs['fontcolor'] .';
+            }
+            
+            .footer, .footer:link, .footer:visited
+            {
+              font-size:8pt;
+            }
+          </style>';
+  }
+  
+  echo '<div align="right" class="ffFlixList">' . $page_html . '</div>';
+?>
+
+<br /><br />
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+  <?php
+    if($cnt_flix_array > 0)
+    {
+      $counter  = 0;
+      $i        = $cols;
+      $width    = intval(100 / $cols);
+      foreach($flix_array as $k => $v)
+      //for($j = $offset; $j < $limit; $j++)
+      {
+        $foto_id    = $v['A_DATA'][0]['D_UP_ID'];
+        $foto_data  = $fb->fotoData($foto_id);
+        
+        $sizeArr    = explode('x', $v['A_SIZE']);
+        $containerWidth      = $sizeArr[0];
+        $containerHeight     = $sizeArr[1];
+        
+        if($i % $cols == 0)
+        {
+          echo '<tr>';
+        }
+        
+        $swf_src = '/swf/flix_theme/layout_small/small_' . substr($v['A_TEMPLATE'], 1) . '?imageSource=' . PATH_FOTO . $foto_data['P_THUMB_PATH'] . '&fastflix=' . $v['A_FASTFLIX'] . '&containerWidth=' . $containerWidth . '&containerHeight=' . $containerHeight;
+        $swf_id  = 'ff_' . $v['A_ID'];
+        echo '<td align="center" width="' . $width . '%" class="ffFlixList">
+                <table border="0" cellpadding="0" cellspacing="0">
+                  <tr>';
+        if($arr_prefs['thumbdisplay'] == 'flix')
+        {
+          echo '<td align="center" style="padding-right:5px;">
+                  <OBJECT classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=7,0,0,0" WIDTH="133" HEIGHT="80" id="' . $swf_id . '">
+                    <PARAM NAME="movie" VALUE="' . $swf_src . '" />
+                    <param name="wmode" value="transparent" />
+                    <param name="menu" value="false" />
+                    <EMBED menu="false" src="' . $swf_src . '" bgcolor="' . $bgcolor . '" wmode="transparent" swliveconnect="true" quality="high" WIDTH="133" HEIGHT="80" TYPE="application/x-shockwave-flash" name="' . $swf_id . '" />
+                    </EMBED>
+                  </OBJECT>
+                  <div><a href="javascript:_open(\'/fastflix_popup?' . $v['A_FASTFLIX'] . '\', ' . $containerWidth . ',' . $containerHeight . ');" class="bold">' . str_mid($v['A_NAME'], 25) . '</a></div>
+                </td>';
+        }
+        else
+        {
+          echo '<td width="125" align="center" style="padding-right:5px;">
+                  <a href="javascript:_open(\'/fastflix_popup?' . $v['A_FASTFLIX'] . '\', ' . $containerWidth . ',' . $containerHeight . ');"><img src="' . PATH_FOTO . $foto_data['P_THUMB_PATH'] . '" style="border:1px #333333 solid;" /></a>
+                  <div><a href="javascript:_open(\'/fastflix_popup?' . $v['A_FASTFLIX'] . '\', ' . $containerWidth . ',' . $containerHeight . ');" class="bold">' . str_mid($v['A_NAME'], 25) . '</a></div>
+                </td>';
+        }
+        
+        if($detailfirstfoto == 'yes')
+        {
+          echo '<td valign="middle" width="200" class="ffFlixList"><a href="javascript:_open(\'/fastflix_popup?' . $v['A_FASTFLIX'] . '\', ' . $containerWidth . ',' . $containerHeight . ');" class="bold">' . str_mid($v['A_NAME'], 25) . '</a><br/>' . $foto_data['P_NAME'] . '<div style="font-size:smaller;">' . $foto_data['P_DESC'] . '</div></td>';
+        }
+        
+        echo '</tr>
+              </table>';
+        
+        if(($i % $cols) == ($cols - 1))
+        {
+          echo '</tr><tr><td colspan="' . $cols . '"><img src="images/spacer.gif" width="1" height="25" border="0" /></td></tr>';
+        }
+        
+        $i++;
+        $counter++;
+      }
+      
+      if( ((--$i) % $cols) !== ($cols - 1) )
+      {
+        while( ($i % $cols) !== ($cols - 1) )
+        {
+          echo '<td width="' . (557 / $cols) . '">&nbsp;</td>';
+          $i++;
+        }
+        
+        echo  '</tr>';
+      }
+    }
+  ?>
+<table>
+
+<table border="0" cellpadding="0" cellpadding="0" width="100%">
+  <tr>
+    <td align="right">
+      <table border="0">
+        <tr>
+          <td class="ffFlixList">
+            <?php
+              $urlParams = 'referer=' . urlencode($_SERVER['HTTP_REFERER']) . '&destination=' . urlencode('http://' . FF_SERVER_NAME . '/');
+            ?>
+            <div class="bold"><a href="/redirect?<?php echo $urlParams; ?>" class="ffFlixList" target="_blank">Make your own Flix!</a></div>
+          </td>
+        </tr>
+        <tr>
+          <td class="ffFlixList footer">
+            This page uses <a href="http://www.macromedia.com/shockwave/download/download.cgi?P1_Prod_Version=ShockwaveFlash" class="ffFlixList" target="_blank">Flash Player 7</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<?php
+  if(!isset($included))
+  {
+    include_once PATH_DOCROOT . '/footer_basic.dsp.php';
+    
+    include_once PATH_DOCROOT . '/garbage_collector.act.php';
+  }
+?>
