@@ -281,6 +281,29 @@ class CFotoboxManage
 
   /*******************************************************************************************
   * Description
+  *   Remove photos and dynamics from disk
+  *
+  * Output
+  *   boolean
+  *******************************************************************************************/
+  function remove($user_id = false, $photo_id = false)
+  {
+    if($user_id !== false && $photo_id !== false)
+    {
+        $fb =& CFotobox::getInstance();
+        $foto = $fb->getDeleted($photo_id, $user_id);
+        @unlink($oPath = PATH_FOTOROOT . $foto['P_ORIG_PATH']);
+        @unlink($tPath = PATH_FOTOROOT . $foto['P_THUMB_PATH']);
+        $this->delete($photo_id);
+        $this->removeDynamics($photo_id, $user_id, true);
+        return true;
+    } 
+
+    return false;
+  }
+
+  /*******************************************************************************************
+  * Description
   *   Remove dynamic images from database
   *
   * Output

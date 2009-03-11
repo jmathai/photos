@@ -321,6 +321,35 @@ class CFotobox
  /*
   *******************************************************************************************
   * Name
+  *   getDeleted
+  * Description
+  *   Get photos with a deleted status
+  * Input
+  *   getDynamic($user_id, $photo_id)
+  * Output
+  *   boolean / array
+  ******************************************************************************************
+  */
+  function getDeleted($user_id = false, $photo_id = false)
+  {
+    if($photo_id !== false && $user_id !== false)
+    {
+      $photo_id = $this->dbh->sql_safe($photo_id);
+      $user_id  = $this->dbh->sql_safe($user_id);
+      $sql  = 'SELECT up.up_id AS P_ID, up.up_u_id AS P_U_ID, up.up_key AS P_KEY, up.up_tags AS P_TAGS, up.up_name AS P_NAME, up.up_size AS P_SIZE, up.up_width AS P_WIDTH, up.up_height AS P_HEIGHT, up.up_description AS P_DESC, up.up_rotation AS P_ROTATION, up.up_privacy AS P_PRIVACY, up.up_views AS P_VIEWS, '
+            . 'up.up_camera_make AS P_CAMERA_MAKE, up.up_camera_model AS P_CAMERA_MODEL, up.up_original_path AS P_ORIG_PATH, up.up_web_path AS P_WEB_PATH, up.up_flix_path AS P_FLIX_PATH, up.up_thumb_path AS P_THUMB_PATH, '
+            . "up.up_modified_at AS P_MODIFIED_AT, up.up_taken_at AS P_TAKEN, DATE_FORMAT(FROM_UNIXTIME(up.up_taken_at), '%y%m%d') AS P_TAKEN_KEY, UNIX_TIMESTAMP(up.up_created_at) AS P_CREATED, UNIX_TIMESTAMP(up.up_modified_at) AS P_MODIFIED, DATE_FORMAT(up.up_modified_at, '%y%m%d') AS P_YMD "
+            . 'FROM user_fotos AS up '
+            . 'WHERE up.up_id = ' . $photo_id . ' AND up.up_u_id = ' . $user_id . " AND up.up_status = 'Deleted'";
+
+      return $this->dbh->query_first($sql);
+    }
+    
+    return false;
+  }
+ /*
+  *******************************************************************************************
+  * Name
   *   getDynamic
   * Description
   *   Get dynamic image
