@@ -99,7 +99,7 @@
           //echo '<div id="photoMainControls" style="height:25px;">';
           //echo '</div>';
           
-          echo '<a name="photoAnchor"></a><div style="width:' . $dynPhoto[1] . 'px; height:' . $dynPhoto[2] . 'px; margin:auto;" class="border_dark"><img src="' . $dynPhoto[0] . '" id="photoMain" alt="' . htmlentities($f_data['P_NAME']) . '" ' . $dynPhoto[3] . ' border="0" class="my_foto_border" /></div>';
+          echo '<div style="width:' . $dynPhoto[1] . 'px; height:' . $dynPhoto[2] . 'px; margin:auto;" class="border_dark"><img src="' . $dynPhoto[0] . '" id="photoMain" alt="' . htmlentities($f_data['P_NAME']) . '" ' . $dynPhoto[3] . ' border="0" class="my_foto_border" /></div>';
         ?>
       </div>
       <div style="width:200px; float:left; margin-left:15px;">
@@ -125,7 +125,6 @@
                 $pUrl .= 'quickset-' . $quicksetId . '-' . $quicksetName . '/';
               }
               
-              $pUrl .= '#photoAnchor';
               echo '<div style="margin-right:3px; float:left;" align="center">
                       <div><div class="foto_border"><div class="foto_inside"><a href="' . $pUrl . '"><img src="' . PATH_FOTO . $pPhoto['P_THUMB_PATH'] . '" width="75" height="75" border="0" /></a></div></div></div>
                       <div style=" margin-top:3px;"><a href="' . $pUrl . '" class="plain"><img src="images/icons/previous_16x16.png" class="png" width="16" height="16" hspace="3" border="0" align="absmiddle" />Prev</a></div>
@@ -149,7 +148,6 @@
                 $nUrl .= 'quickset-' . $quicksetId . '-' . $quicksetName . '/';
               }
               
-              $nUrl .= '#photoAnchor';
               echo '<div style="margin-left:3px; float:left;" align="center">
                       <div><div class="foto_border"><div class="foto_inside"><a href="' . $nUrl . '"><img src="' . PATH_FOTO . $nPhoto['P_THUMB_PATH'] . '" width="75" height="75" border="0" /></a></div></div></div>
                       <div style=" margin-top:3px;"><a href="' . $nUrl . '" class="plain"><img src="images/icons/next_16x16.png" class="png" width="16" height="16" hspace="3" border="0" align="absmiddle" />next</a></div>
