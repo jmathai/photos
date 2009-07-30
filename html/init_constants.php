@@ -25,15 +25,15 @@
       define('DB_NAME', 'photagious');
       define('DB_DBMS', 'mysql');
       break;
+    case 'photos.branefamily.com':
     case 'photos.jaisenmathai.com':
-      case 'photos.jaisenmathai.com:80':
       error_reporting(E_ALL ^ E_NOTICE);
       define('PATH_INCLUDE', '/www/photagious.com/www/includes');
       define('PATH_HOMEROOT',  '/www/photagious.com/www/html');
       define('PATH_SECRET',  '/www/photagious.com/www/secret');
       define('PATH_EXEC', '/usr/bin');
-      define('FF_SERVER_NAME', 'photos.jaisenmathai.com');
-      define('FF_STATIC_URL', 'http://photos.jaisenmathai.com');
+      define('FF_SERVER_NAME', $_const_mode);
+      define('FF_STATIC_URL', "http://{$_const_mode}");
       define('FF_MODE', 'live');
       define('FF_ENVIORNMENT', 'production');
       define('FF_ECOM_COMMIT', true); // change to true and change below to ''

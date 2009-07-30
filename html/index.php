@@ -4,21 +4,6 @@
   include_once PATH_INCLUDE . '/variables.php';
   include_once PATH_HOMEROOT . '/init.php';
 
-
-  if(stristr($_SERVER['HTTP_HOST'], 'youcostume.com')) // if youcostume and requesting index then die on youcostume.html
-  {
-    include_once PATH_HOMEROOT . '/youcostume.html';
-    die();
-  }
-  else
-  if(strcmp($_SERVER['HTTP_HOST'], FF_SERVER_NAME) != 0)  // force hostname to match with init_constants
-  {
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Status: 301 Moved Permanently');
-    header('Location: http://' . FF_SERVER_NAME . $_SERVER['REQUEST_URI']);
-    die();
-  }
-
   // headers
   header('pragma: no-cache');
   header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -45,31 +30,6 @@
   }
 
   $action_ext = substr($action, -4);
-
-  if(FF_MODE != 'local' && ($action_ext != '.act' && $_SERVER['SERVER_PORT'] == 80) && (strncmp($action, 'home.registration_form', 22) == 0 || strncmp($action, 'account.billing_update_form', 27) == 0))
-  //if(($action_ext != '.act' && $_SERVER['SERVER_PORT'] == 80) && (strncmp($action, 'home.registration_form', 22) == 0 || strncmp($action, 'account.billing_update_form', 27) == 0))
-  {
-    //echo '<script language="javascript"> top.location.href = "https://' . FF_SERVER_NAME . $_SERVER['REQUEST_URI'] . '"; </script>';
-    //die();
-  }
-  else
-  if($action_ext != '.act' && strncmp($action, 'home.registration_form', 22) != 0 && strncmp($action, 'account.billing_update_form', 27) != 0 && $_SERVER['SERVER_PORT'] == 443)
-  {
-    echo '<script type="text/javascript"> top.location.href = "http://' . FF_SERVER_NAME . $_SERVER['REQUEST_URI'] . '"; </script>';
-    die();
-  }
-
-  if(($action_ext != '.act' && $_SERVER['SERVER_PORT'] == 80) && (strncmp($action, 'cart.', 5) == 0 || strncmp($action, 'home.registration_form', 22) == 0 || strncmp($action, 'account.billing_update_form', 27) == 0))
-  {
-    //echo '<script language="javascript"> top.location.href = "https://' . FF_SERVER_NAME . $_SERVER['REQUEST_URI'] . '"; </script>';
-    //die();
-  }
-  else
-  if($action_ext != '.act' && strncmp($action, 'cart.', 5) != 0 && strncmp($action, 'home.registration_form', 22) != 0 && strncmp($action, 'account.billing_update_form', 27) != 0 && $_SERVER['SERVER_PORT'] == 443)
-  {
-    echo '<script type="text/javascript"> top.location.href = "http://' . FF_SERVER_NAME . $_SERVER['REQUEST_URI'] . '"; </script>';
-    die();
-  }
 
   include_once PATH_CLASS . '/CTemplate.php';
 
