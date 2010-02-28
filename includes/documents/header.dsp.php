@@ -103,7 +103,8 @@
     
     echo '<link rel="stylesheet" type="text/css" href="/css/themes/default.css?my_default">
           <title>' . $pageTitle . ' - Photagious - Online Photo Slideshow Software - Create Flash Slideshows</title>
-          <script type="text/javascript" src="/js/photopage.v12.js"></script>';
+          <script type="text/javascript" src="/js/photopage.v12.js"></script>
+          <script type="text/javascript" src="http://www.google.com/jsapi?key='.GMAP_KEY.'"></script>';
     include_once PATH_DOCROOT . '/user_data_js.dsp.php';
   }
   else 

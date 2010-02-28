@@ -24,6 +24,7 @@
       define('DB_PASS', trim(file_get_contents(PATH_SECRET . '/mysql_password')));
       define('DB_NAME', 'photagious');
       define('DB_DBMS', 'mysql');
+      define('GMAP_KEY', 'ABQIAAAApenhXDxFYh2ZrUerPrWSdxT7WM4p2E5b68hDZr2ZO_4QtM3KPBQ4BKfPzLWO_98Ol0MT5TJIJ2wnLg');
       break;
     case 'http':
     case 'photos.branefamily.com':
@@ -48,6 +49,7 @@
       define('DB_PASS', trim(file_get_contents(PATH_SECRET . '/mysql_password')));
       define('DB_NAME', 'jaisenmathai_ptg');
       define('DB_DBMS', 'mysql');
+      define('GMAP_KEY', 'ABQIAAAApenhXDxFYh2ZrUerPrWSdxT9yy5AVeixNYn6myX0mzov-hUyFhSEaFOZ4RETZGWcVs1kwOYz4cKz0Q');
       break;
     default:
       echo 'Unknown configuration.  Please wait while you are redirected.  (' . $_const_mode . ')';
