@@ -33,7 +33,6 @@ class CTag
       default:
         $order = 'TAG';
         break;
-
     }
     
     $id = intval($id);
@@ -123,6 +122,28 @@ class CTag
     $return[0]['MAX'] = $max;
     
     return $return;
+  }
+
+  /*******************************************************************************************
+  * Description
+  *   get coordinates for a group of tags
+  *
+  * Output
+  *   array
+  *******************************************************************************************/
+  function geoForTags($user_id = false, $tags = false)
+  {
+    $user_id = intval($user_id);
+    if($tags)
+      $tags = (array)explode(',', preg_replace('/^,|,$/','',$tags));
+
+    if(!$user_id || !$tags)
+    {
+      return array();
+    }
+
+    $tags_safe = implode(",", $this->dbh->asql_safe($tags));
+    return $this->dbh->query_all("SELECT * FROM user_tags_geo WHERE utg_u_id={$user_id} AND utg_tag IN({$tags_safe})");
   }
   
   /*******************************************************************************************
