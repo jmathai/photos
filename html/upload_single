@@ -1,4 +1,5 @@
 <?php
+error_log('upload_single');
   ini_set('max_execution_time', 120);
   
   include_once './init_constants.php';
@@ -33,6 +34,7 @@
 
     $_USER_ID = $enc['id' ];
   }
+error_log('user_authed');
   
   $user_data = $u->find($_USER_ID);
   
@@ -43,9 +45,11 @@
   $privacy = intval($_REQUEST['privacySettingComputed']);
 
   $proceed    = is_uploaded_file($_FILES[$image_name]['tmp_name']) ? true : false;
-
+error_log($_FILES['image_name']['tmp_name']);
+error_log(json_encode($_FILES));
   if ($proceed === true)
   {
+error_log('proceed');
     if($_POST['Angle_1'] > 0)
     {
       $im->rotate($_FILES[$image_name]['tmp_name'], $_FILES[$image_name]['tmp_name'], $_POST['Angle_1']);
@@ -105,7 +109,7 @@
                 );
 
     $fotoId = $fb->add($db_data);
-    
+error_log($fotoId);    
     if($_REQUEST['tagsToAdd'] != '')
     {
       $tags = (array)explode(',', $_REQUEST['tagsToAdd']);
@@ -173,4 +177,5 @@
     echo '{"success"}'; // for flash uploader on mac?????? why oh why??????
   }
   include_once PATH_DOCROOT . '/garbage_collector.act.php';
+error_log('');
 ?>

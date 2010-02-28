@@ -915,8 +915,6 @@ function embedSwf()
 {
   var data = arguments[0];
 
-  if(data.VERSION == undefined || data.VERSION <= flashVersion)
-  {
 	  _html = '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="//download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=7,0,0,0" width="'+data.WIDTH+'" height="'+data.HEIGHT+'">'
 	        + '<param name="movie" value="'+data.SRC+'" />'
 	        + '<param name="menu" value="false" />'
@@ -926,11 +924,6 @@ function embedSwf()
 	        + '<param name="bgcolor" value="'+data.BGCOLOR+'" />'
 	        + '<embed src="'+data.SRC+'" menu="false" quality="high" bgcolor="'+data.BGCOLOR+'" width="'+data.WIDTH+'" height="'+data.HEIGHT+'" wmode="transparent" type="application/x-shockwave-flash" pluginspage="//www.macromedia.com/go/getflashplayer" allowScriptAccess="always"></embed>'
 	        + '</object>';
-  }
-	else
-	{
-		_html = data.ALTERNATE;
-	}
 
   if(arguments.length == 1)
   {

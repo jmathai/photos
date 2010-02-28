@@ -25,7 +25,9 @@
       define('DB_NAME', 'photagious');
       define('DB_DBMS', 'mysql');
       break;
+    case 'http':
     case 'photos.branefamily.com':
+    case 'internal.photos.jaisenmathai.com':
     case 'photos.jaisenmathai.com':
       error_reporting(E_ALL ^ E_NOTICE);
       define('PATH_INCLUDE', '/www/photagious.com/www/includes');

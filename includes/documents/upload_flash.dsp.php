@@ -44,7 +44,7 @@
   var upEffect = new fx.Opacity('uploadList');
   upEffect.hide();
   
-  swfStartUploadHandler = function(file){ console.info(file); }
+  swfStartUploadHandler = function(file){ /*console.info(file);*/ }
   
   var uploaderInst = new SWFUpload(
     {
@@ -65,10 +65,10 @@
         li.id = 'upload-'+file.id;
         $('uploadList').appendChild(li);
         $('uploadCount').innerHTML = ++counter;
-        console.info(file);
+        //console.info(file);
       }, 
       upload_start_handler: function(file){ 
-        console.info('starting');
+        //console.info('starting');
         $('upload-'+file.id).style.backgroundColor='yellow';
       },
       upload_complete_handler: function(file){
