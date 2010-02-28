@@ -1,2 +1,10 @@
 -- JM 3/25/2008 --
   CREATE TABLE `user_facebook_map` (    `u_id` INT UNSIGNED NOT NULL ,    `facebook_id` INT UNSIGNED NOT NULL ,    `facebook_session` VARCHAR( 255 ) NOT NULL ,    INDEX ( `u_id` )  ) ENGINE = MYISAM ;
+-- JM 2/27/2010 --
+CREATE TABLE `user_tags_geo` (
+`utg_u_id` INT UNSIGNED NOT NULL ,
+`utg_tag` VARCHAR( 255 ) NOT NULL ,
+`utg_latitude` VARCHAR( 255 ) NOT NULL ,
+`utg_longitude` VARCHAR( 255 ) NOT NULL ,
+PRIMARY KEY ( `utg_u_id` , `utg_tag` )
+) ENGINE = MYISAM ;
