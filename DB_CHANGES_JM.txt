@@ -8,3 +8,5 @@ CREATE TABLE `user_tags_geo` (
 `utg_longitude` VARCHAR( 255 ) NOT NULL ,
 PRIMARY KEY ( `utg_u_id` , `utg_tag` )
 ) ENGINE = MYISAM ;
+-- JM 3/7/2010 --
+ALTER TABLE `comments` ADD `c_name` VARCHAR( 255 ) NULL AFTER `c_element_id`;

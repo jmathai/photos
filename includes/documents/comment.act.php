@@ -8,8 +8,9 @@
     $comment    = $_POST['c_comment'];
     $type       = $_POST['c_type'];
     $for_user_id= $_POST['c_for_u_id'];
+    $raw_name   = $_POST['c_name'];
     
-    $comment_id = $c->addComment($element_id, $userId, $for_user_id, $comment, $type);
+    $comment_id = $c->addComment($element_id, $userId, $for_user_id, $comment, $type, $raw_name);
     
     if($type == 'blog')
     {

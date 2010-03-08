@@ -18,7 +18,7 @@ class CComment
     {
       $element_id = $this->dbh->sql_safe($element_id);
 
-      $sql  = 'SELECT c.c_id AS C_ID, c.c_by_u_id AS C_BY_U_ID, c.c_for_u_id AS C_FOR_U_ID, c.c_element_id AS C_ELEMENT_ID, c.c_comment AS C_COMMENT, c.c_time AS C_TIME, u.u_username AS C_USERNAME, u2.u_username AS C_BY_USERNAME, up.up_value AS C_AVATAR, up2.up_value AS C_AVATAR_KEY '
+      $sql  = 'SELECT c.c_id AS C_ID, c.c_by_u_id AS C_BY_U_ID, c.c_for_u_id AS C_FOR_U_ID, c.c_element_id AS C_ELEMENT_ID, c.c_name AS C_NAME, c.c_comment AS C_COMMENT, c.c_time AS C_TIME, u.u_username AS C_USERNAME, u2.u_username AS C_BY_USERNAME, up.up_value AS C_AVATAR, up2.up_value AS C_AVATAR_KEY '
             . 'FROM ((comments AS c LEFT JOIN users AS u ON u.u_id = c.c_by_u_id) '
             . 'LEFT JOIN users AS u2 ON u2.u_id = c.c_by_u_id '
             . "LEFT JOIN user_prefs AS up ON (c.c_by_u_id = up.up_u_id AND up.up_name = 'AVATAR')) "
@@ -33,7 +33,7 @@ class CComment
     return $return;
   }
   
-  function addComment($element_id = false, $by_user_id = 0, $for_user_id = 0, $comment = false, $type = 'foto')
+  function addComment($element_id = false, $by_user_id = 0, $for_user_id = 0, $comment = false, $type = 'foto', $raw_name = null)
   {
     include_once PATH_INCLUDE . '/functions.php'; // used to sanitize() comment
     include_once PATH_CLASS . '/CUser.php'; // use for activity
@@ -49,9 +49,10 @@ class CComment
       $typeSafe   = $this->dbh->sql_safe($type);
       $by_user_id   = intval($by_user_id);
       $for_user_id  = intval($for_user_id);
+      $raw_name = $this->dbh->sql_safe(sanitize($raw_name));
       
-      $sql  = 'INSERT INTO comments(c_by_u_id, c_for_u_id, c_element_id, c_comment, c_type, c_time) '
-            . 'VALUES(' . $by_user_id . ', ' . $for_user_id . ', ' . $element_id . ', ' . $comment . ', ' . $typeSafe . ', ' . NOW . ')';
+      $sql  = 'INSERT INTO comments(c_by_u_id, c_for_u_id, c_element_id, c_name, c_comment, c_type, c_time) '
+            . 'VALUES(' . $by_user_id . ', ' . $for_user_id . ', ' . $element_id . ', ' . $raw_name . ', ' . $comment . ', ' . $typeSafe . ', ' . NOW . ')';
       
       $this->dbh->execute($sql);
       

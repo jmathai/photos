@@ -272,7 +272,7 @@
             foreach($c_data as $v)
             {
               $avatarSrc = $v['C_AVATAR'] != '' ? PATH_FOTO . $v['C_AVATAR'] : '/images/avatar.jpg';
-              $userString = $v['C_USERNAME'] != '' ? '<a href="/users/' . $v['C_USERNAME'] . '/">' . $v['C_USERNAME'] . '</a>' : 'anonymous';
+              $userString = $v['C_USERNAME'] != '' ? '<a href="/users/' . $v['C_USERNAME'] . '/">' . $v['C_USERNAME'] . '</a>' : $v['C_NAME'];
               echo '<div id="_comment_' . $v['C_ID'] . '">
                       <div style="padding-bottom:10px;">
                         <a name="comment' . $v['C_ID'] . '"></a>
@@ -328,7 +328,21 @@
               else
               {
             ?>
-                <div id="_commentLogIn" style="display:block;">
+                <div id="_commentForm"><!-- style="display:none;"-->
+                  <form method="post" id="fotoCommentForm" action="/?action=fotobox.comment.act" style="display:inline;">
+                    <input type="hidden" name="c_element_id" value="<?php echo $foto_id; ?>" />
+                    <input type="hidden" name="redirect" value="<?php echo $_SERVER['REQUEST_URI']; ?>" />
+                    <input type="hidden" name="c_type" value="foto"/>
+                    <input type="hidden" name="c_for_u_id" value="<?php echo $f_data['P_U_ID']; ?>" />
+                    <div><input type="text" name="c_name" value="Your name" onfocus="this.select();" />
+                    <div><textarea name="c_comment" style="width:225px; height:75px; padding-bottom:10px;" class="formfield" onfocus="this.select();">Your comment</textarea></div>
+                    <div style="padding-top:3px;">
+                      <div style="padding-right:3px; float:left;"><a href="javascript:document.getElementById('fotoCommentForm').submit();" style="text-decoration:none;" title="leave a comment"><img src="images/comment.gif" width="16" height="16" border="0" alt="leave comment" /></a></div>
+                      <div style="padding-top:1px;"><a href="javascript:document.getElementById('fotoCommentForm').submit();" style="text-decoration:none;" title="leave a comment">Leave comment</a></div>
+                    </div>
+                  </form>
+                </div>
+                <!-- <div id="_commentLogIn" style="display:block;">
                   <div class="bold" style="width:100%;" class="my_line_lite">Log in to comment</div>
                   <div style="padding-top:5px;">
                     <form id="fotoCommentLogin" action="/?action=member.login_form.act" method="post" style="display:inline;">
@@ -349,20 +363,7 @@
                     <br/>
                     <div style="padding-top:10px;"><a href="javascript:commentAnon();" style="text-decoration:none;">Comment anonymously</a></div>
                   </div>
-                </div>
-                <div id="_commentForm" style="display:none;">
-                  <form method="post" id="fotoCommentForm" action="" style="display:inline;">
-                    <input type="hidden" name="c_element_id" value="<?php echo $foto_id; ?>" />
-                    <input type="hidden" name="redirect" value="<?php echo $_SERVER['REQUEST_URI']; ?>" />
-                    <input type="hidden" name="c_type" value="foto"/>
-                    <input type="hidden" name="c_for_u_id" value="<?php echo $f_data['P_U_ID']; ?>" />
-                    <div><textarea name="c_comment" style="width:225px; height:75px; padding-bottom:10px;" class="formfield"></textarea></div>
-                    <div style="padding-top:3px;">
-                      <div style="padding-right:3px; float:left;"><a href="javascript:document.getElementById('fotoCommentForm').submit();" style="text-decoration:none;" title="leave a comment"><img src="images/comment.gif" width="16" height="16" border="0" alt="leave comment" /></a></div>
-                      <div style="padding-top:1px;"><a href="javascript:document.getElementById('fotoCommentForm').submit();" style="text-decoration:none;" title="leave a comment">Leave comment</a></div>
-                    </div>
-                  </form>
-                </div>
+                </div> -->
           <?php
               }
               
