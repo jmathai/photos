@@ -325,7 +325,7 @@
                 </div>
             <?php
               }
-              else
+              else if(false)
               {
             ?>
                 <div id="_commentForm"><!-- style="display:none;"-->

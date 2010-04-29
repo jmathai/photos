@@ -4,6 +4,8 @@
     $c  = CComment::getInstance();
     
     $userId     = intval($_USER_ID);
+    if($userId == 0)
+      die();
     $element_id = $_POST['c_element_id'];
     $comment    = $_POST['c_comment'];
     $type       = $_POST['c_type'];
