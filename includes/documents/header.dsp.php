@@ -348,8 +348,8 @@
         <div id="myToolbar">
           <div>
             <div style="float:left; height:30px;">
-              <div style="float:left; margin-right:75px;"><a href="/"><img src="images/photagious_black_small.gif" width="94" height="21" hspace="25" vspace="5" border="0" /></a></div>
-              <div style="margin-top:7px;">
+              <!--<div style="float:left; margin-right:75px;"><a href="/"><img src="images/photagious_black_small.gif" width="94" height="21" hspace="25" vspace="5" border="0" /></a></div>-->
+              <div style="margin:7px 0 0 25px;">
               <?php
                 if($parts[3] != '')
                 {
