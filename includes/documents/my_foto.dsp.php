@@ -304,7 +304,7 @@
         </div>
         <div style="padding-left:10px; float:left;">
           <?php
-            if(permission($f_data['P_PRIVACY'], PERM_PHOTO_COMMENT))
+            if(false && permission($f_data['P_PRIVACY'], PERM_PHOTO_COMMENT))
             {
               echo '<a name="fotoComment"></a>';
               if($logged_in === true)
