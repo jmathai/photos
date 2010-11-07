@@ -12,6 +12,7 @@
       define('PATH_EXEC', '/opt/local/bin');
       define('FF_SERVER_NAME', 'mac.photagious.com');
       define('FF_STATIC_URL', 'http://mac.photagious.com');
+      define('FF_CDN_URL', 'http://mac.photagious.com');
       define('FF_MODE', 'development');
       define('FF_ENVIORNMENT', 'local');
       define('FF_ECOM_COMMIT', false);
@@ -37,6 +38,7 @@
       define('PATH_EXEC', '/usr/bin');
       define('FF_SERVER_NAME', $_const_mode);
       define('FF_STATIC_URL', "http://{$_const_mode}");
+      define('FF_CDN_URL', 'http://cdn.jaisenmathai.com/photagious');
       define('FF_MODE', 'live');
       define('FF_ENVIORNMENT', 'production');
       define('FF_ECOM_COMMIT', true); // change to true and change below to ''

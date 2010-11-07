@@ -50,6 +50,22 @@ class CVideo
   
   function search($params)
   {
+    /*$apcKey = 'ptg.3rdparty.video';
+    $thirdParty = apc_fetch($apcKey);
+    if(!$thirdParty)
+    {
+      $ch = curl_init('http://vimeo.com/api/v2/jmathai/videos.json');
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+      $resp = curl_exec($ch);
+      try
+      {
+        $thirdParty = json_decode($resp, true);
+        apc_store($apcKey, $thirdParty);
+      }
+      catch(Exception $e) {}
+    }*/
+    
+    
     $sql  = 'SELECT v_id AS V_ID, v_u_id AS V_U_ID, v_key AS V_KEY, v_name AS V_NAME, v_description AS V_DESCRIPTION, '
           . 'v_tags AS V_TAGS, v_path AS V_PATH, v_screen75x75 AS V_SCREEN_75x75, v_screen115x50 AS V_SCREEN_115x50, v_screen150x100 AS V_SCREEN_150x100, '
           . 'v_screen400x300 AS V_SCREEN_400x300, v_length AS V_LENGTH, v_views AS V_VIEWS, v_privacy AS V_PRIVACY, v_dateCreated AS V_DATECREATED '

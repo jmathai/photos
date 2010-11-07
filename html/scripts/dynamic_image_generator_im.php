@@ -27,7 +27,7 @@
   $iWidth  = ceil(array_pop($iParts));
   
   // make a copy of the original so we can apply history
-  $fullPath = PATH_HOMEROOT . str_replace('/custom/', '/original/', implode('_', $iParts) . $iExt);
+  $fullPath = PATH_HOMEROOT . str_replace('/custom/', '/base/', implode('_', $iParts) . $iExt);
   
   // make the imageKey 32 chars
   $imageKey = substr($imageKey, 0, 32);

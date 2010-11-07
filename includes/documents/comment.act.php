@@ -1,4 +1,5 @@
 <?php
+  die();
   if(isset($_POST['c_element_id']))
   {
     $c  = CComment::getInstance();

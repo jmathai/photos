@@ -190,7 +190,7 @@
             
             if(permission($f_data['P_PRIVACY'], PERM_PHOTO_DOWNLOAD))
             {
-              echo '<div id="photoPageDownload" class="bold" style="margin-bottom:10px;"><a href="/download?key=' . $f_data['P_KEY'] . '" class="plain"><img src="images/icons/log_in_24x24.png" class="png" width="24" height="24" border="0" hspace="3" align="middle" /> Download original</a></div>';
+              echo '<div id="photoPageDownload" class="bold" style="margin-bottom:10px;"><a href="' . FF_CDN_URL . $f_data['P_ORIG_PATH'] . '" class="plain"><img src="images/icons/log_in_24x24.png" class="png" width="24" height="24" border="0" hspace="3" align="middle" /> Download original</a></div>';
               if($options[1] == 'downloadable')
               {
                 echo '<script type="text/javascript"> photoPageDownloadEffect = new fx.Opacity("photoPageDownload", {duration:1500}); photoPageDownloadEffect.hide(); photoPageDownloadEffect.toggle(); </script>';
