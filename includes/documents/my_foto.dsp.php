@@ -2,6 +2,7 @@
   $fb =& CFotobox::getInstance();
   $fbm=& CFotoboxManage::getInstance();
   $c  =& CComment::getInstance();
+  $t  =& CTag::getInstance();
   
   $settingsHtml = '';
   $filterTags = array();
@@ -15,6 +16,7 @@
   $foto_id = $options[0];
   $f_data = $fb->fotoData($foto_id, $user_id);
   
+  $geo = $t->geoForTags($user_id, $f_data['P_TAGS']);
   $viewable = permission($f_data['P_PRIVACY'], 1);
   
   if($viewable === true)
@@ -157,8 +159,34 @@
             {
               echo '<div style="height:85px; width:90px; float:left;"></div>';
             }
-            
+
             echo '<br clear="all" /></div>';
+            
+            if(count($geo) > 0)
+            {
+              echo '<div id="fotomap" style="width:180px; height:100px; margin: 0 0 10px 10px;"></div>
+                <script>
+                  google.load("maps", "2.x");
+  // Call this function when the page has been loaded
+  function initialize() {
+    var map = new google.maps.Map2(document.getElementById("fotomap"));
+    map.setCenter(new google.maps.LatLng('.$geo[0]['utg_latitude'].', '.$geo[0]['utg_longitude'].'), 8);
+    map.addControl(new GSmallZoomControl());
+    ';
+              foreach($geo as $coords)
+              {
+                echo '
+                  var latlng = new GLatLng('.$coords['utg_latitude'].', '.$coords['utg_longitude'].');
+                  map.addOverlay(new GMarker(latlng));
+                  ';
+
+              }
+              echo '
+  }
+  google.setOnLoadCallback(initialize);
+                </script>
+                ';
+            }
             
             if(permission($f_data['P_PRIVACY'], PERM_PHOTO_DOWNLOAD))
             {
@@ -173,19 +201,6 @@
             {
               $settingsHtml .= '<div style="padding-bottom:6px;"><a href="javascript:void(0);" onclick="photoPagePermissionSet(' . $options[0] . ', \'download\', 1);" class="plain" title="Allow others to download the original version"><img src="images/icons/log_in_16x16.png" class="png" width="16" height="16" border="0" align="absmiddle" style="margin-right:4px;" />Allow others to download the original version</a></div>';
             }
-            
-            if(permission($f_data['P_PRIVACY'], PERM_PHOTO_PRINT))
-            {
-              echo '<div id="photoPagePrint" class="bold" style="margin-bottom:10px;"><a href="javascript:void(0);" onclick="addPhotoToCart(' . $f_data['P_ID'] . ');" class="plain"><img src="images/icons/shopping_chart_alt_2_24.png" class="png" width="24" height="24" border="0" hspace="3" align="absmiddle" /> Print this photo</a></div>
-                    <div class="bg_white" style="margin:10px;" id="cartDiv">
-                      <div style="padding:5px;" id="cartDivContents">
-                      </div>
-                    </div>
-                    <script type="text/javascript">
-                      var effectCart = new fx.Height("cartDiv");
-                      effectCart.hide();
-                    </script>';
-            }
           }
           else
           {
@@ -195,7 +210,6 @@
           }
         ?>
         <div id="photoPageDownload" class="bold" style="margin-bottom:10px;"><a href="/users/<?php echo $username; ?>/photo-large/<?php echo $foto_id; ?>/" class="plain"><img src="images/icons/zoom_in_24x24.png" class="png" width="24" height="24" border="0" hspace="3" align="middle" /> View larger version</a></div>
-        <div id="photoPageFlag" class="bold" style="margin-bottom:10px;"><a href="javascript:void(o);" onclick="flagFoto('<?php echo $f_data['P_ID']; ?>', '<?php echo $user_id; ?>', '<?php echo $_FF_SESSION->value('sess_hash'); ?>');" class="plain"><img id="flaggedIcon" src="images/icons/event_yellow_24x24.png" class="png" width="24" height="24" border="0" hspace="3" align="absmiddle" /> <span id="flaggedText"><script type="text/javascript"> writeString("Flag", " as", " inappropriate"); </script></span></a></div>
         <div class="line_lite"></div>
         <div style="margin-top:10px; margin-bottom:5px;" class="bold">Photo information</div>
         <?php
@@ -258,7 +272,7 @@
             foreach($c_data as $v)
             {
               $avatarSrc = $v['C_AVATAR'] != '' ? PATH_FOTO . $v['C_AVATAR'] : '/images/avatar.jpg';
-              $userString = $v['C_USERNAME'] != '' ? '<a href="/users/' . $v['C_USERNAME'] . '/">' . $v['C_USERNAME'] . '</a>' : 'anonymous';
+              $userString = $v['C_USERNAME'] != '' ? '<a href="/users/' . $v['C_USERNAME'] . '/">' . $v['C_USERNAME'] . '</a>' : $v['C_NAME'];
               echo '<div id="_comment_' . $v['C_ID'] . '">
                       <div style="padding-bottom:10px;">
                         <a name="comment' . $v['C_ID'] . '"></a>
@@ -311,10 +325,24 @@
                 </div>
             <?php
               }
-              else
+              else if(false)
               {
             ?>
-                <div id="_commentLogIn" style="display:block;">
+                <div id="_commentForm"><!-- style="display:none;"-->
+                  <form method="post" id="fotoCommentForm" action="/?action=fotobox.comment.act" style="display:inline;">
+                    <input type="hidden" name="c_element_id" value="<?php echo $foto_id; ?>" />
+                    <input type="hidden" name="redirect" value="<?php echo $_SERVER['REQUEST_URI']; ?>" />
+                    <input type="hidden" name="c_type" value="foto"/>
+                    <input type="hidden" name="c_for_u_id" value="<?php echo $f_data['P_U_ID']; ?>" />
+                    <div><input type="text" name="c_name" value="Your name" onfocus="this.select();" />
+                    <div><textarea name="c_comment" style="width:225px; height:75px; padding-bottom:10px;" class="formfield" onfocus="this.select();">Your comment</textarea></div>
+                    <div style="padding-top:3px;">
+                      <div style="padding-right:3px; float:left;"><a href="javascript:document.getElementById('fotoCommentForm').submit();" style="text-decoration:none;" title="leave a comment"><img src="images/comment.gif" width="16" height="16" border="0" alt="leave comment" /></a></div>
+                      <div style="padding-top:1px;"><a href="javascript:document.getElementById('fotoCommentForm').submit();" style="text-decoration:none;" title="leave a comment">Leave comment</a></div>
+                    </div>
+                  </form>
+                </div>
+                <!-- <div id="_commentLogIn" style="display:block;">
                   <div class="bold" style="width:100%;" class="my_line_lite">Log in to comment</div>
                   <div style="padding-top:5px;">
                     <form id="fotoCommentLogin" action="/?action=member.login_form.act" method="post" style="display:inline;">
@@ -335,20 +363,7 @@
                     <br/>
                     <div style="padding-top:10px;"><a href="javascript:commentAnon();" style="text-decoration:none;">Comment anonymously</a></div>
                   </div>
-                </div>
-                <div id="_commentForm" style="display:none;">
-                  <form method="post" id="fotoCommentForm" action="" style="display:inline;">
-                    <input type="hidden" name="c_element_id" value="<?php echo $foto_id; ?>" />
-                    <input type="hidden" name="redirect" value="<?php echo $_SERVER['REQUEST_URI']; ?>" />
-                    <input type="hidden" name="c_type" value="foto"/>
-                    <input type="hidden" name="c_for_u_id" value="<?php echo $f_data['P_U_ID']; ?>" />
-                    <div><textarea name="c_comment" style="width:225px; height:75px; padding-bottom:10px;" class="formfield"></textarea></div>
-                    <div style="padding-top:3px;">
-                      <div style="padding-right:3px; float:left;"><a href="javascript:document.getElementById('fotoCommentForm').submit();" style="text-decoration:none;" title="leave a comment"><img src="images/comment.gif" width="16" height="16" border="0" alt="leave comment" /></a></div>
-                      <div style="padding-top:1px;"><a href="javascript:document.getElementById('fotoCommentForm').submit();" style="text-decoration:none;" title="leave a comment">Leave comment</a></div>
-                    </div>
-                  </form>
-                </div>
+                </div> -->
           <?php
               }
               

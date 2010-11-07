@@ -227,63 +227,7 @@
   {
     global $logged_in;
     echo '<div id="footer">
-            <div>';
-    
-    if($logged_in === true)
-    {
-      echo '  <div style="padding-bottom:3px;">
-                <div class="bold" style="width:75px; float:left;">Account</div>
-                <div style="float:left;">
-                  <a href="/?action=fotobox.fotobox_myfotos">Photos</a> | 
-                  <a href="/?action=flix.flix_list">Slideshows</a> | 
-                  <a href="/users/' . $username . '/">Personal Page</a>
-                </div>
-              </div>
-              <br clear="all" />';
-    }
-    
-    echo '    <div style="padding-bottom:3px;">
-                <div class="bold" style="width:75px; float:left;">Discover</div>
-                <div style="float:left;">
-                  <a href="/home/tour/">Tour</a> | 
-                  <a href="/?action=home.samples">Samples</a> | 
-                  <a href="/?action=home.samples&subaction=demoSlideshow">Demo</a> | 
-                  <a href="/?action=home.samples&subaction=featureList">Feature List</a> | 
-                  <a href="http://www.shareasale.com/shareasale.cfm?merchantID=12918">Affiliates</a>
-                </div>
-              </div>
-              <br clear="all" />
-              
-              <div style="padding-bottom:3px;">
-                <div class="bold" style="width:75px; float:left;">Benefits</div>
-                <div style="float:left;">
-                  <a href="/?action=home.samples&subaction=printing">Printing</a> | 
-                  <a href="/?action=home.samples&subaction=wedding">Wedding</a> | 
-                  <a href="/?action=home.samples&subaction=storage">Storage</a> | 
-                  <a href="/?action=home.samples&subaction=all_themes">All Themes</a>
-                </div>
-              </div>
-              <br clear="all" />
-              
-              <div style="padding-bottom:15px;">
-                <div class="bold" style="width:75px; float:left;">Help</div>
-                <div style="float:left;">
-                  <a href="/blog/">Blog</a> | 
-                  <a href="/?action=home.help">FAQ</a> | 
-                  <a href="/?action=home.samples&subaction=tutorials">Tutorials</a> | 
-                  <a href="/api/documentation/javascript/">Developer API</a>
-                </div>
-              </div>
-              <br clear="all" />
-            </div>
-            <div>
-              <a href="/aboutus/">About Us</a> | 
-              <a href="/press/">Press</a> | 
-              <a href="/contactus/">Contact</a> | 
-              <a href="/terms/">Terms</a> | 
-              <a href="/privacy/">Privacy</a>
-            </div>
-            <div style="margin-top:5px;">Privacy Policy &copy; ' . date('Y', NOW) . ' Photagious All Rights Reserved.&nbsp;&nbsp;</div>
+            <div style="margin-top:5px;">&copy; ' . date('Y', NOW) . ' Photagious / Jaisen Mathai.  All Rights Reserved.&nbsp;&nbsp;</div>
           </div>
           <!-- close footer -->';
   }

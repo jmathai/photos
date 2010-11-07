@@ -103,7 +103,8 @@
     
     echo '<link rel="stylesheet" type="text/css" href="/css/themes/default.css?my_default">
           <title>' . $pageTitle . ' - Photagious - Online Photo Slideshow Software - Create Flash Slideshows</title>
-          <script type="text/javascript" src="/js/photopage.v12.js"></script>';
+          <script type="text/javascript" src="/js/photopage.v12.js"></script>
+          <script type="text/javascript" src="http://www.google.com/jsapi?key='.GMAP_KEY.'"></script>';
     include_once PATH_DOCROOT . '/user_data_js.dsp.php';
   }
   else 
@@ -347,8 +348,8 @@
         <div id="myToolbar">
           <div>
             <div style="float:left; height:30px;">
-              <div style="float:left; margin-right:75px;"><a href="/"><img src="images/photagious_black_small.gif" width="94" height="21" hspace="25" vspace="5" border="0" /></a></div>
-              <div style="margin-top:7px;">
+              <!--<div style="float:left; margin-right:75px;"><a href="/"><img src="images/photagious_black_small.gif" width="94" height="21" hspace="25" vspace="5" border="0" /></a></div>-->
+              <div style="margin:7px 0 0 25px;">
               <?php
                 if($parts[3] != '')
                 {
