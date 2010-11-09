@@ -1,5 +1,4 @@
 <?php
-error_log('upload_single');
   ini_set('max_execution_time', 120);
   
   include_once './init_constants.php';
@@ -12,17 +11,19 @@ error_log('upload_single');
   include_once PATH_CLASS . '/CUserManage.php';
   include_once PATH_CLASS . '/CFotoboxManage.php';
   include_once PATH_CLASS . '/CImageMagick.php';
+  include_once PATH_CLASS . '/class.s3.php';
 
   include_once PATH_INCLUDE . '/functions.php';
   include_once PATH_DOCROOT . '/init_session.php';
   
-  $id =& CIdat::getInstance();
-  $u  =& CUser::getInstance();
-  $f  =& CFotobox::getInstance();
-  $um =& CUserManage::getInstance();
-  $fb =& CFotoboxManage::getInstance();
-  $im =& CImageMagick::getInstance();
+  $id = CIdat::getInstance();
+  $u  = CUser::getInstance();
+  $f  = CFotobox::getInstance();
+  $um = CUserManage::getInstance();
+  $fb = CFotoboxManage::getInstance();
+  $im = CImageMagick::getInstance();
   $stamp = FF_YM_STAMP;
+  $s3 = new S3(AWS_KEY, AWS_SEC);
 
   if(isset($_REQUEST['user_enc']))
   {
@@ -34,7 +35,6 @@ error_log('upload_single');
 
     $_USER_ID = $enc['id' ];
   }
-error_log('user_authed');
   
   $user_data = $u->find($_USER_ID);
   
@@ -45,23 +45,18 @@ error_log('user_authed');
   $privacy = intval($_REQUEST['privacySettingComputed']);
 
   $proceed    = is_uploaded_file($_FILES[$image_name]['tmp_name']) ? true : false;
-error_log($_FILES['image_name']['tmp_name']);
-error_log(json_encode($_FILES));
   if ($proceed === true)
   {
-error_log('proceed');
-    if($_POST['Angle_1'] > 0)
-    {
-      $im->rotate($_FILES[$image_name]['tmp_name'], $_FILES[$image_name]['tmp_name'], $_POST['Angle_1']);
-    }
-    
     $original_src = $fb->uploadOriginal($_FILES[$image_name]['tmp_name'], $new_filename);
     
     if($image_name == 'Filedata') // flash uploader
     {
       $im->exiftran(PATH_FOTOROOT . $original_src);
     }
-    
+
+    // upload to amazon
+    $s3Upload = $s3->uploadFile(AWS_BUCKET, substr($original_src, 1), PATH_FOTOROOT . $original_src, true);
+
     $thumb_src = $fb->uploadThumbnail(PATH_FOTOROOT . $original_src, $new_filename);
     $fb->uploadBase(PATH_FOTOROOT . $original_src, $new_filename);
 
@@ -109,7 +104,6 @@ error_log('proceed');
                 );
 
     $fotoId = $fb->add($db_data);
-error_log($fotoId);    
     if($_REQUEST['tagsToAdd'] != '')
     {
       $tags = (array)explode(',', $_REQUEST['tagsToAdd']);
@@ -155,6 +149,10 @@ error_log($fotoId);
     $setPrefs['FOTO_PRIVACY'] = $privacy;
     
     $um->setPrefs($_USER_ID, $setPrefs);
+    if($s3Upload)
+    {
+      unlink(PATH_FOTOROOT . $original_src);
+    }
   }
 
   if(isset($_GET['redirect']))
@@ -177,5 +175,4 @@ error_log($fotoId);
     echo '{"success"}'; // for flash uploader on mac?????? why oh why??????
   }
   include_once PATH_DOCROOT . '/garbage_collector.act.php';
-error_log('');
 ?>

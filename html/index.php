@@ -37,7 +37,7 @@
 
   $error = false;
 
-  $tpl =& new CTemplate;
+  $tpl = new CTemplate;
   
   if($action_ext != '.act')
   {

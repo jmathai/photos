@@ -37,8 +37,8 @@
         include_once PATH_CLASS . '/CUserManage.php';
         include_once PATH_CLASS . '/CFotobox.php';
         
-        $um =& CUserManage::getInstance();
-        $fb =& CFotobox::getInstance();
+        $um = CUserManage::getInstance();
+        $fb = CFotobox::getInstance();
         
         $retval = '';
         
@@ -75,7 +75,7 @@
         break;
       case 'blog_entry_delete':
         include_once PATH_CLASS . '/CBlog.php';
-        $b =& CBlog::getInstance();
+        $b = CBlog::getInstance();
         
         $entryId = $_POST['entryId'];
         $b->delete($_USER_ID, $entryId);
@@ -85,8 +85,8 @@
         include_once PATH_CLASS . '/CApiClient.php';
         include_once PATH_CLASS . '/CXml.php';
         
-        $api =& CApiClient::getInstance();
-        $xml =& CXml::getInstance();
+        $api = CApiClient::getInstance();
+        $xml = CXml::getInstance();
         
         switch($_GET['blog'])
         {
@@ -263,15 +263,15 @@
         $userId    = $_POST['13'];
         
         $_SESSION_HASH = $_FF_SESSION->value('sess_hash');
-        $us   =& CUser::getInstance();
-        $usm  =& CUserManage::getInstance();
-        $tok  =& CToken::getInstance();
-        $ecom =& new CEcom($userId, $_SESSION_HASH);
+        $us   = CUser::getInstance();
+        $usm  = CUserManage::getInstance();
+        $tok  = CToken::getInstance();
+        $ecom = new CEcom($userId, $_SESSION_HASH);
         $validate = $tok->getToken($_POST['token']);
         
         if($validate !== false)
         {
-          $gateway =& CEcomGateway::init(ECOMGATEWAY_AUTHORIZE);
+          $gateway = CEcomGateway::init(ECOMGATEWAY_AUTHORIZE);
           
           $opts    = array(
                       'cc_num'    => $_POST['1'],
@@ -466,7 +466,7 @@
         
       case 'check_email':
         include_once PATH_CLASS . '/CUser.php';
-        $us =& CUser::getInstance();
+        $us = CUser::getInstance();
         $check = $us->validateCredentials($_GET['email'], 'email');
         
         if($check === false)
@@ -480,7 +480,7 @@
         break;
       case 'check_username':
         include_once PATH_CLASS . '/CUser.php';
-        $us =& CUser::getInstance();
+        $us = CUser::getInstance();
         $check = $us->validateCredentials($_GET['username'], 'username');
         
         if($check === false)
@@ -494,7 +494,7 @@
         break;
       case 'faq':
         include_once PATH_CLASS . '/CFaq.php';
-        $fq =& CFaq::getInstance();
+        $fq = CFaq::getInstance();
         
         $faqData = $fq->faqData($_GET['id']);
         echo 'true,' . $faqData['F_ID'] . ',' . $faqData['F_CATEGORY'] . ',' . str_replace(',', '&comma;', preg_replace('/\{CONST_(.*?)\}/e', "constant('\\1')", $faqData['F_QUESTION'])) . ',' . str_replace(',', '&comma;', preg_replace('/\{CONST_(.*?)\}/e', "constant('\\1')", $faqData['F_ANSWER'])) . ',' . str_replace(',', '&comma;', $faqData['F_KEYWORDS']) . ',' . $faqData['F_LINK'];
@@ -567,7 +567,7 @@
         
         $flix_id = intval($_GET['flix_id']);
         
-        $c =& CComment::getInstance();
+        $c = CComment::getInstance();
         $comments = $c->comments($flix_id, 'flix');
         
         $return = '';
@@ -584,7 +584,7 @@
         break;
       case 'flix_gallery_generator':
         include_once PATH_CLASS . '/CUser.php';
-        $u =& CUser::getInstance();
+        $u = CUser::getInstance();
         $userData = $u->find($_USER_ID);
         
         $perPage = intval($_POST['perPage']);
@@ -603,14 +603,14 @@
       case 'flix_list':
         include_once PATH_CLASS . '/CFlix.php';
         
-        $fl =& CFlix::getInstance();
+        $fl = CFlix::getInstance();
         $arrFlix = $fl->flix($_USER_ID);
         
         echo jsonEncode($arrFlix);
         break;
       case 'flix_media_generator':
         include_once PATH_CLASS . '/CUser.php';
-        $u =& CUser::getInstance();
+        $u = CUser::getInstance();
         $userData = $u->find($_USER_ID);
         
         if($userData !== false)
@@ -628,8 +628,8 @@
         include_once PATH_CLASS . '/CFlix.php';
         include_once PATH_CLASS . '/CFlixManage.php';
         $flix_id = intval($_GET['flix_id']);
-        $fl =& CFlix::getInstance();
-        $flm =& CFlixManage::getInstance();
+        $fl = CFlix::getInstance();
+        $flm = CFlixManage::getInstance();
         
         $flixData = $fl->search(array('FLIX_ID' => $flix_id, 'USER_ID' => $_USER_ID));
         $name = isset($_GET['name']) ? $_GET['name'] : '';
@@ -677,7 +677,7 @@
       case 'flix_reorder': // not sure if this is used anymore
         include_once PATH_CLASS . '/CFlixManage.php';
         
-        $flm =& CFlixManage::getInstance();
+        $flm = CFlixManage::getInstance();
         $return = $flm->reorder($_USER_ID, $_GET['flixList']);
         
         echo jsonEncode($return);
@@ -712,7 +712,7 @@
       case 'flix_tags':
         include_once PATH_CLASS . '/CFlix.php';
         
-        $fl =& CFlix::getInstance();
+        $fl = CFlix::getInstance();
         $flix_id = intval($_GET['flix_id']);
         
         $flixData = $fl->search(array('FLIX_ID' => $flix_id, 'USER_ID' => $_USER_ID, 'RETURN_TYPE' => 'SINGLE_FOTO'));
@@ -722,8 +722,8 @@
         include_once PATH_CLASS . '/CFlixManage.php';
         include_once PATH_CLASS . '/CTag.php';
         
-        $flm =& CFlixManage::getInstance();
-        $t   =& CTag::getInstance();
+        $flm = CFlixManage::getInstance();
+        $t   = CTag::getInstance();
         $flix_id = intval($_GET['flix_id']);
         $tags    = (array)explode(',', $_GET['tags']);
         $t->addTags($_USER_ID, $tags); // add to user_tags table
@@ -735,7 +735,7 @@
       case 'flix_tags_remove':
         include_once PATH_CLASS . '/CFlixManage.php';
         
-        $flm =& CFlixManage::getInstance();
+        $flm = CFlixManage::getInstance();
         $flix_id = intval($_GET['flix_id']);
         $tags    = (array)explode(',', $_GET['tags']);
         $tags = $flm->removeTags($flix_id, $tags, $_USER_ID);
@@ -745,7 +745,7 @@
       case 'flixlist':
         include_once PATH_CLASS . '/CFlix.php';
         
-        $fl =& CFlix::getInstance();
+        $fl = CFlix::getInstance();
         $arrFlix = $fl->flix($_USER_ID);
         
         $return = '';
@@ -761,9 +761,9 @@
         include_once PATH_CLASS . '/CFlix.php';
         include_once PATH_CLASS . '/CFotobox.php';
         
-        $us =& CUser::getInstance();
-        $fl =& CFlix::getInstance();
-        $fb =& CFotobox::getInstance();
+        $us = CUser::getInstance();
+        $fl = CFlix::getInstance();
+        $fb = CFotobox::getInstance();
         
         $user_data= $us->userByKey($_GET['user_key']);
         
@@ -796,7 +796,7 @@
         break;
       case 'foto_copyright_set':
         include_once PATH_CLASS . '/CFotoboxManage.php';
-        $fbm =& CFotoboxManage::getInstance();
+        $fbm = CFotoboxManage::getInstance();
         
         $foto_ids = (array)explode(',', $_GET['foto_ids']);
         $copyright= intval($_GET['copyright']);
@@ -807,7 +807,7 @@
       case 'foto_name':
         include_once PATH_CLASS . '/CFotobox.php';
         $foto_id = intval($_GET['foto_id']);
-        $fb =& CFotobox::getInstance();
+        $fb = CFotobox::getInstance();
         $fotoData = $fb->fotoData($foto_id, $_USER_ID);
         echo str_replace('`', "'", htmlspecialchars($fotoData['P_NAME'])) . '`' . str_replace('`', "'", htmlspecialchars($fotoData['P_DESC']));
         break;
@@ -819,11 +819,11 @@
         include_once PATH_CLASS . '/CToolbox.php';
         include_once PATH_CLASS . '/CSubscriptionManage.php';
         
-        $us   =& CUser::getInstance();
-        $fb   = &CFotobox::getInstance();
-        $fbm  =& CFotoboxManage::getInstance();
-        $usm  =& CUserManage::getInstance();
-        $tb   =& CToolbox::getInstance();
+        $us   = CUser::getInstance();
+        $fb   = CFotobox::getInstance();
+        $fbm  = CFotoboxManage::getInstance();
+        $usm  = CUserManage::getInstance();
+        $tb   = CToolbox::getInstance();
         $sm   = &CSubscriptionManage::getInstance();
          
         if(isset($_GET['toolbox']))
@@ -877,7 +877,7 @@
       case 'foto_tags':
         include_once PATH_CLASS . '/CFotobox.php';
         $foto_id = intval($_GET['foto_id']);
-        $fb =& CFotobox::getInstance();
+        $fb = CFotobox::getInstance();
         $fotoData = $fb->fotoData($foto_id, $_USER_ID);
         $tags = (array)explode(',', $fotoData['P_TAGS']);
         
@@ -889,7 +889,7 @@
         include_once PATH_CLASS . '/CTag.php';
         if(isset($_GET['toolbox']))
         {
-          $tb =& CToolbox::getInstance();
+          $tb = CToolbox::getInstance();
           $tb_ids = $tb->get($_USER_ID, 'foto');
           $foto_ids = array();
           foreach($tb_ids as $v)
@@ -904,8 +904,8 @@
         
         $tags    = (array)explode(',', $_GET['tags']);
         
-        $fbm =& CFotoboxManage::getInstance();
-        $t   =& CTag::getInstance();
+        $fbm = CFotoboxManage::getInstance();
+        $t   = CTag::getInstance();
         
         $t->addTags($_USER_ID, $tags); // add tags to user_tags
         
@@ -919,7 +919,7 @@
         include_once PATH_CLASS . '/CToolbox.php';
         if(isset($_GET['toolbox']))
         {
-          $tb =& CToolbox::getInstance();
+          $tb = CToolbox::getInstance();
           $tb_ids = $tb->get($_USER_ID, 'foto');
           $foto_ids = array();
           foreach($tb_ids as $v)
@@ -933,7 +933,7 @@
         }
         
         $tags    = (array)explode(',', $_GET['tags']);
-        $fbm =& CFotoboxManage::getInstance();
+        $fbm = CFotoboxManage::getInstance();
         $tags = $fbm->removeTags($foto_ids, $tags, $_USER_ID);
         echo jsonEncode($tags);
         break;
@@ -942,9 +942,9 @@
         include_once PATH_CLASS . '/CFotoboxManage.php';
         include_once PATH_CLASS . '/CImageEditor.php';
         
-        $fb =& CFotobox::getInstance();
-        $fbm=& CFotoboxManage::getInstance(FF_YM_STAMP);
-        $ie =& CImageEditor::getInstance();
+        $fb = CFotobox::getInstance();
+        $fbm= CFotoboxManage::getInstance(FF_YM_STAMP);
+        $ie = CImageEditor::getInstance();
         
         $photoId = intval($_REQUEST['photoId']);
         
@@ -993,8 +993,8 @@
         include_once PATH_CLASS . '/CFotobox.php';
         include_once PATH_CLASS . '/CFotoboxManage.php';
         $foto_id = intval($_GET['foto_id']);
-        $fb =& CFotobox::getInstance();
-        $fbm =& CFotoboxManage::getInstance();
+        $fb = CFotobox::getInstance();
+        $fbm = CFotoboxManage::getInstance();
         
         $fotoData = $fb->fotoData($foto_id, $_USER_ID);
         if($fotoData['P_U_ID'] == $_USER_ID)
@@ -1009,7 +1009,7 @@
         break;
       case 'foto_update_date_taken':
         include_once PATH_CLASS . '/CFotoboxManage.php';
-        $fbm =& CFotoboxManage::getInstance();
+        $fbm = CFotoboxManage::getInstance();
         $fotoId = intval($_GET['fotoId']);
         $dateTimeParts = explode(' ', $_GET['datetime']);
         $dateParts = explode('/', $dateTimeParts[0]);
@@ -1026,9 +1026,9 @@
         include_once PATH_CLASS . '/CMail.php';
         include_once PATH_CLASS . '/CUser.php';
         include_once PATH_CLASS . '/CUserManage.php';
-        $m  =& CMail::getInstance();
-        $u  =& CUser::getInstance();
-        $um =& CUserManage::getInstance();
+        $m  = CMail::getInstance();
+        $u  = CUser::getInstance();
+        $um = CUserManage::getInstance();
         
         if(!isset($_POST['friendId']))
         {
@@ -1067,15 +1067,15 @@
         break;
       case 'fotopage_add_to_cart':
         include_once PATH_CLASS . '/CToolbox.php';
-        $tb =& CToolbox::getInstance();
+        $tb = CToolbox::getInstance();
         $tb->add($_FF_SESSION->value('sess_hash'), intval($_GET['photoId']));
         echo jsonEncode(true);
         break;
       case 'fotopage_foto_add':
         include_once PATH_CLASS . '/CFotobox.php';
         include_once PATH_CLASS . '/CFotoboxManage.php';      
-        $fb =& CFotobox::getInstance();
-        $fbm=& CFotoboxManage::getInstance();
+        $fb = CFotobox::getInstance();
+        $fbm= CFotoboxManage::getInstance();
         
         $photoId = intval($_GET['photo_id']);        
         $fotoData = $fb->fotoData($photoId, $_USER_ID);
@@ -1093,8 +1093,8 @@
         include_once PATH_CLASS . '/CFotoboxManage.php';
         include_once PATH_CLASS . '/CFotobox.php';
         
-        $fb =& CFotobox::getInstance();
-        $fbm=& CFotoboxManage::getInstance();
+        $fb = CFotobox::getInstance();
+        $fbm= CFotoboxManage::getInstance();
         
         $photoId = intval($_GET['photo_id']);
         $setting = intval($_GET['setting']);
@@ -1133,8 +1133,8 @@
       case 'fotopage_foto_remove':
         include_once PATH_CLASS . '/CFotobox.php';
         include_once PATH_CLASS . '/CFotoboxManage.php';      
-        $fb =& CFotobox::getInstance();
-        $fbm=& CFotoboxManage::getInstance();
+        $fb = CFotobox::getInstance();
+        $fbm= CFotoboxManage::getInstance();
         
         $photoId = intval($_GET['photo_id']);        
         $fotoData = $fb->fotoData($photoId, $_USER_ID);
@@ -1154,8 +1154,8 @@
         {
           include_once PATH_CLASS . '/CFotoboxManage.php';
           include_once PATH_CLASS . '/CTag.php';
-          $fb =& CFotoboxManage::getInstance();
-          $t   =& CTag::getInstance();          
+          $fb = CFotoboxManage::getInstance();
+          $t   = CTag::getInstance();          
          
           $fotoId = intval($_GET['foto_id']);
           $tags   = (array)explode(',', $_GET['tags']);
@@ -1214,8 +1214,8 @@
         
         $u = &CUser::getInstance();
         $um = &CUserManage::getInstance(); 
-        $fb =& CFotobox::getInstance();
-        $fbm=& CFotoboxManage::getInstance();
+        $fb = CFotobox::getInstance();
+        $fbm= CFotoboxManage::getInstance();
         $sm = &CSubscriptionManage::getInstance();
         
         $photoId = intval($_GET['photo_id']);        
@@ -1341,7 +1341,7 @@
         break;
       case 'fotopage_remove_from_cart':
         include_once PATH_CLASS . '/CToolbox.php';
-        $tb =& CToolbox::getInstance();
+        $tb = CToolbox::getInstance();
         $toolboxItem = $tb->getItem($_POST['toolboxId']);
         $tb->remove($_FF_SESSION->value('sess_hash'), intval($_POST['toolboxId']));
         echo jsonEncode($toolboxItem);
@@ -1359,7 +1359,7 @@
         else
         if(($privacy & PERM_SLIDESHOW_PUBLIC) == PERM_SLIDESHOW_PUBLIC) // public
         {
-          $fl =& CFlix::getInstance();
+          $fl = CFlix::getInstance();
           $flixData = $fl->search(array('MODE' => 'USER', 'USER_ID' => $_USER_ID, 'SLIDESHOW_ID' => $slideshowId));
           $privacy = intval($flixData['US_PRIVACY']) | PERM_SLIDESHOW_PUBLIC;
         }
@@ -1378,7 +1378,7 @@
         else
         if(($privacy & PERM_VIDEO_PUBLIC) == PERM_VIDEO_PUBLIC) // public
         {
-          $v =& CVideo::getInstance();
+          $v = CVideo::getInstance();
           $videoData = $v->search(array('USER_ID' => $_USER_ID, 'ID' => $videoId));
           $privacy = intval($videoData['V_PRIVACY']) | PERM_VIDEO_PUBLIC;
         }
@@ -1397,7 +1397,7 @@
         include_once PATH_CLASS . '/CToolbox.php';
         if(isset($_GET['toolbox']))
         {
-          $tb =& CToolbox::getInstance();
+          $tb = CToolbox::getInstance();
           $tb_ids = $tb->get($_USER_ID, 'foto');
           $foto_ids = array();
           foreach($tb_ids as $v)
@@ -1411,7 +1411,7 @@
         }
         
         $f = &CFotobox::getInstance();
-        $fb =& CFotoboxManage::getInstance();
+        $fb = CFotoboxManage::getInstance();
         
         $success = $fb->delete($foto_ids, $_USER_ID);
          
@@ -1425,8 +1425,8 @@
       case 'fotos_search':
         include_once PATH_CLASS . '/CFotobox.php';
         include_once PATH_CLASS . '/CUserManage.php';
-        $fb =&CFotobox::getInstance();
-        $usm=&CUserManage::getInstance();
+        $fb =CFotobox::getInstance();
+        $usm=CUserManage::getInstance();
         
         $params = array('USER_ID' => $_USER_ID);
         $urlOmit = array('action' => true);
@@ -1460,7 +1460,7 @@
       
       case 'group_foto_popup':
         include_once PATH_CLASS . '/CGroup.php';
-        $gp =& CGroup::getInstance();
+        $gp = CGroup::getInstance();
         $params = array('GROUP_ID' => $_GET['groupId']);
         
         // build query string
@@ -1613,8 +1613,8 @@
       case 'group_fotos_add':
         include_once PATH_CLASS . '/CGroup.php';
         include_once PATH_CLASS . '/CGroupManage.php';
-        $g  =& CGroup::getInstance();
-        $gm =& CGroupManage::getInstance();
+        $g  = CGroup::getInstance();
+        $gm = CGroupManage::getInstance();
         
         $groupId = intval($_POST['groupId']);
         $photoIds= (array)explode(',', $_POST['fotoIds']);
@@ -1658,7 +1658,7 @@
       case 'group_list':
         include_once PATH_CLASS . '/CGroup.php';
         
-        $g =& CGroup::getInstance();
+        $g = CGroup::getInstance();
         
         $groups = $g->groups($_USER_ID);
         
@@ -1675,8 +1675,8 @@
         include_once PATH_CLASS . '/CGroupManage.php';
         include_once PATH_CLASS . '/CFotobox.php';
         
-        $gm =& CGroupManage::getInstance();
-        $fb =& CFotobox::getInstance();
+        $gm = CGroupManage::getInstance();
+        $fb = CFotobox::getInstance();
         
         $group_id = $_GET['group_id'];
         $retval = '';
@@ -1707,7 +1707,7 @@
         
       case 'login_generic':
         include_once PATH_CLASS . '/CUser.php';
-        $us =& CUser::getInstance();
+        $us = CUser::getInstance();
         $exists = false;
         $pref = false;
         
@@ -1736,7 +1736,7 @@
       
       case 'message_delete':
         include_once PATH_CLASS . '/CUserManage.php';
-        $um=& CUserManage::getInstance();
+        $um= CUserManage::getInstance();
         
         $delete = $um->markMessage($_USER_ID, $_POST['messageId'], 'Deleted') == true ? $_POST['messageId'] : 0;
         echo jsonEncode($delete);
@@ -1745,8 +1745,8 @@
       case 'message_get':
         include_once PATH_CLASS . '/CUser.php';
         include_once PATH_CLASS . '/CUserManage.php';
-        $u =& CUser::getInstance();
-        $um=& CUserManage::getInstance();
+        $u = CUser::getInstance();
+        $um= CUserManage::getInstance();
         
         if($_POST['mark'] == 'Read')
         {
@@ -1761,9 +1761,9 @@
         include_once PATH_CLASS . '/CMail.php';
         include_once PATH_CLASS . '/CUser.php';
         include_once PATH_CLASS . '/CUserManage.php';
-        $m =& CMail::getInstance();
-        $u =& CUser::getInstance();
-        $um=& CUserManage::getInstance();
+        $m = CMail::getInstance();
+        $u = CUser::getInstance();
+        $um= CUserManage::getInstance();
         
         $recipient  = $u->find($_POST['userId']);
         $userData   = $u->find($_USER_ID);
@@ -1790,9 +1790,9 @@
         include_once PATH_CLASS . '/CMail.php';
         include_once PATH_CLASS . '/CUser.php';
         include_once PATH_CLASS . '/CUserManage.php';
-        $m =& CMail::getInstance();
-        $u =& CUser::getInstance();
-        $um=& CUserManage::getInstance();
+        $m = CMail::getInstance();
+        $u = CUser::getInstance();
+        $um= CUserManage::getInstance();
         
         $recipient  = $u->my($_POST['toUser']);
         $userData   = $u->find($_USER_ID);
@@ -1819,8 +1819,8 @@
         include_once PATH_CLASS . '/CFotoboxManage.php';
         
         $u = &CUser::getInstance();
-        $um =& CUserManage::getInstance();
-        $fb =& CFotobox::getInstance();
+        $um = CUserManage::getInstance();
+        $fb = CFotobox::getInstance();
         $fbm = &CFotoboxManage::getInstance();
         
         $retval = '';
@@ -2054,7 +2054,7 @@
         $email = $_GET['email'];
         $password = $_GET['password'];
         
-        $usm =& CUserManage::getInstance();
+        $usm = CUserManage::getInstance();
         
         $data = array('usa_id' => $accountId, 'usa_username' => $name, 'usa_email' => $email, 'usa_password' => $password);
         $usm->updateSubAccount($data);
@@ -2069,7 +2069,7 @@
         $permBit = $_GET['permBit']; // C R U D
         $permValue = intval($_GET['permValue']); // 0 or 1
         
-        $prm =& CPermission::getInstance();
+        $prm = CPermission::getInstance();
         
         $prm->setPermission($accountId, $permAction, $permBit, $permValue);
         
@@ -2079,7 +2079,7 @@
         include_once PATH_CLASS . '/CPermission.php';
         
         $accountId = $_GET['sa_id'];
-        $prm =& CPermission::getInstance();
+        $prm = CPermission::getInstance();
         
         $types = $prm->types();
         
@@ -2095,7 +2095,7 @@
         break;
       case 'user_blogs':
         include_once PATH_CLASS . '/CUser.php';
-        $us =& CUser::getInstance();
+        $us = CUser::getInstance();
         $blogs = $us->blogs($_USER_ID);
         
         $return = '';
@@ -2109,7 +2109,7 @@
         
       case 'user_by_key':
         include_once PATH_CLASS . '/CUser.php';
-        $us =& CUser::getInstance();
+        $us = CUser::getInstance();
         $exists = false;
         
         $exists = $us->userByKey($_GET['userKey']);
@@ -2131,7 +2131,7 @@
       case 'user_groups':
         include_once PATH_CLASS . '/CGroup.php';
         
-        $g =& CGroup::getInstance();
+        $g = CGroup::getInstance();
         
         $groups = $g->groups($_USER_ID);
         
@@ -2155,7 +2155,7 @@
         break;
       case 'user_prefs':
         include_once PATH_CLASS . '/CUser.php';
-        $u =& CUser::getInstance();
+        $u = CUser::getInstance();
         $userData = $u->find($_USER_ID);
         
         echo 'true,' . $userData['U_DEFAULTCC'] . ',' . $userData['U_DEFAULTPRIVACY'];
@@ -2254,7 +2254,7 @@
         
       case 'group_quick_set_add':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $tags = (array)explode(',', $_GET['tags']);
         $group_id = $_GET['group_id'];
         $t->groupAddQuickSet($_GET['name'], $tags, $group_id, $_GET['parent'], $_GET['position']);
@@ -2262,28 +2262,28 @@
         break;
       case 'user_quick_set_add':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $tags = (array)explode(',', $_GET['tags']);
         $t->addQuickSet($_GET['name'], $tags, $_USER_ID, $_GET['parent'], $_GET['position']);
         echo 'true';
         break;
       case 'group_quick_set_delete':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $group_id = $_GET['group_id'];
         $t->groupDeleteQuickSet($_GET['set_id'], $group_id);
         echo 'true,' . $group_id;
         break;
       case 'user_quick_set_delete':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         
         $t->deleteQuickSet($_GET['set_id'], $_USER_ID);
         echo 'true';
         break;
       case 'group_quick_set_specific':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $set_id = $_GET['set_id'];
         $group_id = $_GET['group_id'];
         $tag = $t->groupQuickSet($group_id, $set_id);
@@ -2293,7 +2293,7 @@
         break;
       case 'user_quick_set_specific':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $set_id = $_GET['set_id'];
         $tag = $t->quickSet($_USER_ID, $set_id);
         
@@ -2302,14 +2302,14 @@
         break;
       case 'group_quick_set_update':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $group_id = $_GET['group_id'];
         $t->groupUpdateQuickSet($_GET['set_id'], $group_id, $_GET['name'], $_GET['tags'], $_GET['position']);
         echo 'true,' . $group_id;
         break;
       case 'user_quick_set_update':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         
         $t->updateQuickSet($_GET['set_id'], $_USER_ID, $_GET['name'], $_GET['tags'], $_GET['position']);
         echo 'true';
@@ -2317,7 +2317,7 @@
       
       case 'group_quick_sets':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $parent_id = isset($_GET['parent_id']) ? intval($_GET['parent_id']) : 0; // 0 means just top level....1 means all
         $recurse   = isset($_GET['recurse']) ? intval($_GET['recurse']) : 0;
         $group_id = $_GET['group_id'];
@@ -2368,7 +2368,7 @@
         
       case 'user_quick_sets':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $parent_id = isset($_GET['parent_id']) ? intval($_GET['parent_id']) : 0; // 0 means just top level....1 means all
         $recurse   = isset($_GET['recurse']) ? intval($_GET['recurse']) : 0;
         
@@ -2393,21 +2393,21 @@
         break;
       case 'group_quick_set_count':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $group_id = $_GET['group_id'];
         $sets = $t->groupQuickSets($group_id, 0);
         echo 'true,' . count($sets);
         break;
       case 'user_quick_set_count':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $sets = $t->quickSets($_USER_ID, 0);
         
         echo 'true,' . count($sets);
         break;
       case 'group_quick_set_reorder':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         $group_id = $_GET['group_id'];
         
         if($_GET['id'] == 'groupQuickSetParents') // reorder parents
@@ -2429,7 +2429,7 @@
         break;
       case 'user_quick_set_reorder':
         include_once PATH_CLASS . '/CTag.php';
-        $t =& CTag::getInstance();
+        $t = CTag::getInstance();
         
         if($_GET['id'] == 'quickSetParents') // reorder parents
         {
@@ -2450,7 +2450,7 @@
         break;
       case 'get_fotos':
         include_once PATH_CLASS . '/CFotobox.php';
-        $fb =& CFotobox::getInstance();
+        $fb = CFotobox::getInstance();
         
         $start = intval($_GET['start']);
         $limit = intval($_GET['limit']);
@@ -2476,7 +2476,7 @@
         include_once PATH_CLASS . '/CFlix.php';
         include_once PATH_CLASS . '/CFotobox.php';
         $fb = &CFotobox::getInstance();
-        $fl =& CFlix::getInstance();
+        $fl = CFlix::getInstance();
         
         $flix = $fl->search(array('FLIX_ID' => $id, 'GROUP_ID' => $group_id, 'MODE' => 'GROUP'));
         
@@ -2643,7 +2643,7 @@
         $offset = $_GET['offset'];
         
         $fb = &CFotobox::getInstance();
-        $fl =& CFlix::getInstance();
+        $fl = CFlix::getInstance();
         
         $flix = $fl->search(array('MODE' => 'USER', 'FLIX_ID' => $id, 'USER_ID' => $_USER_ID));
         //$template = $fl->template($flix['A_TEMPLATE']);
@@ -2854,7 +2854,7 @@
         
         include_once PATH_CLASS . '/CFlix.php';
         include_once PATH_CLASS . '/CUser.php';
-        $fl =& CFlix::getInstance();
+        $fl = CFlix::getInstance();
         $u = &CUser::getInstance();
         
         $flix = $fl->search(array('FLIX_ID' => $id, 'USER_ID' => $_USER_ID, 'PERMISSION' => PERM_SLIDESHOW_PUBLIC));
@@ -2962,10 +2962,10 @@
         include_once PATH_CLASS . '/CFotoboxManage.php';
         include_once PATH_CLASS . '/CImageEditor.php';
         
-        $id   =& CIdat::getInstance();
-        $ie   =& CImageEditor::getInstance();
-        $fb   =&  CFotobox::getInstance();
-        $fbm  =&  CFotoboxManage::getInstance();
+        $id   = CIdat::getInstance();
+        $ie   = CImageEditor::getInstance();
+        $fb   =  CFotobox::getInstance();
+        $fbm  =  CFotoboxManage::getInstance();
         $fbm  ->  setStamp(FF_YM_STAMP);
         
         $photoId = intval($_GET['photoId']);
@@ -3008,7 +3008,7 @@
         }
         
         include_once PATH_CLASS . '/CFotobox.php';
-        $fb =& CFotobox::getInstance();
+        $fb = CFotobox::getInstance();
         $params = array('USER_ID' => $_USER_ID);
         
         // build query string
@@ -3393,8 +3393,8 @@
       case 'tips_get_next':
         include_once PATH_CLASS . '/CUser.php';
         include_once PATH_CLASS . '/CUserManage.php';
-        $u =& CUser::getInstance();
-        $um =& CUserManage::getInstance();
+        $u = CUser::getInstance();
+        $um = CUserManage::getInstance();
         
         $tip = intval($u->pref($_USER_ID, 'TIP_ID'));
         
@@ -3413,8 +3413,8 @@
       case 'tips_get_tip':
         include_once PATH_CLASS . '/CUser.php';
         include_once PATH_CLASS . '/CUserManage.php';
-        $u =& CUser::getInstance();
-        $um =& CUserManage::getInstance();
+        $u = CUser::getInstance();
+        $um = CUserManage::getInstance();
         
         $output = $u->getTipByKey($_GET['key']);
         /*if($output === false)
@@ -3426,8 +3426,8 @@
       case 'tips_reset':
         include_once PATH_CLASS . '/CUser.php';
         include_once PATH_CLASS . '/CUserManage.php';
-        $u =& CUser::getInstance();
-        $um =& CUserManage::getInstance();
+        $u = CUser::getInstance();
+        $um = CUserManage::getInstance();
         
         $tip = 0;
         $um->setPrefs($_USER_ID, array('TIP_ID' => $tip));
@@ -3440,8 +3440,8 @@
       case 'toolbox_add':
         include_once PATH_CLASS . '/CToolbox.php';
         include_once PATH_CLASS . '/CFotobox.php';
-        $tb =& CToolbox::getInstance();
-        $fb =& CFotobox::getInstance();
+        $tb = CToolbox::getInstance();
+        $fb = CFotobox::getInstance();
         
         $item = intval($_GET['itemId']);
         
@@ -3455,7 +3455,7 @@
         break;
       case 'toolbox_delete_all':
         include_once PATH_CLASS . '/CToolbox.php';
-        $tb =& CToolbox::getInstance();
+        $tb = CToolbox::getInstance();
         
         $type = !empty($_GET['type']) ? $_GET['type'] : 'foto';
         
@@ -3465,7 +3465,7 @@
         break;
       case 'toolbox_load':
         include_once PATH_CLASS . '/CToolbox.php';
-        $tb =& CToolbox::getInstance();
+        $tb = CToolbox::getInstance();
         
         $type = $_GET['type'];
         
@@ -3475,7 +3475,7 @@
         break;
       case 'toolbox_remove':
         include_once PATH_CLASS . '/CToolbox.php';
-        $tb =& CToolbox::getInstance();
+        $tb = CToolbox::getInstance();
         
         $toolboxId = $_GET['id'];
         $type = !empty($_GET['type']) ? $_GET['type'] : 'foto';

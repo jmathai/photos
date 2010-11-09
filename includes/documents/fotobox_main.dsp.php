@@ -249,39 +249,6 @@
           }
         ?>
       </div>
-      
-      <div class="f_11 bold" style="padding-bottom:5px;">The Photagious Blog</div>
-    
-      <div>
-        <?php
-          echo '<!-- pull feed in from /blogs/atom.xml' . ' -->';
-          $xml = simplexml_load_file(PATH_HOMEROOT . '/blogs/atom.xml');
-          
-          $details = $snippit = '';
-          
-          $i = 0;
-          foreach($xml->entry as $v)
-          {
-            $postTime = strtotime($v->published);
-            $snippit .= '<div class="bullet"><a href="#blog_' . $postTime . '">' . $v->title . '</a></div>';
-            $details .= '<div style="height:10px;"></div>
-                  <div class="bold" style="padding-bottom:3px;"><a name="blog_' . $postTime . '"></a>' . $v->title . '</div>
-                  <div class="italic f_7">Posted by: <a href="http://www.fotoflix.com/blogs/' . strtolower($v->author->name) . '/" target="_blank">' . $v->author->name . '</a> on ' . date('l, F d, Y @ h:i a', $postTime) . '</div>
-                  <div style="align:justify;">' . $v->content . '</div>
-                  <div style="height:10px;"></div>
-                  <div class="line_lite"></div>';
-            
-            if($i == 4) // display 5
-            {
-              break;
-            }
-            
-            $i++;
-          }
-          
-          echo $details;
-        ?>
-      </div>
     </div>
   </div>
   

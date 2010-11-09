@@ -1,4 +1,6 @@
 <?php
+  error_reporting(E_ALL ^ E_NOTICE);
+  date_default_timezone_set('America/Los_Angeles');
   $_const_mode = !isset($argv[1]) ? $_SERVER['SERVER_NAME'] : $argv[1];
 
   switch($_const_mode)
@@ -12,20 +14,21 @@
       define('PATH_EXEC', '/opt/local/bin');
       define('FF_SERVER_NAME', 'mac.photagious.com');
       define('FF_STATIC_URL', 'http://mac.photagious.com');
-      define('FF_CDN_URL', 'http://mac.photagious.com');
+      define('FF_CDN_URL', 'http://s3.amazonaws.com/dev.s3.photos.jaisenmathai.com');
       define('FF_MODE', 'development');
       define('FF_ENVIORNMENT', 'local');
       define('FF_ECOM_COMMIT', false);
       define('FF_ECOM_RESULT_DEFAULT', 1); // value defined as a constant CEcomGateway_authorize.php
       define('FF_ERROR_REPORTING', E_ERROR | E_PARSE | E_WARNING);
-      define('FB_API_KEY', 'ae22ca97353391576a2eb44bc595b441');
-      define('FB_SECRET', trim(file_get_contents(PATH_SECRET . '/facebook_secret')));
       define('DB_HOST', 'localhost');
       define('DB_USER', 'root');
-      define('DB_PASS', trim(file_get_contents(PATH_SECRET . '/mysql_password')));
+      define('DB_PASS', '');
       define('DB_NAME', 'photagious');
       define('DB_DBMS', 'mysql');
       define('GMAP_KEY', 'ABQIAAAApenhXDxFYh2ZrUerPrWSdxT7WM4p2E5b68hDZr2ZO_4QtM3KPBQ4BKfPzLWO_98Ol0MT5TJIJ2wnLg');
+      define('AWS_BUCKET', 'dev.s3.photos.jaisenmathai.com');
+      define('AWS_KEY', trim(file_get_contents(PATH_SECRET . '/awskey')));
+      define('AWS_SEC', trim(file_get_contents(PATH_SECRET . '/awssecret')));
       break;
     case 'http':
     case 'photos.branefamily.com':
@@ -44,14 +47,15 @@
       define('FF_ECOM_COMMIT', true); // change to true and change below to ''
       define('FF_ECOM_RESULT_DEFAULT', '');
       define('FF_ERROR_REPORTING', E_ERROR | E_PARSE);
-      define('FB_API_KEY', 'ddf49b968bc8122843f42ae6c55ced98');
-      define('FB_SECRET', trim(file_get_contents(PATH_SECRET . '/facebook_secret')));
       define('DB_HOST', 'localhost');
       define('DB_USER', 'fotoflix_strict');
       define('DB_PASS', trim(file_get_contents(PATH_SECRET . '/mysql_password')));
       define('DB_NAME', 'jaisenmathai_ptg');
       define('DB_DBMS', 'mysql');
       define('GMAP_KEY', 'ABQIAAAApenhXDxFYh2ZrUerPrWSdxT9yy5AVeixNYn6myX0mzov-hUyFhSEaFOZ4RETZGWcVs1kwOYz4cKz0Q');
+      define('AWS_BUCKET', 's3.photos.jaisenmathai.com');
+      define('AWS_KEY', trim(file_get_contents(PATH_SECRET . '/awskey')));
+      define('AWS_SEC', trim(file_get_contents(PATH_SECRET . '/awssecret')));
       break;
     default:
       echo 'Unknown configuration.  Please wait while you are redirected.  (' . $_const_mode . ')';
@@ -158,4 +162,3 @@
   define('FF_VIDEO_BITRATE', '409600'); // 400 kbits/s
   define('FF_AUDIO_FREQUENCY', '22050');
   define('FF_AUDIO_BITRATE', '64');
-?>

@@ -3,7 +3,7 @@
   
   if(isset($_COOKIE[FF_SESSION_KEY])) // check if the cookie is set
   {
-    $_FF_SESSION =& new CSession($_COOKIE[FF_SESSION_KEY]);
+    $_FF_SESSION = new CSession($_COOKIE[FF_SESSION_KEY]);
     $sess_id = $_FF_SESSION->start(true);
     if($sess_id > 0) // check if the cookie has a matching session
     {
@@ -33,7 +33,7 @@
     }
     else // force a new session - cookie exists but no valid session
     {
-      $_FF_SESSION =& new CSession(false, false);
+      $_FF_SESSION = new CSession(false, false);
       $_FF_SESSION->start(false, false);
       
       $_USER_ID = $_USER_PERM = 0;
@@ -42,7 +42,7 @@
   else
   if(!isset($session_bypass)) // normal user (do not bypass a session creation)
   {
-    $_FF_SESSION =& new CSession(false, false);
+    $_FF_SESSION = new CSession(false, false);
     $_FF_SESSION->start(false, false);
     
     $_USER_ID = $_USER_PERM = 0;
@@ -51,4 +51,3 @@
   {
     $_USER_ID = $_USER_PERM = 0;
   }
-?>
