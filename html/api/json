@@ -532,7 +532,7 @@
                       'P_VIEWS' => 'views',
                       'P_CAMERA_MAKE' => 'cameraMake',
                       'P_CAMERA_MODEL' => 'cameraModel',
-                      'P_ORIGINAL_PATH' => 'originalPath',
+                      'P_ORIG_PATH' => 'originalPath',
                       'P_THUMB_PATH' => 'thumbnailPath',
                       'P_MODIFIED' => 'dateModified',
                       'P_TAKEN' => 'dateTaken',

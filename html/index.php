@@ -62,6 +62,11 @@
       include_once PATH_CLASS . '/CFotobox.php';
       include_once PATH_DOCROOT . '/add_space.frm.php';
       break;
+    case 'account.auth.act':
+      include_once PATH_DOCROOT . '/require_login.dsp.php';
+      include_once PATH_CLASS . '/CUser.php';
+      include_once PATH_DOCROOT . '/account_auth.act.php';
+      break;
     case 'account.billing_update_form':
       include_once PATH_CLASS . '/CEcom.php';
       include_once PATH_CLASS . '/CToken.php';
