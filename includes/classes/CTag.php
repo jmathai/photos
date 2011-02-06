@@ -207,6 +207,36 @@ class CTag
     
     return $return;
   }
+
+  /*******************************************************************************************
+  * Description
+  *   
+  *
+  * Output
+  *   
+  *******************************************************************************************/
+  function addSiblings($userId, $tag, $siblings)
+  {
+    $continue = false;
+    $userIdSafe = $this->dbh->sql_safe($userId);
+    $tagSafe = $this->dbh->sql_safe($tag);
+    $sql = "REPLACE INTO user_tag_sibling(uts_u_id, uts_ut_tag, uts_sibling) VALUES ";
+    foreach((array)$siblings as $sibling)
+    {
+      if(empty($sibling) || $sibling == $tag)
+        continue;
+
+      $siblingSafe = $this->dbh->sql_safe($sibling);
+      $continue = true;
+      $sql .= "({$userIdSafe}, {$tagSafe}, {$siblingSafe}), ";
+    }
+
+    if($continue)
+    {
+      $sql = substr($sql, 0, -2);
+      $this->dbh->execute($sql);
+    }
+  }
   
   /*******************************************************************************************
   * Description
