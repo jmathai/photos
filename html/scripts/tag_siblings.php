@@ -11,6 +11,7 @@
   $fb = CFotobox::getInstance();
   $t = CTag::getInstance();
   $users = $u->search(array());
+  $GLOBALS['dbh']->execute('TRUNCATE user_tag_sibling');
   foreach($users as $user)
   {
     $tags = array();

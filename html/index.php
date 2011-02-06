@@ -721,6 +721,12 @@
           include_once PATH_CLASS . '/CUser.php';
           include_once PATH_DOCROOT . '/my_html_slideshow.dsp.php';
           break;
+        case 'map':
+          include_once PATH_CLASS . '/CTag.php';
+          include_once PATH_CLASS . '/CFotobox.php';
+          include_once PATH_CLASS . '/CUser.php';
+          include_once PATH_DOCROOT . '/my_map.dsp.php';
+          break;
         case 'network':
           switch($subsubaction)
           {

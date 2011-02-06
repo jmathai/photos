@@ -141,9 +141,29 @@ class CTag
     {
       return array();
     }
-
     $tags_safe = implode(",", $this->dbh->asql_safe($tags));
     return $this->dbh->query_all("SELECT * FROM user_tags_geo WHERE utg_u_id={$user_id} AND utg_tag IN({$tags_safe})");
+  }
+
+  /*******************************************************************************************
+  * Description
+  *   get siblings of one or more tags
+  *
+  * Output
+  *   array
+  *******************************************************************************************/
+  function getSiblings($user_id = false, $tags = false)
+  {
+    $user_id = intval($user_id);
+    if($tags)
+      $tags = (array)explode(',', preg_replace('/^,|,$/','',$tags));
+
+    if(!$user_id || !$tags)
+    {
+      return array();
+    }
+    $tags_safe = implode(",", $this->dbh->asql_safe($tags));
+    return $this->dbh->query_all("SELECT * FROM  user_tag_sibling WHERE uts_u_id={$user_id} AND uts_ut_tag IN({$tags_safe})");
   }
   
   /*******************************************************************************************

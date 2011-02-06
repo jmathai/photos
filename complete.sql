@@ -2065,9 +2065,9 @@ CREATE TABLE IF NOT EXISTS `user_tags_geo` (
 
 CREATE TABLE IF NOT EXISTS `user_tag_sibling` (
   `uts_u_id` int(11) NOT NULL,
-  `uts_ut_tag` varchar(255) NOT NULL,
-  `uts_sibling` varchar(255) NOT NULL,
-  UNIQUE KEY `user_tag` (`uts_u_id`,`uts_ut_tag`)
+  `uts_ut_tag` varchar(64) NOT NULL,
+  `uts_sibling` varchar(64) NOT NULL,
+  PRIMARY KEY (`uts_u_id`,`uts_ut_tag`,`uts_sibling`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
