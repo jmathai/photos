@@ -31,6 +31,22 @@
   
   // make the imageKey 32 chars
   $imageKey = substr($imageKey, 0, 32);
+
+  // if the file doesn't exist, download it
+  if(!file_exists($fullPath))
+  {
+    $im =& CImageMagick::getInstance();
+    $fp = fopen($fullPath, 'w+');
+    $s3Path = str_replace(array(PATH_HOMEROOT, 'photos/base/'), array('', 'original/'), $fullPath);
+    $s3Url = "http://s3.photos.jaisenmathai.com{$s3Path}";
+    $ch = curl_init($s3Url);
+    curl_setopt($ch, CURLOPT_FILE, $fp);
+    $data = curl_exec($ch);
+    curl_close($ch);
+    fclose($fp);
+    $im->image($fullPath);
+    $im->scale(FF_BASE_WIDTH, FF_BASE_HEIGHT);
+  }
   
   if(file_exists($fullPath) && strlen($imageKey) == 32 && (strcasecmp('.jpg', $iExt) == 0 || strcasecmp('.jpeg', $iExt) == 0))
   {
